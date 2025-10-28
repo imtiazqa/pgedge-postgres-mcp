@@ -1,0 +1,340 @@
+# pgEdge MCP Server
+
+A Model Context Protocol (MCP) server written in Go that enables natural language queries against PostgreSQL databases. The server uses Claude AI to translate natural language questions into SQL queries by analyzing database metadata including table names, view names, column names, data types, and comments from pg_description.
+
+## Features
+
+- **Natural Language to SQL**: Convert plain English questions into SQL queries using Claude AI
+- **Comprehensive Schema Analysis**: Extracts and utilizes:
+  - Table and view names
+  - Column names and data types
+  - Nullability constraints
+  - Comments from pg_description (table and column descriptions)
+  - Schema information
+- **MCP Protocol**: Implements the Model Context Protocol for stdio communication
+- **Two MCP Tools**:
+  - `query_database`: Execute natural language queries and get results
+  - `get_schema_info`: Retrieve detailed database schema information
+
+## Prerequisites
+
+- Go 1.21 or higher
+- PostgreSQL database (any version that supports pg_description)
+- Anthropic API key (for Claude AI)
+
+## Installation
+
+### From Source
+
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd pgedge-mcp
+```
+
+2. Build the binary:
+```bash
+go build -o pgedge-mcp
+```
+
+3. The binary will be created as `pgedge-mcp` in the current directory.
+
+## Configuration
+
+### Environment Variables
+
+The server requires the following environment variables:
+
+- `POSTGRES_CONNECTION_STRING` (required): PostgreSQL connection string
+  - Format: `postgres://username:password@host:port/database?sslmode=disable`
+  - Example: `postgres://myuser:mypass@localhost:5432/mydb?sslmode=disable`
+
+- `ANTHROPIC_API_KEY` (required for natural language queries): Your Anthropic API key
+  - Get yours at: https://console.anthropic.com/
+
+- `ANTHROPIC_MODEL` (optional): Claude model to use
+  - Default: `claude-sonnet-4-5`
+  - Other options: `claude-3-opus-20240229`, `claude-3-sonnet-20240229`, `claude-3-haiku-20240307`
+
+### Configuration File for Claude Desktop
+
+To use this MCP server with Claude Desktop, add it to your MCP configuration file:
+
+**Location**:
+- macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- Windows: `%APPDATA%\Claude\claude_desktop_config.json`
+- Linux: `~/.config/Claude/claude_desktop_config.json`
+
+**Configuration**:
+```json
+{
+  "mcpServers": {
+    "pgedge": {
+      "command": "/absolute/path/to/pgedge-mcp",
+      "env": {
+        "POSTGRES_CONNECTION_STRING": "postgres://username:password@localhost:5432/database_name?sslmode=disable",
+        "ANTHROPIC_API_KEY": "sk-ant-your-api-key-here",
+        "ANTHROPIC_MODEL": "claude-sonnet-4-5"
+      }
+    }
+  }
+}
+```
+
+Replace `/absolute/path/to/pgedge-mcp` with the full path to your compiled binary.
+
+## Usage
+
+### With Claude Desktop
+
+1. Configure the server in your Claude Desktop config (see above)
+2. Restart Claude Desktop
+3. The server will automatically start when needed
+4. Available tools will appear in Claude's interface:
+   - `query_database`: Ask questions about your data
+   - `get_schema_info`: View database schema
+
+### Example Queries
+
+Once configured, you can ask Claude questions like:
+
+- "Show me all customers who made purchases in the last month"
+- "What are the top 10 products by revenue?"
+- "List all users who haven't logged in for more than 30 days"
+- "Show me the average order value by customer segment"
+- "Find all orders with items that are out of stock"
+
+### Schema Information
+
+To understand your database structure:
+
+- "Show me the database schema"
+- "What tables are available?"
+- "Describe the customers table"
+- "What columns are in the orders table?"
+
+## How It Works
+
+1. **Metadata Extraction**: On startup, the server connects to PostgreSQL and extracts:
+   - All tables and views (excluding system schemas)
+   - Column information (names, data types, nullability)
+   - Comments from pg_description for both tables and columns
+
+2. **Natural Language Processing**: When you ask a question:
+   - The question and schema context are sent to Claude AI
+   - Claude analyzes the schema and generates appropriate SQL
+   - The generated SQL is executed against your database
+   - Results are formatted and returned
+
+3. **Schema Context**: The LLM receives rich context including:
+   ```
+   schema_name.table_name (TABLE/VIEW)
+     Description: [from pg_description]
+     Columns:
+       - column_name (data_type) [NULL] - [column description]
+       ...
+   ```
+
+## Adding Database Comments
+
+To get the most value from this tool, add comments to your database objects:
+
+```sql
+-- Add table comment
+COMMENT ON TABLE customers IS 'Customer information including contact details and preferences';
+
+-- Add column comments
+COMMENT ON COLUMN customers.created_at IS 'Timestamp when the customer account was created';
+COMMENT ON COLUMN customers.last_login IS 'Last successful login timestamp';
+COMMENT ON COLUMN customers.segment IS 'Customer segment: premium, standard, or basic';
+
+-- Add view comment
+COMMENT ON VIEW active_customers IS 'Customers who have logged in within the last 90 days';
+```
+
+These comments help Claude understand your data model and generate more accurate queries.
+
+## Development
+
+### Project Structure
+
+```
+pgedge-mcp/
+├── main.go                      # Main server implementation and MCP protocol
+├── llm.go                       # Claude AI integration for NL-to-SQL
+├── go.mod                       # Go module dependencies
+├── go.sum                       # Go module checksums
+├── README.md                    # This file
+├── .env.example                 # Example environment variables
+├── .gitignore                   # Git ignore rules
+└── mcp-config.example.json      # Example MCP configuration
+```
+
+### Running Locally
+
+For testing without an MCP client:
+
+```bash
+# Set environment variables
+export POSTGRES_CONNECTION_STRING="postgres://localhost/mydb?sslmode=disable"
+export ANTHROPIC_API_KEY="sk-ant-your-key"
+
+# Run the server
+./pgedge-mcp
+```
+
+The server will read JSON-RPC messages from stdin and write responses to stdout.
+
+### Testing with MCP Inspector
+
+You can test the server using the MCP Inspector tool:
+
+```bash
+npx @modelcontextprotocol/inspector /path/to/pgedge-mcp
+```
+
+## MCP Protocol Implementation
+
+This server implements the Model Context Protocol version `2024-11-05` with the following methods:
+
+- `initialize`: Server initialization and capability negotiation
+- `tools/list`: List available tools
+- `tools/call`: Execute a tool
+
+### Available Tools
+
+#### query_database
+
+Executes a natural language query against the database.
+
+**Input**:
+```json
+{
+  "query": "Show me all users created in the last week"
+}
+```
+
+**Output**:
+```
+Natural Language Query: Show me all users created in the last week
+
+Generated SQL:
+SELECT * FROM users WHERE created_at >= NOW() - INTERVAL '7 days' ORDER BY created_at DESC
+
+Results (15 rows):
+[
+  {
+    "id": 123,
+    "username": "john_doe",
+    "created_at": "2024-10-25T14:30:00Z",
+    ...
+  },
+  ...
+]
+```
+
+#### get_schema_info
+
+Retrieves database schema information.
+
+**Input** (optional):
+```json
+{
+  "schema_name": "public"
+}
+```
+
+**Output**:
+```
+Database Schema Information:
+============================
+
+public.users (TABLE)
+  Description: User accounts and authentication
+  Columns:
+    - id: bigint
+    - username: character varying(255)
+      Description: Unique username for login
+    - created_at: timestamp with time zone (nullable)
+      Description: Account creation timestamp
+    ...
+```
+
+## Security Considerations
+
+1. **Database Credentials**: Store connection strings securely
+   - Use environment variables
+   - Never commit credentials to version control
+   - Consider using password files or secret management systems
+
+2. **API Keys**: Protect your Anthropic API key
+   - Store in environment variables
+   - Rotate keys regularly
+   - Monitor API usage
+
+3. **Query Safety**: The server executes generated SQL directly
+   - Review the SQL before execution when possible
+   - Use read-only database users when appropriate
+   - Consider implementing query validation/sandboxing
+   - Monitor for suspicious queries
+
+4. **Network Security**:
+   - Use SSL/TLS for PostgreSQL connections when possible
+   - Restrict database access to trusted networks
+
+## Troubleshooting
+
+**For detailed troubleshooting, see [TROUBLESHOOTING.md](TROUBLESHOOTING.md)**
+
+### Quick Diagnostics
+
+**Test your connection:**
+```bash
+./test-connection.sh
+```
+
+**Check logs:**
+```bash
+# macOS
+tail -f ~/Library/Logs/Claude/mcp*.log
+
+# Look for these messages:
+# [pgedge-mcp] Starting server...
+# [pgedge-mcp] Database connected successfully
+# [pgedge-mcp] Loaded metadata for X tables/views
+# [pgedge-mcp] Starting stdio server loop...
+```
+
+### Common Issues
+
+**Server exits immediately:**
+- Check `POSTGRES_CONNECTION_STRING` is correct
+- Verify PostgreSQL is running
+- See detailed solutions in [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
+
+**Tools not appearing:**
+- Restart Claude Desktop completely
+- Verify MCP config has absolute path to binary
+- Check JSON syntax in config file
+
+**Natural language queries fail:**
+- Set `ANTHROPIC_API_KEY` in MCP config
+- Verify API key is valid at https://console.anthropic.com/
+- Check you have API credits
+
+**Poor query results:**
+- Add COMMENT statements to your database (see [example_comments.sql](example_comments.sql))
+- Be more specific in your questions
+- Ask Claude to "show me the database schema" first
+
+## License
+
+[Add your license here]
+
+## Contributing
+
+[Add contribution guidelines here]
+
+## Support
+
+For issues, questions, or contributions, please [add contact/issue tracker information].
