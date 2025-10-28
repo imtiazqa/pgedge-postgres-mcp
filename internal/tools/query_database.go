@@ -16,13 +16,13 @@ func QueryDatabaseTool(dbClient *database.Client, llmClient *llm.Client) Tool {
 	return Tool{
 		Definition: mcp.Tool{
 			Name:        "query_database",
-			Description: "Execute a natural language query against the PostgreSQL database. The system will analyze the database schema (including table names, column names, data types, and comments from pg_description) to understand the structure and convert your natural language query into SQL. Returns the query results.",
+			Description: "Execute a natural language query against the PostgreSQL database. The system will analyze the database schema (including table names, column names, data types, and comments from pg_description) to understand the structure and convert your natural language query into SQL. You can also specify an alternative database connection by including 'at postgres://...' in your query, or set a new default connection with 'set default database to postgres://...'.",
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]interface{}{
 					"query": map[string]interface{}{
 						"type":        "string",
-						"description": "Natural language question about the data in the database",
+						"description": "Natural language question about the data in the database. Can include connection strings like 'Show users at postgres://host/db' or 'set default database to postgres://host/db'.",
 					},
 				},
 				Required: []string{"query"},
@@ -42,8 +42,90 @@ func QueryDatabaseTool(dbClient *database.Client, llmClient *llm.Client) Tool {
 				}, nil
 			}
 
-			// Check if metadata is loaded
-			if !dbClient.IsMetadataLoaded() {
+			// Parse query for connection string and intent
+			queryCtx := database.ParseQueryForConnection(query)
+
+			// Determine which connection to use
+			connStr := dbClient.GetDefaultConnection()
+			var connectionMessage string
+
+			// Handle connection string changes
+			if queryCtx.ConnectionString != "" {
+				if queryCtx.SetAsDefault {
+					// User wants to set a new default connection
+					err := dbClient.SetDefaultConnection(queryCtx.ConnectionString)
+					if err != nil {
+						return mcp.ToolResponse{
+							Content: []mcp.ContentItem{
+								{
+									Type: "text",
+									Text: fmt.Sprintf("Failed to set default connection to %s: %v", queryCtx.ConnectionString, err),
+								},
+							},
+							IsError: true,
+						}, nil
+					}
+
+					return mcp.ToolResponse{
+						Content: []mcp.ContentItem{
+							{
+								Type: "text",
+								Text: fmt.Sprintf("Successfully set default database connection to:\n%s\n\nMetadata loaded: %d tables/views available.",
+									queryCtx.ConnectionString,
+									len(dbClient.GetMetadata())),
+							},
+						},
+					}, nil
+				} else {
+					// Temporary connection for this query only
+					err := dbClient.ConnectTo(queryCtx.ConnectionString)
+					if err != nil {
+						return mcp.ToolResponse{
+							Content: []mcp.ContentItem{
+								{
+									Type: "text",
+									Text: fmt.Sprintf("Failed to connect to %s: %v", queryCtx.ConnectionString, err),
+								},
+							},
+							IsError: true,
+						}, nil
+					}
+
+					// Load metadata if needed
+					if !dbClient.IsMetadataLoadedFor(queryCtx.ConnectionString) {
+						err = dbClient.LoadMetadataFor(queryCtx.ConnectionString)
+						if err != nil {
+							return mcp.ToolResponse{
+								Content: []mcp.ContentItem{
+									{
+										Type: "text",
+										Text: fmt.Sprintf("Failed to load metadata from %s: %v", queryCtx.ConnectionString, err),
+									},
+								},
+								IsError: true,
+							}, nil
+						}
+					}
+
+					connStr = queryCtx.ConnectionString
+					connectionMessage = fmt.Sprintf("Using connection: %s\n\n", connStr)
+				}
+			}
+
+			// If the cleaned query is empty (e.g., just a connection command), we're done
+			if strings.TrimSpace(queryCtx.CleanedQuery) == "" {
+				return mcp.ToolResponse{
+					Content: []mcp.ContentItem{
+						{
+							Type: "text",
+							Text: "Connection command executed successfully. No query to run.",
+						},
+					},
+				}, nil
+			}
+
+			// Check if metadata is loaded for the target connection
+			if !dbClient.IsMetadataLoadedFor(connStr) {
 				return mcp.ToolResponse{
 					Content: []mcp.ContentItem{
 						{
@@ -55,8 +137,8 @@ func QueryDatabaseTool(dbClient *database.Client, llmClient *llm.Client) Tool {
 				}, nil
 			}
 
-			// Generate schema context
-			schemaContext := generateSchemaContext(dbClient.GetMetadata())
+			// Generate schema context for the target connection
+			schemaContext := generateSchemaContext(dbClient.GetMetadataFor(connStr))
 
 			// Check if LLM is configured
 			if !llmClient.IsConfigured() {
@@ -64,36 +146,50 @@ func QueryDatabaseTool(dbClient *database.Client, llmClient *llm.Client) Tool {
 					Content: []mcp.ContentItem{
 						{
 							Type: "text",
-							Text: fmt.Sprintf("Natural language query: %s\n\nDatabase Schema Context:\n%s\n\nERROR: ANTHROPIC_API_KEY environment variable is not set.\n\nTo enable natural language to SQL conversion, please set the ANTHROPIC_API_KEY environment variable.\nYou can optionally set ANTHROPIC_MODEL to specify a different model (default: claude-3-5-sonnet-20240620).", query, schemaContext),
+							Text: fmt.Sprintf("%sNatural language query: %s\n\nDatabase Schema Context:\n%s\n\nERROR: ANTHROPIC_API_KEY environment variable is not set.\n\nTo enable natural language to SQL conversion, please set the ANTHROPIC_API_KEY environment variable.\nYou can optionally set ANTHROPIC_MODEL to specify a different model (default: claude-sonnet-4-5).",
+								connectionMessage, queryCtx.CleanedQuery, schemaContext),
 						},
 					},
 					IsError: true,
 				}, nil
 			}
 
-			// Convert natural language to SQL
-			sqlQuery, err := llmClient.ConvertNLToSQL(query, schemaContext)
+			// Convert natural language to SQL using the cleaned query
+			sqlQuery, err := llmClient.ConvertNLToSQL(queryCtx.CleanedQuery, schemaContext)
 			if err != nil {
 				return mcp.ToolResponse{
 					Content: []mcp.ContentItem{
 						{
 							Type: "text",
-							Text: fmt.Sprintf("Failed to convert natural language to SQL: %v", err),
+							Text: fmt.Sprintf("%sFailed to convert natural language to SQL: %v", connectionMessage, err),
 						},
 					},
 					IsError: true,
 				}, nil
 			}
 
-			// Execute the SQL query
+			// Execute the SQL query on the appropriate connection
 			ctx := context.Background()
-			rows, err := dbClient.GetPool().Query(ctx, sqlQuery)
+			pool := dbClient.GetPoolFor(connStr)
+			if pool == nil {
+				return mcp.ToolResponse{
+					Content: []mcp.ContentItem{
+						{
+							Type: "text",
+							Text: fmt.Sprintf("Connection pool not found for: %s", connStr),
+						},
+					},
+					IsError: true,
+				}, nil
+			}
+
+			rows, err := pool.Query(ctx, sqlQuery)
 			if err != nil {
 				return mcp.ToolResponse{
 					Content: []mcp.ContentItem{
 						{
 							Type: "text",
-							Text: fmt.Sprintf("Generated SQL:\n%s\n\nError executing query: %v", sqlQuery, err),
+							Text: fmt.Sprintf("%sGenerated SQL:\n%s\n\nError executing query: %v", connectionMessage, sqlQuery, err),
 						},
 					},
 					IsError: true,
@@ -158,7 +254,10 @@ func QueryDatabaseTool(dbClient *database.Client, llmClient *llm.Client) Tool {
 			}
 
 			var sb strings.Builder
-			sb.WriteString(fmt.Sprintf("Natural Language Query: %s\n\n", query))
+			if connectionMessage != "" {
+				sb.WriteString(connectionMessage)
+			}
+			sb.WriteString(fmt.Sprintf("Natural Language Query: %s\n\n", queryCtx.CleanedQuery))
 			sb.WriteString(fmt.Sprintf("Generated SQL:\n%s\n\n", sqlQuery))
 			sb.WriteString(fmt.Sprintf("Results (%d rows):\n%s", len(results), string(resultsJSON)))
 

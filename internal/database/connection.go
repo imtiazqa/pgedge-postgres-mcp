@@ -9,50 +9,132 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// Client manages the PostgreSQL connection and metadata
+// ConnectionInfo holds a connection pool and its metadata
+type ConnectionInfo struct {
+	ConnString     string
+	Pool           *pgxpool.Pool
+	Metadata       map[string]TableInfo
+	MetadataLoaded bool
+}
+
+// Client manages multiple PostgreSQL connections and metadata
 type Client struct {
-	pool           *pgxpool.Pool
-	metadata       map[string]TableInfo
-	metadataLoaded bool
-	mu             sync.RWMutex
+	connections      map[string]*ConnectionInfo // keyed by connection string
+	defaultConnStr   string                     // current default connection string
+	initialConnStr   string                     // original connection string from env
+	mu               sync.RWMutex
 }
 
 // NewClient creates a new database client
 func NewClient() *Client {
 	return &Client{
-		metadata: make(map[string]TableInfo),
+		connections: make(map[string]*ConnectionInfo),
 	}
 }
 
-// Connect establishes a connection to the PostgreSQL database
+// Connect establishes a connection to the default PostgreSQL database
 func (c *Client) Connect() error {
 	connStr := os.Getenv("POSTGRES_CONNECTION_STRING")
 	if connStr == "" {
 		connStr = "postgres://localhost/postgres?sslmode=disable"
 	}
 
-	var err error
-	c.pool, err = pgxpool.New(context.Background(), connStr)
+	c.mu.Lock()
+	c.initialConnStr = connStr
+	c.defaultConnStr = connStr
+	c.mu.Unlock()
+
+	return c.ConnectTo(connStr)
+}
+
+// ConnectTo establishes a connection to a specific PostgreSQL database
+func (c *Client) ConnectTo(connStr string) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	// Check if connection already exists
+	if _, exists := c.connections[connStr]; exists {
+		return nil // Already connected
+	}
+
+	pool, err := pgxpool.New(context.Background(), connStr)
 	if err != nil {
 		return fmt.Errorf("unable to create connection pool: %w", err)
 	}
 
-	if err := c.pool.Ping(context.Background()); err != nil {
+	if err := pool.Ping(context.Background()); err != nil {
+		pool.Close()
 		return fmt.Errorf("unable to ping database: %w", err)
+	}
+
+	c.connections[connStr] = &ConnectionInfo{
+		ConnString:     connStr,
+		Pool:           pool,
+		Metadata:       make(map[string]TableInfo),
+		MetadataLoaded: false,
 	}
 
 	return nil
 }
 
-// Close closes the database connection
-func (c *Client) Close() {
-	if c.pool != nil {
-		c.pool.Close()
+// SetDefaultConnection sets the default connection string to use for queries
+func (c *Client) SetDefaultConnection(connStr string) error {
+	// Ensure the connection exists
+	if err := c.ConnectTo(connStr); err != nil {
+		return err
 	}
+
+	c.mu.Lock()
+	c.defaultConnStr = connStr
+	c.mu.Unlock()
+
+	// Load metadata if not already loaded
+	if !c.IsMetadataLoadedFor(connStr) {
+		return c.LoadMetadataFor(connStr)
+	}
+
+	return nil
 }
 
-// LoadMetadata loads table and column metadata from the database
+// GetDefaultConnection returns the current default connection string
+func (c *Client) GetDefaultConnection() string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.defaultConnStr
+}
+
+// Close closes all database connections
+func (c *Client) Close() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	for _, conn := range c.connections {
+		if conn.Pool != nil {
+			conn.Pool.Close()
+		}
+	}
+	c.connections = make(map[string]*ConnectionInfo)
+}
+
+// LoadMetadata loads table and column metadata for the default database
 func (c *Client) LoadMetadata() error {
+	c.mu.RLock()
+	connStr := c.defaultConnStr
+	c.mu.RUnlock()
+
+	return c.LoadMetadataFor(connStr)
+}
+
+// LoadMetadataFor loads table and column metadata for a specific connection
+func (c *Client) LoadMetadataFor(connStr string) error {
+	c.mu.RLock()
+	conn, exists := c.connections[connStr]
+	c.mu.RUnlock()
+
+	if !exists {
+		return fmt.Errorf("connection not found: %s", connStr)
+	}
+
 	ctx := context.Background()
 
 	query := `
@@ -103,7 +185,7 @@ func (c *Client) LoadMetadata() error {
 		ORDER BY tc.schema_name, tc.table_name, ci.column_name
 	`
 
-	rows, err := c.pool.Query(ctx, query)
+	rows, err := conn.Pool.Query(ctx, query)
 	if err != nil {
 		return fmt.Errorf("failed to query metadata: %w", err)
 	}
@@ -149,33 +231,98 @@ func (c *Client) LoadMetadata() error {
 
 	// Update metadata atomically
 	c.mu.Lock()
-	c.metadata = newMetadata
-	c.metadataLoaded = true
+	conn.Metadata = newMetadata
+	conn.MetadataLoaded = true
 	c.mu.Unlock()
 
 	return nil
 }
 
-// GetMetadata returns a copy of the metadata map
+// GetMetadata returns a copy of the metadata map for the default connection
 func (c *Client) GetMetadata() map[string]TableInfo {
+	c.mu.RLock()
+	connStr := c.defaultConnStr
+	c.mu.RUnlock()
+
+	return c.GetMetadataFor(connStr)
+}
+
+// GetMetadataFor returns a copy of the metadata map for a specific connection
+func (c *Client) GetMetadataFor(connStr string) map[string]TableInfo {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
-	result := make(map[string]TableInfo, len(c.metadata))
-	for k, v := range c.metadata {
+	conn, exists := c.connections[connStr]
+	if !exists {
+		return make(map[string]TableInfo)
+	}
+
+	result := make(map[string]TableInfo, len(conn.Metadata))
+	for k, v := range conn.Metadata {
 		result[k] = v
 	}
 	return result
 }
 
-// IsMetadataLoaded returns whether metadata has been loaded
+// IsMetadataLoaded returns whether metadata has been loaded for the default connection
 func (c *Client) IsMetadataLoaded() bool {
 	c.mu.RLock()
-	defer c.mu.RUnlock()
-	return c.metadataLoaded
+	connStr := c.defaultConnStr
+	c.mu.RUnlock()
+
+	return c.IsMetadataLoadedFor(connStr)
 }
 
-// GetPool returns the connection pool for direct queries
+// IsMetadataLoadedFor returns whether metadata has been loaded for a specific connection
+func (c *Client) IsMetadataLoadedFor(connStr string) bool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	conn, exists := c.connections[connStr]
+	if !exists {
+		return false
+	}
+	return conn.MetadataLoaded
+}
+
+// GetPool returns the connection pool for the default connection
 func (c *Client) GetPool() *pgxpool.Pool {
-	return c.pool
+	c.mu.RLock()
+	connStr := c.defaultConnStr
+	c.mu.RUnlock()
+
+	return c.GetPoolFor(connStr)
+}
+
+// GetPoolFor returns the connection pool for a specific connection
+func (c *Client) GetPoolFor(connStr string) *pgxpool.Pool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	conn, exists := c.connections[connStr]
+	if !exists {
+		return nil
+	}
+	return conn.Pool
+}
+
+// GetConnectionInfo returns information about a specific connection
+func (c *Client) GetConnectionInfo(connStr string) (*ConnectionInfo, bool) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	conn, exists := c.connections[connStr]
+	return conn, exists
+}
+
+// ListConnections returns a list of all connection strings
+func (c *Client) ListConnections() []string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	var result []string
+	for connStr := range c.connections {
+		result = append(result, connStr)
+	}
+	return result
 }

@@ -20,6 +20,7 @@ A Model Context Protocol (MCP) server written in Go that enables natural languag
 
 For additional documentation, please see:
 
+- **[Query Examples](docs/EXAMPLES.md)** - Comprehensive collection of example queries including basic data queries, schema discovery, multi-database queries, and advanced usage patterns
 - **[Architecture Guide](docs/ARCHITECTURE.md)** - Detailed information about the project structure, components, data flow, and how to extend the server with new tools, resources, and prompts
 - **[Troubleshooting Guide](docs/TROUBLESHOOTING.md)** - Comprehensive troubleshooting steps for common issues, connection problems, and debugging techniques
 
@@ -102,24 +103,35 @@ Replace `/absolute/path/to/pgedge-mcp` with the full path to your project direct
    - `query_database`: Ask questions about your data
    - `get_schema_info`: View database schema
 
-### Example Queries
+### Query Examples
 
-Once configured, you can ask Claude questions like:
+Once configured, you can ask Claude natural language questions about your data:
 
+**Basic Queries:**
 - "Show me all customers who made purchases in the last month"
 - "What are the top 10 products by revenue?"
 - "List all users who haven't logged in for more than 30 days"
-- "Show me the average order value by customer segment"
-- "Find all orders with items that are out of stock"
 
-### Schema Information
-
-To understand your database structure:
-
+**Schema Discovery:**
 - "Show me the database schema"
 - "What tables are available?"
 - "Describe the customers table"
-- "What columns are in the orders table?"
+
+**Multi-Database Queries:**
+- "Show users at postgres://localhost:5433/other_db" (temporary connection)
+- "Set default database to postgres://analytics-server/analytics" (change default)
+
+For a comprehensive collection of examples including advanced queries, multi-database patterns, and real-world scenarios, see **[Query Examples](docs/EXAMPLES.md)**.
+
+### Multi-Database Support
+
+The server supports querying multiple PostgreSQL databases dynamically by including connection strings in your queries:
+
+- **Temporary queries**: Include `at postgres://...` in your query to connect temporarily
+- **Change default**: Use `set default database to postgres://...` to switch permanently
+- **Connection format**: `postgres://[user[:password]@][host][:port][/dbname][?params]`
+
+See the **[Query Examples](docs/EXAMPLES.md)** guide for detailed examples and patterns.
 
 ## How It Works
 
@@ -216,12 +228,28 @@ This server implements the Model Context Protocol version `2024-11-05` with the 
 
 #### query_database
 
-Executes a natural language query against the database.
+Executes a natural language query against the PostgreSQL database. Supports dynamic connection strings to query different databases.
 
-**Input**:
+**Input Examples**:
+
+Basic query:
 ```json
 {
   "query": "Show me all users created in the last week"
+}
+```
+
+Query with temporary connection:
+```json
+{
+  "query": "Show me table list at postgres://localhost:5433/other_db"
+}
+```
+
+Set new default connection:
+```json
+{
+  "query": "Set default database to postgres://localhost/analytics"
 }
 ```
 
