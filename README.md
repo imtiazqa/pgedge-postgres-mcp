@@ -16,6 +16,13 @@ A Model Context Protocol (MCP) server written in Go that enables natural languag
   - `query_database`: Execute natural language queries and get results
   - `get_schema_info`: Retrieve detailed database schema information
 
+## Documentation
+
+For additional documentation, please see:
+
+- **[Architecture Guide](docs/ARCHITECTURE.md)** - Detailed information about the project structure, components, data flow, and how to extend the server with new tools, resources, and prompts
+- **[Troubleshooting Guide](docs/TROUBLESHOOTING.md)** - Comprehensive troubleshooting steps for common issues, connection problems, and debugging techniques
+
 ## Prerequisites
 
 - Go 1.21 or higher
@@ -34,10 +41,11 @@ cd pgedge-mcp
 
 2. Build the binary:
 ```bash
-go build -o pgedge-mcp
+make build
+# Or: go build -o bin/pgedge-mcp ./cmd/pgedge-mcp
 ```
 
-3. The binary will be created as `pgedge-mcp` in the current directory.
+3. The binary will be created as `bin/pgedge-mcp`.
 
 ## Configuration
 
@@ -54,7 +62,7 @@ The server requires the following environment variables:
 
 - `ANTHROPIC_MODEL` (optional): Claude model to use
   - Default: `claude-sonnet-4-5`
-  - Other options: `claude-3-opus-20240229`, `claude-3-sonnet-20240229`, `claude-3-haiku-20240307`
+  - Other options: `claude-haiku-4-5`, `claude-opus-4-1`
 
 ### Configuration File for Claude Desktop
 
@@ -70,7 +78,7 @@ To use this MCP server with Claude Desktop, add it to your MCP configuration fil
 {
   "mcpServers": {
     "pgedge": {
-      "command": "/absolute/path/to/pgedge-mcp",
+      "command": "/absolute/path/to/pgedge-mcp/bin/pgedge-mcp",
       "env": {
         "POSTGRES_CONNECTION_STRING": "postgres://username:password@localhost:5432/database_name?sslmode=disable",
         "ANTHROPIC_API_KEY": "sk-ant-your-api-key-here",
@@ -81,7 +89,7 @@ To use this MCP server with Claude Desktop, add it to your MCP configuration fil
 }
 ```
 
-Replace `/absolute/path/to/pgedge-mcp` with the full path to your compiled binary.
+Replace `/absolute/path/to/pgedge-mcp` with the full path to your project directory.
 
 ## Usage
 
@@ -160,15 +168,18 @@ These comments help Claude understand your data model and generate more accurate
 
 ```
 pgedge-mcp/
-├── main.go                      # Main server implementation and MCP protocol
-├── llm.go                       # Claude AI integration for NL-to-SQL
-├── go.mod                       # Go module dependencies
-├── go.sum                       # Go module checksums
-├── README.md                    # This file
-├── .env.example                 # Example environment variables
-├── .gitignore                   # Git ignore rules
-└── mcp-config.example.json      # Example MCP configuration
+├── cmd/pgedge-mcp/          # Application entry point
+├── internal/                # Private packages
+│   ├── database/            # PostgreSQL integration
+│   ├── llm/                 # Claude API client
+│   ├── mcp/                 # MCP protocol
+│   └── tools/               # Tool implementations
+├── docs/                    # Documentation
+├── configs/                 # Configuration examples
+└── bin/                     # Compiled binaries
 ```
+
+For detailed architecture information, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ### Running Locally
 
@@ -180,7 +191,7 @@ export POSTGRES_CONNECTION_STRING="postgres://localhost/mydb?sslmode=disable"
 export ANTHROPIC_API_KEY="sk-ant-your-key"
 
 # Run the server
-./pgedge-mcp
+./bin/pgedge-mcp
 ```
 
 The server will read JSON-RPC messages from stdin and write responses to stdout.
@@ -190,7 +201,7 @@ The server will read JSON-RPC messages from stdin and write responses to stdout.
 You can test the server using the MCP Inspector tool:
 
 ```bash
-npx @modelcontextprotocol/inspector /path/to/pgedge-mcp
+npx @modelcontextprotocol/inspector /path/to/bin/pgedge-mcp
 ```
 
 ## MCP Protocol Implementation
@@ -284,14 +295,9 @@ public.users (TABLE)
 
 ## Troubleshooting
 
-**For detailed troubleshooting, see [TROUBLESHOOTING.md](TROUBLESHOOTING.md)**
+**For detailed troubleshooting, see [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)**
 
 ### Quick Diagnostics
-
-**Test your connection:**
-```bash
-./test-connection.sh
-```
 
 **Check logs:**
 ```bash
@@ -299,10 +305,7 @@ public.users (TABLE)
 tail -f ~/Library/Logs/Claude/mcp*.log
 
 # Look for these messages:
-# [pgedge-mcp] Starting server...
-# [pgedge-mcp] Database connected successfully
-# [pgedge-mcp] Loaded metadata for X tables/views
-# [pgedge-mcp] Starting stdio server loop...
+# Database ready: X tables/views loaded
 ```
 
 ### Common Issues
@@ -310,7 +313,7 @@ tail -f ~/Library/Logs/Claude/mcp*.log
 **Server exits immediately:**
 - Check `POSTGRES_CONNECTION_STRING` is correct
 - Verify PostgreSQL is running
-- See detailed solutions in [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
+- See detailed solutions in [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
 
 **Tools not appearing:**
 - Restart Claude Desktop completely
@@ -323,7 +326,7 @@ tail -f ~/Library/Logs/Claude/mcp*.log
 - Check you have API credits
 
 **Poor query results:**
-- Add COMMENT statements to your database (see [example_comments.sql](example_comments.sql))
+- Add COMMENT statements to your database
 - Be more specific in your questions
 - Ask Claude to "show me the database schema" first
 

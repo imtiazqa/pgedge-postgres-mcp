@@ -1,7 +1,9 @@
 .PHONY: build clean test run install help
 
-# Binary name
+# Binary name and output directory
 BINARY_NAME=pgedge-mcp
+BIN_DIR=bin
+CMD_DIR=cmd/pgedge-mcp
 
 # Build variables
 GO=go
@@ -13,33 +15,36 @@ all: build
 # Build the binary
 build:
 	@echo "Building $(BINARY_NAME)..."
-	$(GO) build $(GOFLAGS) -o $(BINARY_NAME)
-	@echo "Build complete: $(BINARY_NAME)"
+	@mkdir -p $(BIN_DIR)
+	$(GO) build $(GOFLAGS) -o $(BIN_DIR)/$(BINARY_NAME) ./$(CMD_DIR)
+	@echo "Build complete: $(BIN_DIR)/$(BINARY_NAME)"
 
 # Build for multiple platforms
 build-all: build-linux build-darwin build-windows
 
 build-linux:
 	@echo "Building for Linux..."
-	GOOS=linux GOARCH=amd64 $(GO) build $(GOFLAGS) -o $(BINARY_NAME)-linux-amd64
-	@echo "Linux build complete: $(BINARY_NAME)-linux-amd64"
+	@mkdir -p $(BIN_DIR)
+	GOOS=linux GOARCH=amd64 $(GO) build $(GOFLAGS) -o $(BIN_DIR)/$(BINARY_NAME)-linux-amd64 ./$(CMD_DIR)
+	@echo "Linux build complete: $(BIN_DIR)/$(BINARY_NAME)-linux-amd64"
 
 build-darwin:
 	@echo "Building for macOS..."
-	GOOS=darwin GOARCH=amd64 $(GO) build $(GOFLAGS) -o $(BINARY_NAME)-darwin-amd64
-	GOOS=darwin GOARCH=arm64 $(GO) build $(GOFLAGS) -o $(BINARY_NAME)-darwin-arm64
-	@echo "macOS builds complete: $(BINARY_NAME)-darwin-{amd64,arm64}"
+	@mkdir -p $(BIN_DIR)
+	GOOS=darwin GOARCH=amd64 $(GO) build $(GOFLAGS) -o $(BIN_DIR)/$(BINARY_NAME)-darwin-amd64 ./$(CMD_DIR)
+	GOOS=darwin GOARCH=arm64 $(GO) build $(GOFLAGS) -o $(BIN_DIR)/$(BINARY_NAME)-darwin-arm64 ./$(CMD_DIR)
+	@echo "macOS builds complete: $(BIN_DIR)/$(BINARY_NAME)-darwin-{amd64,arm64}"
 
 build-windows:
 	@echo "Building for Windows..."
-	GOOS=windows GOARCH=amd64 $(GO) build $(GOFLAGS) -o $(BINARY_NAME)-windows-amd64.exe
-	@echo "Windows build complete: $(BINARY_NAME)-windows-amd64.exe"
+	@mkdir -p $(BIN_DIR)
+	GOOS=windows GOARCH=amd64 $(GO) build $(GOFLAGS) -o $(BIN_DIR)/$(BINARY_NAME)-windows-amd64.exe ./$(CMD_DIR)
+	@echo "Windows build complete: $(BIN_DIR)/$(BINARY_NAME)-windows-amd64.exe"
 
 # Clean build artifacts
 clean:
 	@echo "Cleaning build artifacts..."
-	rm -f $(BINARY_NAME)
-	rm -f $(BINARY_NAME)-*
+	rm -rf $(BIN_DIR)
 	$(GO) clean
 	@echo "Clean complete"
 
@@ -48,14 +53,14 @@ test:
 	@echo "Running tests..."
 	$(GO) test -v ./...
 
-# Run with example environment (requires .env file)
+# Run with example environment
 run:
 	@if [ ! -f .env ]; then \
-		echo "Error: .env file not found. Copy .env.example to .env and configure it."; \
+		echo "Error: .env file not found. Copy configs/.env.example to .env and configure it."; \
 		exit 1; \
 	fi
 	@echo "Running $(BINARY_NAME)..."
-	@export $$(cat .env | xargs) && ./$(BINARY_NAME)
+	@export $$(cat .env | xargs) && $(BIN_DIR)/$(BINARY_NAME)
 
 # Install dependencies
 deps:
@@ -67,7 +72,7 @@ deps:
 # Install the binary to GOPATH/bin
 install: build
 	@echo "Installing $(BINARY_NAME) to $(GOPATH)/bin..."
-	$(GO) install
+	$(GO) install ./$(CMD_DIR)
 	@echo "Install complete"
 
 # Format code
