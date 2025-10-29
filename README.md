@@ -264,10 +264,13 @@ TEST_ANTHROPIC_API_KEY="your-key" \
 - resources/list - Listing all available resources
 - resources/read - Reading the pg://settings resource
 - tools/call - Calling the get_schema_info tool
+- query_database - Natural language query "What is the PostgreSQL version?" (requires TEST_ANTHROPIC_API_KEY)
 - JSON-RPC request/response format validation
 - Server startup and graceful shutdown
 
 The integration tests automatically build the binary if it doesn't exist and handle server lifecycle management. Tests include retry logic to account for asynchronous metadata loading.
+
+**Note:** The `QueryPostgreSQLVersion` test requires a valid Anthropic API key set in the `TEST_ANTHROPIC_API_KEY` environment variable, as it tests the full end-to-end flow including LLM natural language to SQL conversion. If the API key is not provided, this test will be skipped.
 
 ### Testing with MCP Inspector
 

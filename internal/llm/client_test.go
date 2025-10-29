@@ -288,3 +288,235 @@ func TestConvertNLToSQL_EmptyResponse(t *testing.T) {
 		t.Errorf("ConvertNLToSQL() error = %v, want error containing 'no content in response'", err)
 	}
 }
+
+func TestCleanSQL(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "plain SQL",
+			input:    "SELECT * FROM users WHERE active = true",
+			expected: "SELECT * FROM users WHERE active = true",
+		},
+		{
+			name:     "SQL with trailing semicolon",
+			input:    "SELECT * FROM users;",
+			expected: "SELECT * FROM users",
+		},
+		{
+			name:     "SQL with markdown code block",
+			input:    "```sql\nSELECT * FROM users\n```",
+			expected: "SELECT * FROM users",
+		},
+		{
+			name:     "SQL with generic code block",
+			input:    "```\nSELECT * FROM users\n```",
+			expected: "SELECT * FROM users",
+		},
+		{
+			name:     "SQL with explanatory text before",
+			input:    "Here's the SQL query you requested:\n\nSELECT * FROM users WHERE id = 1",
+			expected: "SELECT * FROM users WHERE id = 1",
+		},
+		{
+			name:     "SQL with explanatory text after",
+			input:    "SELECT * FROM users\n\nThis query will return all users from the database.",
+			expected: "SELECT * FROM users",
+		},
+		{
+			name:     "SQL with single-line comments",
+			input:    "-- This is a comment\nSELECT * FROM users\n-- Another comment",
+			expected: "SELECT * FROM users",
+		},
+		{
+			name:     "SQL with inline comments",
+			input:    "SELECT * FROM users -- get all users\nWHERE active = true",
+			expected: "SELECT * FROM users WHERE active = true",
+		},
+		{
+			name:     "SQL with multi-line comments",
+			input:    "/* This is a\n   multi-line comment */\nSELECT * FROM users",
+			expected: "SELECT * FROM users",
+		},
+		{
+			name:     "SQL with embedded multi-line comment",
+			input:    "SELECT * FROM /* comment */ users WHERE id = 1",
+			expected: "SELECT * FROM users WHERE id = 1",
+		},
+		{
+			name:     "complex SQL with multiple clauses",
+			input:    "SELECT u.name, u.email FROM users u WHERE u.active = true ORDER BY u.name",
+			expected: "SELECT u.name, u.email FROM users u WHERE u.active = true ORDER BY u.name",
+		},
+		{
+			name:     "SQL with markdown and explanatory text",
+			input:    "Here's your query:\n```sql\nSELECT * FROM users WHERE age > 18\n```\nThis will find all adult users.",
+			expected: "SELECT * FROM users WHERE age > 18",
+		},
+		{
+			name:     "INSERT statement",
+			input:    "INSERT INTO users (name, email) VALUES ('John', 'john@example.com')",
+			expected: "INSERT INTO users (name, email) VALUES ('John', 'john@example.com')",
+		},
+		{
+			name:     "UPDATE statement",
+			input:    "UPDATE users SET active = false WHERE last_login < '2023-01-01'",
+			expected: "UPDATE users SET active = false WHERE last_login < '2023-01-01'",
+		},
+		{
+			name:     "DELETE statement",
+			input:    "DELETE FROM users WHERE id = 123",
+			expected: "DELETE FROM users WHERE id = 123",
+		},
+		{
+			name:     "WITH (CTE) statement",
+			input:    "WITH active_users AS (SELECT * FROM users WHERE active = true) SELECT * FROM active_users",
+			expected: "WITH active_users AS (SELECT * FROM users WHERE active = true) SELECT * FROM active_users",
+		},
+		{
+			name:     "SQL with extra whitespace",
+			input:    "SELECT   *   FROM    users    WHERE    id = 1",
+			expected: "SELECT * FROM users WHERE id = 1",
+		},
+		{
+			name:     "SQL with newlines",
+			input:    "SELECT *\nFROM users\nWHERE active = true\nORDER BY name",
+			expected: "SELECT * FROM users WHERE active = true ORDER BY name",
+		},
+		{
+			name:     "Empty input",
+			input:    "",
+			expected: "",
+		},
+		{
+			name:     "Only comments",
+			input:    "-- Just a comment\n/* Another comment */",
+			expected: "",
+		},
+		{
+			name:     "Only explanatory text",
+			input:    "This is just some text explaining what we're going to do.",
+			expected: "",
+		},
+		{
+			name:     "SQL with EXPLAIN",
+			input:    "EXPLAIN SELECT * FROM users WHERE id = 1",
+			expected: "EXPLAIN SELECT * FROM users WHERE id = 1",
+		},
+		{
+			name:     "SQL with ANALYZE",
+			input:    "ANALYZE users",
+			expected: "ANALYZE users",
+		},
+		{
+			name:     "Multiple statements - only first returned",
+			input:    "SELECT * FROM users;\nSELECT * FROM orders;",
+			expected: "SELECT * FROM users",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := cleanSQL(tt.input)
+			if result != tt.expected {
+				t.Errorf("cleanSQL() = %q, want %q", result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestConvertNLToSQL_WithCleanSQL(t *testing.T) {
+	// Test that ConvertNLToSQL properly uses cleanSQL
+	tests := []struct {
+		name         string
+		responseText string
+		expected     string
+	}{
+		{
+			name:         "response with explanation",
+			responseText: "Here's the query:\n```sql\nSELECT * FROM users\n```",
+			expected:     "SELECT * FROM users",
+		},
+		{
+			name:         "response with comments",
+			responseText: "-- Get all users\nSELECT * FROM users",
+			expected:     "SELECT * FROM users",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				response := claudeResponse{
+					ID:   "msg_123",
+					Type: "message",
+					Role: "assistant",
+					Content: []claudeContentBlock{
+						{
+							Type: "text",
+							Text: tt.responseText,
+						},
+					},
+				}
+
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				json.NewEncoder(w).Encode(response)
+			}))
+			defer server.Close()
+
+			client := &Client{
+				apiKey:  "test-api-key",
+				baseURL: server.URL,
+				model:   "claude-sonnet-4-5",
+			}
+
+			result, err := client.ConvertNLToSQL("test query", "schema")
+			if err != nil {
+				t.Fatalf("ConvertNLToSQL() unexpected error: %v", err)
+			}
+
+			if result != tt.expected {
+				t.Errorf("ConvertNLToSQL() = %q, want %q", result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestConvertNLToSQL_NoValidSQL(t *testing.T) {
+	// Test that ConvertNLToSQL returns error when no valid SQL found
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		response := claudeResponse{
+			ID:   "msg_123",
+			Type: "message",
+			Role: "assistant",
+			Content: []claudeContentBlock{
+				{
+					Type: "text",
+					Text: "I cannot generate SQL for that query because the schema is insufficient.",
+				},
+			},
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(response)
+	}))
+	defer server.Close()
+
+	client := &Client{
+		apiKey:  "test-api-key",
+		baseURL: server.URL,
+		model:   "claude-sonnet-4-5",
+	}
+
+	_, err := client.ConvertNLToSQL("test query", "schema")
+	if err == nil {
+		t.Error("ConvertNLToSQL() expected error when no valid SQL found, got nil")
+	}
+	if !strings.Contains(err.Error(), "no valid SQL found") {
+		t.Errorf("ConvertNLToSQL() error = %v, want error containing 'no valid SQL found'", err)
+	}
+}

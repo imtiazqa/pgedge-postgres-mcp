@@ -220,6 +220,10 @@ func TestMCPServerIntegration(t *testing.T) {
 	t.Run("CallGetSchemaInfo", func(t *testing.T) {
 		testCallGetSchemaInfo(t, server)
 	})
+
+	t.Run("QueryPostgreSQLVersion", func(t *testing.T) {
+		testQueryPostgreSQLVersion(t, server, apiKey)
+	})
 }
 
 func testInitialize(t *testing.T, server *MCPServer) {
@@ -552,4 +556,137 @@ func testCallGetSchemaInfo(t *testing.T, server *MCPServer) {
 	}
 
 	t.Log("CallGetSchemaInfo test passed")
+}
+
+func testQueryPostgreSQLVersion(t *testing.T, server *MCPServer, apiKey string) {
+	// Skip if no real API key is provided
+	if apiKey == "" || apiKey == "dummy-key-for-testing" {
+		t.Skip("Skipping QueryPostgreSQLVersion test - requires TEST_ANTHROPIC_API_KEY environment variable")
+	}
+
+	params := map[string]interface{}{
+		"name": "query_database",
+		"arguments": map[string]interface{}{
+			"query": "What is the PostgreSQL version?",
+		},
+	}
+
+	// Retry a few times in case metadata is still loading
+	var resp *MCPResponse
+	var err error
+	maxRetries := 5
+	for i := 0; i < maxRetries; i++ {
+		resp, err = server.SendRequest("tools/call", params)
+		if err != nil {
+			t.Fatalf("tools/call failed: %v", err)
+		}
+
+		if resp.Error != nil {
+			// Check if it's a temporary error about database not ready
+			if strings.Contains(resp.Error.Message, "initializing") || strings.Contains(resp.Error.Message, "not ready") {
+				if i < maxRetries-1 {
+					t.Logf("Database not ready, retrying in 1 second... (attempt %d/%d)", i+1, maxRetries)
+					time.Sleep(1 * time.Second)
+					continue
+				}
+			}
+			t.Fatalf("tools/call returned error: %s", resp.Error.Message)
+		}
+
+		// Parse the result to check if database is ready
+		var result map[string]interface{}
+		if err := json.Unmarshal(resp.Result, &result); err != nil {
+			t.Fatalf("Failed to parse tools/call result: %v", err)
+		}
+
+		// Check if it's an error about initialization
+		content, ok := result["content"].([]interface{})
+		if ok && len(content) > 0 {
+			contentItem, ok := content[0].(map[string]interface{})
+			if ok {
+				text, _ := contentItem["text"].(string)
+				if strings.Contains(text, "initializing") || strings.Contains(text, "not ready") {
+					if i < maxRetries-1 {
+						t.Logf("Database not ready, retrying in 1 second... (attempt %d/%d)", i+1, maxRetries)
+						time.Sleep(1 * time.Second)
+						continue
+					}
+				}
+
+				// Check if it's an API key error
+				if strings.Contains(text, "ANTHROPIC_API_KEY") {
+					t.Skip("Skipping test - ANTHROPIC_API_KEY not configured on server")
+				}
+			}
+		}
+
+		// Either success or not a retry-able error
+		break
+	}
+
+	// Verify we have a response
+	var result map[string]interface{}
+	if err := json.Unmarshal(resp.Result, &result); err != nil {
+		t.Fatalf("Failed to parse tools/call result: %v", err)
+	}
+
+	// Verify content
+	content, ok := result["content"].([]interface{})
+	if !ok || len(content) == 0 {
+		t.Fatal("content array not found or empty in result")
+	}
+
+	// Get the first content item
+	contentItem, ok := content[0].(map[string]interface{})
+	if !ok {
+		t.Fatal("Invalid content format")
+	}
+
+	// Verify it's text type
+	if contentType, ok := contentItem["type"].(string); !ok || contentType != "text" {
+		t.Errorf("Expected content type 'text', got '%v'", contentItem["type"])
+	}
+
+	// Get the response text
+	text, ok := contentItem["text"].(string)
+	if !ok || text == "" {
+		t.Error("Content text is empty")
+	}
+
+	t.Logf("Response text: %s", text)
+
+	// Verify the response contains key elements
+	// Should contain "Natural Language Query" or the query text
+	if !strings.Contains(text, "Natural Language Query") && !strings.Contains(text, "PostgreSQL version") {
+		t.Logf("Warning: Response doesn't contain expected query reference: %s", text)
+	}
+
+	// Should contain "Generated SQL" or SQL-like content
+	if !strings.Contains(text, "Generated SQL") && !strings.Contains(text, "SELECT") {
+		t.Error("Response should contain 'Generated SQL' or SQL content")
+	}
+
+	// Should contain "Results" or result data
+	if !strings.Contains(text, "Results") {
+		t.Error("Response should contain 'Results'")
+	}
+
+	// Should contain version information (PostgreSQL version format is typically like "PostgreSQL 14.5" or just numbers)
+	hasVersionInfo := strings.Contains(strings.ToLower(text), "postgresql") ||
+		strings.Contains(text, "version") ||
+		// Look for version-like patterns (numbers with dots)
+		(strings.Contains(text, ".") && (strings.Contains(text, "14") || strings.Contains(text, "15") ||
+			strings.Contains(text, "16") || strings.Contains(text, "17") || strings.Contains(text, "13")))
+
+	if !hasVersionInfo {
+		t.Errorf("Response should contain PostgreSQL version information. Got: %s", text)
+	}
+
+	// Verify it's not an error response
+	isError, _ := result["isError"].(bool)
+	if isError {
+		t.Errorf("Query returned an error response: %s", text)
+	}
+
+	t.Log("QueryPostgreSQLVersion test passed - successfully queried PostgreSQL version using natural language")
 }

@@ -120,14 +120,133 @@ SQL Query:`, schemaContext, nlQuery)
 
 	sqlQuery := strings.TrimSpace(claudeResp.Content[0].Text)
 
-	// Clean up the SQL query
-	sqlQuery = strings.TrimPrefix(sqlQuery, "```sql")
-	sqlQuery = strings.TrimPrefix(sqlQuery, "```")
-	sqlQuery = strings.TrimSuffix(sqlQuery, "```")
-	sqlQuery = strings.TrimSpace(sqlQuery)
-	sqlQuery = strings.TrimSuffix(sqlQuery, ";")
+	// Clean and sanitize the SQL query
+	sqlQuery = cleanSQL(sqlQuery)
+	if sqlQuery == "" {
+		return "", fmt.Errorf("no valid SQL found in response")
+	}
 
 	return sqlQuery, nil
+}
+
+// cleanSQL removes markdown formatting, comments, and explanatory text from SQL
+func cleanSQL(input string) string {
+	// Remove markdown code blocks
+	input = strings.TrimSpace(input)
+
+	// Remove ```sql or ``` at the beginning
+	if after, found := strings.CutPrefix(input, "```sql"); found {
+		input = after
+	} else if after, found := strings.CutPrefix(input, "```"); found {
+		input = after
+	}
+
+	// Remove ``` at the end
+	input = strings.TrimSuffix(input, "```")
+	input = strings.TrimSpace(input)
+
+	// Remove multi-line comments /* ... */ (handle them first, before splitting lines)
+	for {
+		start := strings.Index(input, "/*")
+		if start == -1 {
+			break
+		}
+		end := strings.Index(input[start:], "*/")
+		if end == -1 {
+			break
+		}
+		end += start + 2 // +2 for the */
+		input = input[:start] + " " + input[end:]
+	}
+
+	// Split into lines and process
+	lines := strings.Split(input, "\n")
+	var sqlLines []string
+	foundSQL := false
+	hitSemicolon := false
+
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+
+		// Skip empty lines
+		if line == "" {
+			continue
+		}
+
+		// Skip single-line comments
+		if strings.HasPrefix(line, "--") {
+			continue
+		}
+
+		// Remove inline comments
+		if idx := strings.Index(line, "--"); idx > 0 {
+			line = strings.TrimSpace(line[:idx])
+		}
+
+		// Check if line contains a semicolon (end of statement)
+		if strings.Contains(line, ";") {
+			// Add the part before the semicolon
+			parts := strings.SplitN(line, ";", 2)
+			line = strings.TrimSpace(parts[0])
+			hitSemicolon = true
+		}
+
+		// Check if this line looks like SQL (starts with common SQL keywords)
+		upperLine := strings.ToUpper(line)
+		isSQLStart := strings.HasPrefix(upperLine, "SELECT") ||
+			strings.HasPrefix(upperLine, "INSERT") ||
+			strings.HasPrefix(upperLine, "UPDATE") ||
+			strings.HasPrefix(upperLine, "DELETE") ||
+			strings.HasPrefix(upperLine, "WITH") ||
+			strings.HasPrefix(upperLine, "CREATE") ||
+			strings.HasPrefix(upperLine, "ALTER") ||
+			strings.HasPrefix(upperLine, "DROP") ||
+			strings.HasPrefix(upperLine, "EXPLAIN") ||
+			strings.HasPrefix(upperLine, "ANALYZE")
+
+		// Once we find SQL, keep adding lines
+		if isSQLStart {
+			foundSQL = true
+		}
+
+		// If we've found SQL and this line has content, add it
+		if foundSQL && line != "" {
+			// Check if this line could be part of SQL (contains typical SQL patterns)
+			// or if it's explanatory text
+			upperLine := strings.ToUpper(line)
+
+			// If line looks like explanatory text (after SQL started), stop
+			if !isSQLStart && (
+				strings.HasPrefix(upperLine, "THIS ") ||
+				strings.HasPrefix(upperLine, "THE ") ||
+				strings.HasPrefix(upperLine, "WILL ") ||
+				strings.HasPrefix(upperLine, "RETURNS ") ||
+				strings.HasPrefix(upperLine, "NOTE:") ||
+				strings.HasPrefix(upperLine, "EXPLANATION:")) {
+				break
+			}
+
+			sqlLines = append(sqlLines, line)
+		}
+
+		// Stop if we hit a semicolon (end of first statement)
+		if hitSemicolon {
+			break
+		}
+	}
+
+	// Join the SQL lines
+	result := strings.Join(sqlLines, " ")
+	result = strings.TrimSpace(result)
+
+	// Remove any trailing ``` that might have been included
+	result = strings.TrimSuffix(result, "```")
+	result = strings.TrimSpace(result)
+
+	// Normalize whitespace - replace multiple spaces with single space
+	result = strings.Join(strings.Fields(result), " ")
+
+	return result
 }
 
 // Internal types for Claude API
