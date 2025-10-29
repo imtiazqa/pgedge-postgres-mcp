@@ -99,7 +99,7 @@ jobs:
       run: go test -v ./test/...
 
     - name: Run integration tests with LLM (if API key available)
-      if: secrets.ANTHROPIC_API_KEY != ''
+      if: ${{ secrets.ANTHROPIC_API_KEY != '' }}
       env:
         TEST_POSTGRES_CONNECTION_STRING: "postgres://postgres:postgres@localhost:5432/testdb?sslmode=disable"
         TEST_ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
