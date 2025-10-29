@@ -213,6 +213,62 @@ export ANTHROPIC_API_KEY="sk-ant-your-key"
 
 The server will read JSON-RPC messages from stdin and write responses to stdout.
 
+### Running Tests
+
+The project includes a comprehensive unit test suite covering all major components:
+
+```bash
+# Run all tests
+go test ./...
+
+# Run tests with verbose output
+go test -v ./...
+
+# Run tests with coverage report
+go test -cover ./...
+
+# Generate detailed coverage report
+go test -coverprofile=coverage.out ./...
+go tool cover -html=coverage.out
+```
+
+**Test Coverage:**
+- `internal/database`: Parser functions, connection management
+- `internal/llm`: LLM client with HTTP mocking
+- `internal/tools`: Tool registry and helper functions
+- `internal/resources`: Resource registry
+- `test`: Integration tests for the compiled MCP server binary
+
+The tests use mocking where appropriate to avoid requiring external dependencies (database connections, API keys) for unit tests.
+
+### Regression/Integration Tests
+
+The project includes integration tests that test the compiled MCP server binary end-to-end by communicating via the MCP protocol (JSON-RPC over stdio):
+
+```bash
+# Run integration tests
+cd test && go test -v
+
+# Set custom database connection for integration tests (optional)
+TEST_POSTGRES_CONNECTION_STRING="postgres://localhost/testdb?sslmode=disable" \
+  go test -v ./test
+
+# Run with custom API key (optional)
+TEST_ANTHROPIC_API_KEY="your-key" \
+  go test -v ./test
+```
+
+**What the Integration Tests Cover:**
+- MCP protocol initialize handshake
+- tools/list - Listing all available tools
+- resources/list - Listing all available resources
+- resources/read - Reading the pg://settings resource
+- tools/call - Calling the get_schema_info tool
+- JSON-RPC request/response format validation
+- Server startup and graceful shutdown
+
+The integration tests automatically build the binary if it doesn't exist and handle server lifecycle management. Tests include retry logic to account for asynchronous metadata loading.
+
 ### Testing with MCP Inspector
 
 You can test the server using the MCP Inspector tool:

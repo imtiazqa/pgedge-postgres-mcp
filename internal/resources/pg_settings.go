@@ -100,8 +100,8 @@ func PGSettingsResource(dbClient *database.Client) Resource {
 				MinValue         *string  `json:"min_value,omitempty"`
 				MaxValue         *string  `json:"max_value,omitempty"`
 				EnumValues       []string `json:"enum_values,omitempty"`
-				DefaultValue     string   `json:"default_value"`
-				ResetValue       string   `json:"reset_value"`
+				DefaultValue     *string  `json:"default_value,omitempty"`
+				ResetValue       *string  `json:"reset_value,omitempty"`
 				PendingRestart   bool     `json:"pending_restart"`
 			}
 
