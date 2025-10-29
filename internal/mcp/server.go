@@ -1,3 +1,13 @@
+/*-------------------------------------------------------------------------
+ *
+ * pgEdge Postgres MCP Server
+ *
+ * Copyright (c) 2025, pgEdge, Inc.
+ * This software is released under The PostgreSQL Licence
+ *
+ *-------------------------------------------------------------------------
+ */
+
 package mcp
 
 import (
