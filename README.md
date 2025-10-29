@@ -308,8 +308,8 @@ Includes multiple jobs:
 **Unit Tests**
 - Runs on Go 1.21, 1.22, and 1.23
 - Executes all unit tests with race detection
-- Generates code coverage reports
-- Uploads coverage to Codecov (optional)
+- Generates code coverage reports (HTML and text)
+- Uploads coverage artifacts for download
 
 **Integration Tests**
 - Runs on Go 1.23
@@ -339,7 +339,6 @@ Add these badges to track CI/CD status:
 To enable all CI/CD features, configure these GitHub repository secrets:
 
 - `ANTHROPIC_API_KEY`: (Optional) For running integration tests with actual LLM queries
-- `CODECOV_TOKEN`: (Optional) For uploading coverage reports to Codecov
 
 ## MCP Protocol Implementation
 

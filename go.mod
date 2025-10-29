@@ -1,6 +1,6 @@
 module pgedge-mcp
 
-go 1.25.1
+go 1.23
 
 require (
 	github.com/jackc/pgpassfile v1.0.0 // indirect
