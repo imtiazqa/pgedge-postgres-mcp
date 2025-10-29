@@ -284,6 +284,63 @@ You can test the server using the MCP Inspector tool:
 npx @modelcontextprotocol/inspector /path/to/bin/pgedge-mcp
 ```
 
+## CI/CD
+
+The project uses GitHub Actions for continuous integration and deployment. Workflows are triggered on pushes and pull requests to the `main` and `develop` branches.
+
+### Workflows
+
+#### Build Workflow (`.github/workflows/build.yml`)
+
+- **Triggers**: Push and pull requests to main/develop branches
+- **Go Versions**: Tests against Go 1.21, 1.22, and 1.23
+- **Steps**:
+  - Checkout code
+  - Set up Go with caching
+  - Verify dependencies
+  - Build the binary
+  - Upload build artifacts (from Go 1.23)
+
+#### Test Workflow (`.github/workflows/test.yml`)
+
+Includes multiple jobs:
+
+**Unit Tests**
+- Runs on Go 1.21, 1.22, and 1.23
+- Executes all unit tests with race detection
+- Generates code coverage reports
+- Uploads coverage to Codecov (optional)
+
+**Integration Tests**
+- Runs on Go 1.23
+- Tests against PostgreSQL versions 14, 15, 16, and 17
+- Uses Docker containers for PostgreSQL services
+- Runs with and without Anthropic API key (if configured)
+
+**Lint**
+- Uses golangci-lint for code quality checks
+- Configuration in `.golangci.yml`
+
+**Security**
+- Runs Gosec security scanner
+- Uploads results to GitHub Security
+
+### Status Badges
+
+Add these badges to track CI/CD status:
+
+```markdown
+![Build](https://github.com/YOUR_ORG/pgedge-mcp/workflows/Build/badge.svg)
+![Tests](https://github.com/YOUR_ORG/pgedge-mcp/workflows/Tests/badge.svg)
+```
+
+### Secrets Configuration
+
+To enable all CI/CD features, configure these GitHub repository secrets:
+
+- `ANTHROPIC_API_KEY`: (Optional) For running integration tests with actual LLM queries
+- `CODECOV_TOKEN`: (Optional) For uploading coverage reports to Codecov
+
 ## MCP Protocol Implementation
 
 This server implements the Model Context Protocol version `2024-11-05` with the following methods:

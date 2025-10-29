@@ -11,6 +11,9 @@ pgedge-mcp
 
 # Output of the go coverage tool
 *.out
+coverage.html
+coverage.txt
+coverage.xml
 
 # Dependency directories
 vendor/
