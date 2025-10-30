@@ -42,15 +42,7 @@ func GetSchemaInfoTool(dbClient *database.Client) Tool {
 
 			// Check if metadata is loaded
 			if !dbClient.IsMetadataLoaded() {
-				return mcp.ToolResponse{
-					Content: []mcp.ContentItem{
-						{
-							Type: "text",
-							Text: "Database is still initializing. Please wait a moment and try again.\n\nThe server is loading database metadata in the background. This usually takes a few seconds.",
-						},
-					},
-					IsError: true,
-				}, nil
+				return mcp.NewToolError(mcp.DatabaseNotReadyError)
 			}
 
 			var sb strings.Builder
@@ -82,14 +74,7 @@ func GetSchemaInfoTool(dbClient *database.Client) Tool {
 				}
 			}
 
-			return mcp.ToolResponse{
-				Content: []mcp.ContentItem{
-					{
-						Type: "text",
-						Text: sb.String(),
-					},
-				},
-			}, nil
+			return mcp.NewToolSuccess(sb.String())
 		},
 	}
 }

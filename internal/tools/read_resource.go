@@ -56,41 +56,18 @@ func ReadResourceTool(resourceProvider ResourceReader) Tool {
 					content += "MIME Type: " + resource.MimeType + "\n\n"
 				}
 
-				return mcp.ToolResponse{
-					Content: []mcp.ContentItem{
-						{
-							Type: "text",
-							Text: content,
-						},
-					},
-				}, nil
+				return mcp.NewToolSuccess(content)
 			}
 
 			// Read a specific resource
 			uri, ok := args["uri"].(string)
 			if !ok || uri == "" {
-				return mcp.ToolResponse{
-					Content: []mcp.ContentItem{
-						{
-							Type: "text",
-							Text: "Error: 'uri' parameter is required. Provide a resource URI (e.g., 'pg://system_info') or use 'list': true to see all available resources.",
-						},
-					},
-					IsError: true,
-				}, nil
+				return mcp.NewToolError("Error: 'uri' parameter is required. Provide a resource URI (e.g., 'pg://system_info') or use 'list': true to see all available resources.")
 			}
 
 			resourceContent, err := resourceProvider.Read(uri)
 			if err != nil {
-				return mcp.ToolResponse{
-					Content: []mcp.ContentItem{
-						{
-							Type: "text",
-							Text: "Error reading resource: " + err.Error(),
-						},
-					},
-					IsError: true,
-				}, nil
+				return mcp.NewToolError("Error reading resource: " + err.Error())
 			}
 
 			// Return the resource contents

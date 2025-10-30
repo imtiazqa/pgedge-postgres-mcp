@@ -11,40 +11,25 @@
 package resources
 
 import (
-	"context"
-	"encoding/json"
 	"fmt"
-	"strings"
+	"os"
 
 	"pgedge-postgres-mcp/internal/database"
 	"pgedge-postgres-mcp/internal/mcp"
+
+	"github.com/jackc/pgx/v5"
 )
 
 // PGSettingsResource creates a resource for PostgreSQL configuration parameters
 func PGSettingsResource(dbClient *database.Client) Resource {
 	return Resource{
 		Definition: mcp.Resource{
-			URI:         "pg://settings",
+			URI:         URISettings,
 			Name:        "PostgreSQL Server Configuration",
 			Description: "Returns PostgreSQL server configuration parameters including current values, default values, pending changes, and descriptions. Queries pg_settings system catalog.",
 			MimeType:    "application/json",
 		},
 		Handler: func() (mcp.ResourceContent, error) {
-			// Check if database is ready
-			if !dbClient.IsMetadataLoaded() {
-				return mcp.ResourceContent{
-					URI:      "pg://settings",
-					MimeType: "application/json",
-					Contents: []mcp.ContentItem{
-						{
-							Type: "text",
-							Text: "Database is still initializing. Please wait a moment and try again.",
-						},
-					},
-				}, fmt.Errorf("database not ready")
-			}
-
-			// Query pg_settings for configuration parameters
 			query := `
 				SELECT
 					name,
@@ -66,149 +51,75 @@ func PGSettingsResource(dbClient *database.Client) Resource {
 				ORDER BY category, name
 			`
 
-			ctx := context.Background()
-			pool := dbClient.GetPool()
-			if pool == nil {
-				return mcp.ResourceContent{
-					URI:      "pg://settings",
-					MimeType: "application/json",
-					Contents: []mcp.ContentItem{
-						{
-							Type: "text",
-							Text: "Database connection not available",
-						},
-					},
-				}, fmt.Errorf("no database connection")
-			}
-
-			rows, err := pool.Query(ctx, query)
-			if err != nil {
-				return mcp.ResourceContent{
-					URI:      "pg://settings",
-					MimeType: "application/json",
-					Contents: []mcp.ContentItem{
-						{
-							Type: "text",
-							Text: fmt.Sprintf("Failed to query pg_settings: %v", err),
-						},
-					},
-				}, err
-			}
-			defer rows.Close()
-
-			// Collect settings
-			type Setting struct {
-				Name             string   `json:"name"`
-				CurrentValue     string   `json:"current_value"`
-				Unit             *string  `json:"unit,omitempty"`
-				Category         string   `json:"category"`
-				Description      string   `json:"description"`
-				ExtraDescription *string  `json:"extra_description,omitempty"`
-				Context          string   `json:"context"`
-				Type             string   `json:"type"`
-				Source           string   `json:"source"`
-				MinValue         *string  `json:"min_value,omitempty"`
-				MaxValue         *string  `json:"max_value,omitempty"`
-				EnumValues       []string `json:"enum_values,omitempty"`
-				DefaultValue     *string  `json:"default_value,omitempty"`
-				ResetValue       *string  `json:"reset_value,omitempty"`
-				PendingRestart   bool     `json:"pending_restart"`
-			}
-
-			var settings []Setting
-
-			for rows.Next() {
-				var s Setting
-				var enumValsArray interface{}
-
-				err := rows.Scan(
-					&s.Name,
-					&s.CurrentValue,
-					&s.Unit,
-					&s.Category,
-					&s.Description,
-					&s.ExtraDescription,
-					&s.Context,
-					&s.Type,
-					&s.Source,
-					&s.MinValue,
-					&s.MaxValue,
-					&enumValsArray,
-					&s.DefaultValue,
-					&s.ResetValue,
-					&s.PendingRestart,
-				)
-				if err != nil {
-					return mcp.ResourceContent{
-						URI:      "pg://settings",
-						MimeType: "application/json",
-						Contents: []mcp.ContentItem{
-							{
-								Type: "text",
-								Text: fmt.Sprintf("Error reading row: %v", err),
-							},
-						},
-					}, err
+			processor := func(rows pgx.Rows) (interface{}, error) {
+				type Setting struct {
+					Name             string   `json:"name"`
+					CurrentValue     string   `json:"current_value"`
+					Unit             *string  `json:"unit,omitempty"`
+					Category         string   `json:"category"`
+					Description      string   `json:"description"`
+					ExtraDescription *string  `json:"extra_description,omitempty"`
+					Context          string   `json:"context"`
+					Type             string   `json:"type"`
+					Source           string   `json:"source"`
+					MinValue         *string  `json:"min_value,omitempty"`
+					MaxValue         *string  `json:"max_value,omitempty"`
+					EnumValues       []string `json:"enum_values,omitempty"`
+					DefaultValue     *string  `json:"default_value,omitempty"`
+					ResetValue       *string  `json:"reset_value,omitempty"`
+					PendingRestart   bool     `json:"pending_restart"`
 				}
 
-				// Parse enum values if present
-				if enumValsArray != nil {
-					if enumVals, ok := enumValsArray.([]interface{}); ok {
-						for _, v := range enumVals {
-							if str, ok := v.(string); ok {
-								s.EnumValues = append(s.EnumValues, str)
+				var settings []Setting
+
+				for rows.Next() {
+					var s Setting
+					var enumValsArray interface{}
+
+					err := rows.Scan(
+						&s.Name,
+						&s.CurrentValue,
+						&s.Unit,
+						&s.Category,
+						&s.Description,
+						&s.ExtraDescription,
+						&s.Context,
+						&s.Type,
+						&s.Source,
+						&s.MinValue,
+						&s.MaxValue,
+						&enumValsArray,
+						&s.DefaultValue,
+						&s.ResetValue,
+						&s.PendingRestart,
+					)
+					if err != nil {
+						fmt.Fprintf(os.Stderr, "WARNING: Failed to scan row in pg_settings: %v\n", err)
+						continue
+					}
+
+					// Parse enum values if present
+					if enumValsArray != nil {
+						if enumVals, ok := enumValsArray.([]interface{}); ok {
+							for _, v := range enumVals {
+								if str, ok := v.(string); ok {
+									s.EnumValues = append(s.EnumValues, str)
+								}
 							}
 						}
 					}
+
+					settings = append(settings, s)
 				}
 
-				settings = append(settings, s)
+				return map[string]interface{}{
+					"setting_count": len(settings),
+					"settings":      settings,
+					"description":   "PostgreSQL Server Configuration. Settings organized by category with current, default, and reset values. Use the set_pg_configuration tool to modify settings.",
+				}, nil
 			}
 
-			if err := rows.Err(); err != nil {
-				return mcp.ResourceContent{
-					URI:      "pg://settings",
-					MimeType: "application/json",
-					Contents: []mcp.ContentItem{
-						{
-							Type: "text",
-							Text: fmt.Sprintf("Error iterating rows: %v", err),
-						},
-					},
-				}, err
-			}
-
-			// Format output
-			jsonData, err := json.MarshalIndent(settings, "", "  ")
-			if err != nil {
-				return mcp.ResourceContent{
-					URI:      "pg://settings",
-					MimeType: "application/json",
-					Contents: []mcp.ContentItem{
-						{
-							Type: "text",
-							Text: fmt.Sprintf("Error formatting settings: %v", err),
-						},
-					},
-				}, err
-			}
-
-			var sb strings.Builder
-			sb.WriteString(fmt.Sprintf("PostgreSQL Server Configuration (%d settings)\n\n", len(settings)))
-			sb.WriteString("Settings organized by category with current, default, and reset values.\n")
-			sb.WriteString("Use the set_pg_configuration tool to modify settings.\n\n")
-			sb.WriteString(string(jsonData))
-
-			return mcp.ResourceContent{
-				URI:      "pg://settings",
-				MimeType: "application/json",
-				Contents: []mcp.ContentItem{
-					{
-						Type: "text",
-						Text: sb.String(),
-					},
-				},
-			}, nil
+			return database.ExecuteResourceQuery(dbClient, URISettings, query, processor)
 		},
 	}
 }

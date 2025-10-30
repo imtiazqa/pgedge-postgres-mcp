@@ -14,6 +14,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 
 	"pgedge-postgres-mcp/internal/database"
@@ -41,15 +42,7 @@ func QueryDatabaseTool(dbClient *database.Client, llmClient *llm.Client) Tool {
 		Handler: func(args map[string]interface{}) (mcp.ToolResponse, error) {
 			query, ok := args["query"].(string)
 			if !ok {
-				return mcp.ToolResponse{
-					Content: []mcp.ContentItem{
-						{
-							Type: "text",
-							Text: "Missing or invalid 'query' parameter",
-						},
-					},
-					IsError: true,
-				}, nil
+				return mcp.NewToolError("Missing or invalid 'query' parameter")
 			}
 
 			// Parse query for connection string and intent
@@ -65,55 +58,24 @@ func QueryDatabaseTool(dbClient *database.Client, llmClient *llm.Client) Tool {
 					// User wants to set a new default connection
 					err := dbClient.SetDefaultConnection(queryCtx.ConnectionString)
 					if err != nil {
-						return mcp.ToolResponse{
-							Content: []mcp.ContentItem{
-								{
-									Type: "text",
-									Text: fmt.Sprintf("Failed to set default connection to %s: %v", queryCtx.ConnectionString, err),
-								},
-							},
-							IsError: true,
-						}, nil
+						return mcp.NewToolError(fmt.Sprintf("Failed to set default connection to %s: %v", queryCtx.ConnectionString, err))
 					}
 
-					return mcp.ToolResponse{
-						Content: []mcp.ContentItem{
-							{
-								Type: "text",
-								Text: fmt.Sprintf("Successfully set default database connection to:\n%s\n\nMetadata loaded: %d tables/views available.",
-									queryCtx.ConnectionString,
-									len(dbClient.GetMetadata())),
-							},
-						},
-					}, nil
+					return mcp.NewToolSuccess(fmt.Sprintf("Successfully set default database connection to:\n%s\n\nMetadata loaded: %d tables/views available.",
+						queryCtx.ConnectionString,
+						len(dbClient.GetMetadata())))
 				} else {
 					// Temporary connection for this query only
 					err := dbClient.ConnectTo(queryCtx.ConnectionString)
 					if err != nil {
-						return mcp.ToolResponse{
-							Content: []mcp.ContentItem{
-								{
-									Type: "text",
-									Text: fmt.Sprintf("Failed to connect to %s: %v", queryCtx.ConnectionString, err),
-								},
-							},
-							IsError: true,
-						}, nil
+						return mcp.NewToolError(fmt.Sprintf("Failed to connect to %s: %v", queryCtx.ConnectionString, err))
 					}
 
 					// Load metadata if needed
 					if !dbClient.IsMetadataLoadedFor(queryCtx.ConnectionString) {
 						err = dbClient.LoadMetadataFor(queryCtx.ConnectionString)
 						if err != nil {
-							return mcp.ToolResponse{
-								Content: []mcp.ContentItem{
-									{
-										Type: "text",
-										Text: fmt.Sprintf("Failed to load metadata from %s: %v", queryCtx.ConnectionString, err),
-									},
-								},
-								IsError: true,
-							}, nil
+							return mcp.NewToolError(fmt.Sprintf("Failed to load metadata from %s: %v", queryCtx.ConnectionString, err))
 						}
 					}
 
@@ -124,27 +86,12 @@ func QueryDatabaseTool(dbClient *database.Client, llmClient *llm.Client) Tool {
 
 			// If the cleaned query is empty (e.g., just a connection command), we're done
 			if strings.TrimSpace(queryCtx.CleanedQuery) == "" {
-				return mcp.ToolResponse{
-					Content: []mcp.ContentItem{
-						{
-							Type: "text",
-							Text: "Connection command executed successfully. No query to run.",
-						},
-					},
-				}, nil
+				return mcp.NewToolSuccess("Connection command executed successfully. No query to run.")
 			}
 
 			// Check if metadata is loaded for the target connection
 			if !dbClient.IsMetadataLoadedFor(connStr) {
-				return mcp.ToolResponse{
-					Content: []mcp.ContentItem{
-						{
-							Type: "text",
-							Text: "Database is still initializing. Please wait a moment and try again.\n\nThe server is loading database metadata in the background. This usually takes a few seconds.",
-						},
-					},
-					IsError: true,
-				}, nil
+				return mcp.NewToolError(mcp.DatabaseNotReadyError)
 			}
 
 			// Generate schema context for the target connection
@@ -152,87 +99,45 @@ func QueryDatabaseTool(dbClient *database.Client, llmClient *llm.Client) Tool {
 
 			// Check if LLM is configured
 			if !llmClient.IsConfigured() {
-				return mcp.ToolResponse{
-					Content: []mcp.ContentItem{
-						{
-							Type: "text",
-							Text: fmt.Sprintf("%sNatural language query: %s\n\nDatabase Schema Context:\n%s\n\nERROR: ANTHROPIC_API_KEY environment variable is not set.\n\nTo enable natural language to SQL conversion, please set the ANTHROPIC_API_KEY environment variable.\nYou can optionally set ANTHROPIC_MODEL to specify a different model (default: claude-sonnet-4-5).",
-								connectionMessage, queryCtx.CleanedQuery, schemaContext),
-						},
-					},
-					IsError: true,
-				}, nil
+				return mcp.NewToolError(fmt.Sprintf("%sNatural language query: %s\n\nDatabase Schema Context:\n%s\n\nERROR: ANTHROPIC_API_KEY environment variable is not set.\n\nTo enable natural language to SQL conversion, please set the ANTHROPIC_API_KEY environment variable.\nYou can optionally set ANTHROPIC_MODEL to specify a different model (default: claude-sonnet-4-5).",
+					connectionMessage, queryCtx.CleanedQuery, schemaContext))
 			}
 
 			// Convert natural language to SQL using the cleaned query
 			sqlQuery, err := llmClient.ConvertNLToSQL(queryCtx.CleanedQuery, schemaContext)
 			if err != nil {
-				return mcp.ToolResponse{
-					Content: []mcp.ContentItem{
-						{
-							Type: "text",
-							Text: fmt.Sprintf("%sFailed to convert natural language to SQL: %v", connectionMessage, err),
-						},
-					},
-					IsError: true,
-				}, nil
+				return mcp.NewToolError(fmt.Sprintf("%sFailed to convert natural language to SQL: %v", connectionMessage, err))
 			}
 
 			// Execute the SQL query on the appropriate connection in a read-only transaction
 			ctx := context.Background()
 			pool := dbClient.GetPoolFor(connStr)
 			if pool == nil {
-				return mcp.ToolResponse{
-					Content: []mcp.ContentItem{
-						{
-							Type: "text",
-							Text: fmt.Sprintf("Connection pool not found for: %s", connStr),
-						},
-					},
-					IsError: true,
-				}, nil
+				return mcp.NewToolError(fmt.Sprintf("Connection pool not found for: %s", connStr))
 			}
 
 			// Begin a transaction with read-only protection
 			tx, err := pool.Begin(ctx)
 			if err != nil {
-				return mcp.ToolResponse{
-					Content: []mcp.ContentItem{
-						{
-							Type: "text",
-							Text: fmt.Sprintf("Failed to begin transaction: %v", err),
-						},
-					},
-					IsError: true,
-				}, nil
+				return mcp.NewToolError(fmt.Sprintf("Failed to begin transaction: %v", err))
 			}
-			defer func() { _ = tx.Rollback(ctx) }() // Rollback if not committed
+			defer func() {
+				if err := tx.Rollback(ctx); err != nil {
+					// Rollback errors are expected if transaction was already committed/closed
+					// Log for debugging but don't treat as fatal
+					fmt.Fprintf(os.Stderr, "WARNING: Transaction rollback returned error (may be expected): %v\n", err)
+				}
+			}()
 
 			// Set transaction to read-only to prevent any data modifications
 			_, err = tx.Exec(ctx, "SET TRANSACTION READ ONLY")
 			if err != nil {
-				return mcp.ToolResponse{
-					Content: []mcp.ContentItem{
-						{
-							Type: "text",
-							Text: fmt.Sprintf("Failed to set transaction read-only: %v", err),
-						},
-					},
-					IsError: true,
-				}, nil
+				return mcp.NewToolError(fmt.Sprintf("Failed to set transaction read-only: %v", err))
 			}
 
 			rows, err := tx.Query(ctx, sqlQuery)
 			if err != nil {
-				return mcp.ToolResponse{
-					Content: []mcp.ContentItem{
-						{
-							Type: "text",
-							Text: fmt.Sprintf("%sGenerated SQL:\n%s\n\nError executing query: %v", connectionMessage, sqlQuery, err),
-						},
-					},
-					IsError: true,
-				}, nil
+				return mcp.NewToolError(fmt.Sprintf("%sGenerated SQL:\n%s\n\nError executing query: %v", connectionMessage, sqlQuery, err))
 			}
 			defer rows.Close()
 
@@ -248,15 +153,7 @@ func QueryDatabaseTool(dbClient *database.Client, llmClient *llm.Client) Tool {
 			for rows.Next() {
 				values, err := rows.Values()
 				if err != nil {
-					return mcp.ToolResponse{
-						Content: []mcp.ContentItem{
-							{
-								Type: "text",
-								Text: fmt.Sprintf("Error reading row: %v", err),
-							},
-						},
-						IsError: true,
-					}, nil
+					return mcp.NewToolError(fmt.Sprintf("Error reading row: %v", err))
 				}
 
 				row := make(map[string]interface{})
@@ -267,42 +164,18 @@ func QueryDatabaseTool(dbClient *database.Client, llmClient *llm.Client) Tool {
 			}
 
 			if err := rows.Err(); err != nil {
-				return mcp.ToolResponse{
-					Content: []mcp.ContentItem{
-						{
-							Type: "text",
-							Text: fmt.Sprintf("Error iterating rows: %v", err),
-						},
-					},
-					IsError: true,
-				}, nil
+				return mcp.NewToolError(fmt.Sprintf("Error iterating rows: %v", err))
 			}
 
 			// Format results
 			resultsJSON, err := json.MarshalIndent(results, "", "  ")
 			if err != nil {
-				return mcp.ToolResponse{
-					Content: []mcp.ContentItem{
-						{
-							Type: "text",
-							Text: fmt.Sprintf("Error formatting results: %v", err),
-						},
-					},
-					IsError: true,
-				}, nil
+				return mcp.NewToolError(fmt.Sprintf("Error formatting results: %v", err))
 			}
 
 			// Commit the read-only transaction
 			if err := tx.Commit(ctx); err != nil {
-				return mcp.ToolResponse{
-					Content: []mcp.ContentItem{
-						{
-							Type: "text",
-							Text: fmt.Sprintf("Failed to commit transaction: %v", err),
-						},
-					},
-					IsError: true,
-				}, nil
+				return mcp.NewToolError(fmt.Sprintf("Failed to commit transaction: %v", err))
 			}
 
 			var sb strings.Builder
@@ -313,14 +186,7 @@ func QueryDatabaseTool(dbClient *database.Client, llmClient *llm.Client) Tool {
 			sb.WriteString(fmt.Sprintf("Generated SQL:\n%s\n\n", sqlQuery))
 			sb.WriteString(fmt.Sprintf("Results (%d rows):\n%s", len(results), string(resultsJSON)))
 
-			return mcp.ToolResponse{
-				Content: []mcp.ContentItem{
-					{
-						Type: "text",
-						Text: sb.String(),
-					},
-				},
-			}, nil
+			return mcp.NewToolSuccess(sb.String())
 		},
 	}
 }

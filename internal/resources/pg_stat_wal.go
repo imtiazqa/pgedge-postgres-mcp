@@ -12,13 +12,14 @@ package resources
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
 
 	"pgedge-postgres-mcp/internal/database"
 	"pgedge-postgres-mcp/internal/mcp"
+
+	"github.com/jackc/pgx/v5"
 )
 
 // getPostgreSQLMajorVersion extracts the major version number from the database
@@ -53,25 +54,16 @@ func getPostgreSQLMajorVersion(dbClient *database.Client) (int, error) {
 func PGStatWALResource(dbClient *database.Client) Resource {
 	return Resource{
 		Definition: mcp.Resource{
-			URI:         "pg://stat/wal",
+			URI:         URIStatWAL,
 			Name:        "PostgreSQL WAL Statistics",
 			Description: "Provides Write-Ahead Log (WAL) statistics including WAL records, FPI, bytes, buffers, and sync operations. Available in PostgreSQL 14 and later. Useful for understanding WAL generation patterns, archive performance, and transaction log activity. Returns version error for PostgreSQL 13 and earlier.",
 			MimeType:    "application/json",
 		},
 		Handler: func() (mcp.ResourceContent, error) {
+			// Check database readiness
 			if !dbClient.IsMetadataLoaded() {
-				return mcp.ResourceContent{
-					URI: "pg://stat/wal",
-					Contents: []mcp.ContentItem{{Type: "text", Text: "Error: Database not ready"}},
-				}, nil
+				return mcp.NewResourceError(URIStatWAL, mcp.DatabaseNotReadyErrorShort)
 			}
-
-			pool := dbClient.GetPool()
-			if pool == nil {
-				return mcp.ResourceContent{}, fmt.Errorf("no connection pool available")
-			}
-
-			ctx := context.Background()
 
 			// Check PostgreSQL version
 			version, err := getPostgreSQLMajorVersion(dbClient)
@@ -86,13 +78,7 @@ func PGStatWALResource(dbClient *database.Client) Resource {
 					"required_version":   "14+",
 					"description":        "The pg_stat_wal view was introduced in PostgreSQL 14. Please upgrade to access WAL statistics.",
 				}
-
-				jsonData, _ := json.MarshalIndent(errorData, "", "  ")
-				return mcp.ResourceContent{
-					URI:      "pg://stat/wal",
-					MimeType: "application/json",
-					Contents: []mcp.ContentItem{{Type: "text", Text: string(jsonData)}},
-				}, nil
+				return mcp.NewResourceSuccess(URIStatWAL, "application/json", fmt.Sprintf("%v", errorData))
 			}
 
 			query := `
@@ -108,75 +94,75 @@ func PGStatWALResource(dbClient *database.Client) Resource {
 					stats_reset::text as stats_reset
 				FROM pg_stat_wal`
 
-			var walRecords, walFpi, walBytes, walBuffersFull int64
-			var walWrite, walSync int64
-			var walWriteTime, walSyncTime float64
-			var statsReset *string
-
-			err = pool.QueryRow(ctx, query).Scan(
-				&walRecords, &walFpi, &walBytes, &walBuffersFull,
-				&walWrite, &walSync, &walWriteTime, &walSyncTime,
-				&statsReset)
-			if err != nil {
-				// If the view doesn't exist, return a friendly error
-				if strings.Contains(err.Error(), "does not exist") {
+			processor := func(rows pgx.Rows) (interface{}, error) {
+				// pg_stat_wal returns a single row
+				if !rows.Next() {
+					// If the view doesn't exist, return a friendly error
 					errorData := map[string]interface{}{
 						"error":              "pg_stat_wal view does not exist",
 						"postgresql_version": version,
 						"description":        "The pg_stat_wal view may not be available in your PostgreSQL installation.",
 					}
-					jsonData, _ := json.MarshalIndent(errorData, "", "  ")
-					return mcp.ResourceContent{
-						URI:      "pg://stat/wal",
-						MimeType: "application/json",
-						Contents: []mcp.ContentItem{{Type: "text", Text: string(jsonData)}},
-					}, nil
+					return errorData, nil
 				}
-				return mcp.ResourceContent{}, fmt.Errorf("failed to query pg_stat_wal: %w", err)
+
+				var walRecords, walFpi, walBytes, walBuffersFull int64
+				var walWrite, walSync int64
+				var walWriteTime, walSyncTime float64
+				var statsReset *string
+
+				err := rows.Scan(
+					&walRecords, &walFpi, &walBytes, &walBuffersFull,
+					&walWrite, &walSync, &walWriteTime, &walSyncTime,
+					&statsReset)
+				if err != nil {
+					// If the view doesn't exist, return a friendly error
+					if strings.Contains(err.Error(), "does not exist") {
+						return map[string]interface{}{
+							"error":              "pg_stat_wal view does not exist",
+							"postgresql_version": version,
+							"description":        "The pg_stat_wal view may not be available in your PostgreSQL installation.",
+						}, nil
+					}
+					return nil, fmt.Errorf("failed to scan pg_stat_wal: %w", err)
+				}
+
+				// Calculate derived metrics
+				walBytesMB := float64(walBytes) / 1024 / 1024
+				walBytesGB := walBytesMB / 1024
+
+				var avgWriteTime, avgSyncTime float64
+				if walWrite > 0 {
+					avgWriteTime = walWriteTime / float64(walWrite)
+				}
+				if walSync > 0 {
+					avgSyncTime = walSyncTime / float64(walSync)
+				}
+
+				wal := map[string]interface{}{
+					"wal_records":       walRecords,
+					"wal_fpi":           walFpi,
+					"wal_bytes":         walBytes,
+					"wal_bytes_mb":      fmt.Sprintf("%.2f", walBytesMB),
+					"wal_bytes_gb":      fmt.Sprintf("%.2f", walBytesGB),
+					"wal_buffers_full":  walBuffersFull,
+					"wal_write":         walWrite,
+					"wal_sync":          walSync,
+					"wal_write_time_ms": walWriteTime,
+					"wal_sync_time_ms":  walSyncTime,
+					"avg_write_time_ms": fmt.Sprintf("%.4f", avgWriteTime),
+					"avg_sync_time_ms":  fmt.Sprintf("%.4f", avgSyncTime),
+					"stats_reset":       statsReset,
+				}
+
+				return map[string]interface{}{
+					"postgresql_version": version,
+					"wal":                wal,
+					"description":        "WAL generation and synchronization statistics for monitoring transaction log activity.",
+				}, nil
 			}
 
-			// Calculate derived metrics
-			walBytesMB := float64(walBytes) / 1024 / 1024
-			walBytesGB := walBytesMB / 1024
-
-			var avgWriteTime, avgSyncTime float64
-			if walWrite > 0 {
-				avgWriteTime = walWriteTime / float64(walWrite)
-			}
-			if walSync > 0 {
-				avgSyncTime = walSyncTime / float64(walSync)
-			}
-
-			wal := map[string]interface{}{
-				"wal_records":       walRecords,
-				"wal_fpi":           walFpi,
-				"wal_bytes":         walBytes,
-				"wal_bytes_mb":      fmt.Sprintf("%.2f", walBytesMB),
-				"wal_bytes_gb":      fmt.Sprintf("%.2f", walBytesGB),
-				"wal_buffers_full":  walBuffersFull,
-				"wal_write":         walWrite,
-				"wal_sync":          walSync,
-				"wal_write_time_ms": walWriteTime,
-				"wal_sync_time_ms":  walSyncTime,
-				"avg_write_time_ms": fmt.Sprintf("%.4f", avgWriteTime),
-				"avg_sync_time_ms":  fmt.Sprintf("%.4f", avgSyncTime),
-				"stats_reset":       statsReset,
-			}
-
-			jsonData, err := json.MarshalIndent(map[string]interface{}{
-				"postgresql_version": version,
-				"wal":                wal,
-				"description":        "WAL generation and synchronization statistics for monitoring transaction log activity.",
-			}, "", "  ")
-			if err != nil {
-				return mcp.ResourceContent{}, fmt.Errorf("failed to marshal JSON: %w", err)
-			}
-
-			return mcp.ResourceContent{
-				URI:      "pg://stat/wal",
-				MimeType: "application/json",
-				Contents: []mcp.ContentItem{{Type: "text", Text: string(jsonData)}},
-			}, nil
+			return database.ExecuteResourceQuery(dbClient, URIStatWAL, query, processor)
 		},
 	}
 }

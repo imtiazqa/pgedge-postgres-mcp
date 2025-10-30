@@ -56,7 +56,7 @@ func (s *Server) SetResourceProvider(resources ResourceProvider) {
 // Run starts the stdio server loop
 func (s *Server) Run() error {
 	scanner := bufio.NewScanner(os.Stdin)
-	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
+	scanner.Buffer(make([]byte, 0, ScannerInitialBufferSize), ScannerMaxBufferSize)
 
 	for scanner.Scan() {
 		line := scanner.Text()

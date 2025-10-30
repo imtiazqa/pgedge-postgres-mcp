@@ -55,91 +55,44 @@ func RecommendPGConfigurationTool() Tool {
 			},
 		},
 		Handler: func(args map[string]interface{}) (mcp.ToolResponse, error) {
-			// Extract parameters
-			totalRAMGB, ok := args["total_ram_gb"].(float64)
-			if !ok {
-				return mcp.ToolResponse{
-					Content: []mcp.ContentItem{
-						{Type: "text", Text: "Error: total_ram_gb must be a number"},
-					},
-					IsError: true,
-				}, nil
+			// Validate and extract parameters
+			totalRAMGB, errResp := ValidateNumberParam(args, "total_ram_gb")
+			if errResp != nil {
+				return *errResp, nil
 			}
 
-			cpuCores, ok := args["cpu_cores"].(float64)
-			if !ok {
-				return mcp.ToolResponse{
-					Content: []mcp.ContentItem{
-						{Type: "text", Text: "Error: cpu_cores must be a number"},
-					},
-					IsError: true,
-				}, nil
+			cpuCores, errResp := ValidateNumberParam(args, "cpu_cores")
+			if errResp != nil {
+				return *errResp, nil
 			}
 
-			storageType, ok := args["storage_type"].(string)
-			if !ok {
-				return mcp.ToolResponse{
-					Content: []mcp.ContentItem{
-						{Type: "text", Text: "Error: storage_type must be a string"},
-					},
-					IsError: true,
-				}, nil
+			storageType, errResp := ValidateStringParam(args, "storage_type")
+			if errResp != nil {
+				return *errResp, nil
 			}
 
-			workloadType, ok := args["workload_type"].(string)
-			if !ok {
-				return mcp.ToolResponse{
-					Content: []mcp.ContentItem{
-						{Type: "text", Text: "Error: workload_type must be a string"},
-					},
-					IsError: true,
-				}, nil
+			workloadType, errResp := ValidateStringParam(args, "workload_type")
+			if errResp != nil {
+				return *errResp, nil
 			}
 
-			vmEnvironment := false
-			if vm, ok := args["vm_environment"].(bool); ok {
-				vmEnvironment = vm
-			}
+			// Optional parameters
+			vmEnvironment := ValidateBoolParam(args, "vm_environment", false)
+			separateWALDisk := ValidateBoolParam(args, "separate_wal_disk", false)
+			availableDiskSpaceGB := ValidateOptionalNumberParam(args, "available_disk_space_gb", 0.0)
 
-			separateWALDisk := false
-			if wal, ok := args["separate_wal_disk"].(bool); ok {
-				separateWALDisk = wal
+			// Validate ranges
+			if errResp := ValidatePositiveNumber(totalRAMGB, "total_ram_gb"); errResp != nil {
+				return *errResp, nil
 			}
-
-			availableDiskSpaceGB := 0.0
-			if disk, ok := args["available_disk_space_gb"].(float64); ok {
-				availableDiskSpaceGB = disk
-			}
-
-			// Validate inputs
-			if totalRAMGB <= 0 {
-				return mcp.ToolResponse{
-					Content: []mcp.ContentItem{
-						{Type: "text", Text: "Error: total_ram_gb must be greater than 0"},
-					},
-					IsError: true,
-				}, nil
-			}
-			if cpuCores <= 0 {
-				return mcp.ToolResponse{
-					Content: []mcp.ContentItem{
-						{Type: "text", Text: "Error: cpu_cores must be greater than 0"},
-					},
-					IsError: true,
-				}, nil
+			if errResp := ValidatePositiveNumber(cpuCores, "cpu_cores"); errResp != nil {
+				return *errResp, nil
 			}
 
 			config := generateConfiguration(totalRAMGB, int(cpuCores), storageType,
 				workloadType, vmEnvironment, separateWALDisk, availableDiskSpaceGB)
 
-			return mcp.ToolResponse{
-				Content: []mcp.ContentItem{
-					{
-						Type: "text",
-						Text: formatConfigurationOutput(config),
-					},
-				},
-			}, nil
+			return mcp.NewToolSuccess(formatConfigurationOutput(config))
 		},
 	}
 }
@@ -154,139 +107,151 @@ type configRecommendation struct {
 func generateConfiguration(ramGB float64, cpuCores int, storageType, workloadType string, vmEnv, separateWAL bool, diskSpaceGB float64) []configRecommendation {
 	var recommendations []configRecommendation
 
-	// Connection Management
+	recommendations = append(recommendations, addConnectionSettings(cpuCores)...)
+	recommendations = append(recommendations, addMemorySettings(ramGB, cpuCores, storageType, workloadType)...)
+	recommendations = append(recommendations, addWALSettings(diskSpaceGB, workloadType, vmEnv)...)
+	recommendations = append(recommendations, addQueryPlanningSettings(storageType)...)
+	recommendations = append(recommendations, addLoggingSettings()...)
+	recommendations = append(recommendations, addAutovacuumSettings()...)
+	recommendations = append(recommendations, addClientConnectionSettings()...)
+
+	return recommendations
+}
+
+// addConnectionSettings returns connection management recommendations
+func addConnectionSettings(cpuCores int) []configRecommendation {
 	maxConnections := int(math.Max(float64(4*cpuCores), 100))
-	recommendations = append(recommendations, configRecommendation{
-		Parameter:   "max_connections",
-		Value:       fmt.Sprintf("%d", maxConnections),
-		Explanation: fmt.Sprintf("Calculated as max(4 × CPU cores, 100) = max(%d, 100). Consider using a connection pooler like pgbouncer if more connections are needed.", 4*cpuCores),
-		Section:     "Connection Management",
-	})
+	return []configRecommendation{
+		{
+			Parameter:   "max_connections",
+			Value:       fmt.Sprintf("%d", maxConnections),
+			Explanation: fmt.Sprintf("Calculated as max(4 × CPU cores, 100) = max(%d, 100). Consider using a connection pooler like pgbouncer if more connections are needed.", 4*cpuCores),
+			Section:     "Connection Management",
+		},
+		{
+			Parameter:   "password_encryption",
+			Value:       "scram-sha-256",
+			Explanation: "Modern secure password encryption method",
+			Section:     "Connection Management",
+		},
+	}
+}
 
-	recommendations = append(recommendations, configRecommendation{
-		Parameter:   "password_encryption",
-		Value:       "scram-sha-256",
-		Explanation: "Modern secure password encryption method",
-		Section:     "Connection Management",
-	})
-
-	// Memory Parameters
+// addMemorySettings returns memory-related recommendations
+func addMemorySettings(ramGB float64, cpuCores int, storageType, workloadType string) []configRecommendation {
 	sharedBuffers := calculateSharedBuffers(ramGB)
 	sharedBuffersGB := sharedBuffers / 1024.0
-	recommendations = append(recommendations, configRecommendation{
-		Parameter:   "shared_buffers",
-		Value:       fmt.Sprintf("%.0fGB", sharedBuffersGB),
-		Explanation: fmt.Sprintf("Calculated based on %.0fGB total RAM. Beyond 64GB, there are diminishing returns due to overhead from maintaining large contiguous memory allocation.", ramGB),
-		Section:     "Memory",
-	})
-
 	workMem := calculateWorkMem(ramGB, sharedBuffers, cpuCores, workloadType)
-	recommendations = append(recommendations, configRecommendation{
-		Parameter:   "work_mem",
-		Value:       fmt.Sprintf("%dMB", workMem),
-		Explanation: fmt.Sprintf("Calculated as (Total RAM - shared_buffers) / (16 × CPU cores). Adjusted for %s workload.", workloadType),
-		Section:     "Memory",
-	})
-
 	maintenanceWorkMem := calculateMaintenanceWorkMem(ramGB, sharedBuffers, 5)
-	recommendations = append(recommendations, configRecommendation{
-		Parameter:   "maintenance_work_mem",
-		Value:       fmt.Sprintf("%dMB", maintenanceWorkMem),
-		Explanation: "Used for VACUUM, CREATE INDEX, ALTER TABLE operations. Capped at 1GB maximum.",
-		Section:     "Memory",
-	})
+	effectiveCacheSize := calculateEffectiveCacheSize(ramGB, sharedBuffersGB)
 
 	effectiveIOConcurrency := 200
 	if storageType == "HDD" {
 		effectiveIOConcurrency = 2
 	}
-	recommendations = append(recommendations, configRecommendation{
-		Parameter:   "effective_io_concurrency",
-		Value:       fmt.Sprintf("%d", effectiveIOConcurrency),
-		Explanation: fmt.Sprintf("Set to 200 for solid-state storage (%s), or number of spindles for HDD arrays.", storageType),
-		Section:     "Memory",
-	})
 
-	effectiveCacheSize := calculateEffectiveCacheSize(ramGB, sharedBuffersGB)
-	recommendations = append(recommendations, configRecommendation{
-		Parameter:   "effective_cache_size",
-		Value:       fmt.Sprintf("%.0fGB", effectiveCacheSize),
-		Explanation: "Estimated as shared_buffers + OS buffer cache (approximately 50% of remaining RAM).",
-		Section:     "Memory",
-	})
+	return []configRecommendation{
+		{
+			Parameter:   "shared_buffers",
+			Value:       fmt.Sprintf("%.0fGB", sharedBuffersGB),
+			Explanation: fmt.Sprintf("Calculated based on %.0fGB total RAM. Beyond 64GB, there are diminishing returns due to overhead from maintaining large contiguous memory allocation.", ramGB),
+			Section:     "Memory",
+		},
+		{
+			Parameter:   "work_mem",
+			Value:       fmt.Sprintf("%dMB", workMem),
+			Explanation: fmt.Sprintf("Calculated as (Total RAM - shared_buffers) / (16 × CPU cores). Adjusted for %s workload.", workloadType),
+			Section:     "Memory",
+		},
+		{
+			Parameter:   "maintenance_work_mem",
+			Value:       fmt.Sprintf("%dMB", maintenanceWorkMem),
+			Explanation: "Used for VACUUM, CREATE INDEX, ALTER TABLE operations. Capped at 1GB maximum.",
+			Section:     "Memory",
+		},
+		{
+			Parameter:   "effective_io_concurrency",
+			Value:       fmt.Sprintf("%d", effectiveIOConcurrency),
+			Explanation: fmt.Sprintf("Set to 200 for solid-state storage (%s), or number of spindles for HDD arrays.", storageType),
+			Section:     "Memory",
+		},
+		{
+			Parameter:   "effective_cache_size",
+			Value:       fmt.Sprintf("%.0fGB", effectiveCacheSize),
+			Explanation: "Estimated as shared_buffers + OS buffer cache (approximately 50% of remaining RAM).",
+			Section:     "Memory",
+		},
+	}
+}
 
-	// WAL Parameters
-	recommendations = append(recommendations, configRecommendation{
-		Parameter:   "wal_compression",
-		Value:       "on",
-		Explanation: "Compresses full-page images in WAL to reduce storage and I/O.",
-		Section:     "Write-Ahead Log (WAL)",
-	})
-
-	recommendations = append(recommendations, configRecommendation{
-		Parameter:   "wal_log_hints",
-		Value:       "on",
-		Explanation: "Required for pg_rewind functionality.",
-		Section:     "Write-Ahead Log (WAL)",
-	})
-
-	recommendations = append(recommendations, configRecommendation{
-		Parameter:   "wal_buffers",
-		Value:       "64MB",
-		Explanation: "WAL segments are 16MB each by default, so buffering multiple segments is inexpensive.",
-		Section:     "Write-Ahead Log (WAL)",
-	})
-
+// addWALSettings returns WAL-related recommendations
+func addWALSettings(diskSpaceGB float64, workloadType string, vmEnv bool) []configRecommendation {
 	checkpointTimeout := "15min"
 	if workloadType == "OLAP" {
 		checkpointTimeout = "30min"
 	}
-	recommendations = append(recommendations, configRecommendation{
-		Parameter:   "checkpoint_timeout",
-		Value:       checkpointTimeout,
-		Explanation: fmt.Sprintf("Longer timeout for %s workload reduces WAL volume but increases crash recovery time.", workloadType),
-		Section:     "Write-Ahead Log (WAL)",
-	})
-
-	recommendations = append(recommendations, configRecommendation{
-		Parameter:   "checkpoint_completion_target",
-		Value:       "0.9",
-		Explanation: "Spreads checkpoint writes over 90% of checkpoint interval to avoid I/O spikes.",
-		Section:     "Write-Ahead Log (WAL)",
-	})
-
 	maxWALSize := calculateMaxWALSize(diskSpaceGB, workloadType)
-	recommendations = append(recommendations, configRecommendation{
-		Parameter:   "max_wal_size",
-		Value:       maxWALSize,
-		Explanation: "Calculated based on available disk space. Monitor pg_stat_bgwriter to tune checkpoints_timed vs checkpoints_req ratio.",
-		Section:     "Write-Ahead Log (WAL)",
-	})
 
-	recommendations = append(recommendations, configRecommendation{
-		Parameter:   "archive_mode",
-		Value:       "on",
-		Explanation: "Enables WAL archiving for backup and point-in-time recovery. Requires restart.",
-		Section:     "Write-Ahead Log (WAL)",
-	})
+	recs := []configRecommendation{
+		{
+			Parameter:   "wal_compression",
+			Value:       "on",
+			Explanation: "Compresses full-page images in WAL to reduce storage and I/O.",
+			Section:     "Write-Ahead Log (WAL)",
+		},
+		{
+			Parameter:   "wal_log_hints",
+			Value:       "on",
+			Explanation: "Required for pg_rewind functionality.",
+			Section:     "Write-Ahead Log (WAL)",
+		},
+		{
+			Parameter:   "wal_buffers",
+			Value:       "64MB",
+			Explanation: "WAL segments are 16MB each by default, so buffering multiple segments is inexpensive.",
+			Section:     "Write-Ahead Log (WAL)",
+		},
+		{
+			Parameter:   "checkpoint_timeout",
+			Value:       checkpointTimeout,
+			Explanation: fmt.Sprintf("Longer timeout for %s workload reduces WAL volume but increases crash recovery time.", workloadType),
+			Section:     "Write-Ahead Log (WAL)",
+		},
+		{
+			Parameter:   "checkpoint_completion_target",
+			Value:       "0.9",
+			Explanation: "Spreads checkpoint writes over 90% of checkpoint interval to avoid I/O spikes.",
+			Section:     "Write-Ahead Log (WAL)",
+		},
+		{
+			Parameter:   "max_wal_size",
+			Value:       maxWALSize,
+			Explanation: "Calculated based on available disk space. Monitor pg_stat_bgwriter to tune checkpoints_timed vs checkpoints_req ratio.",
+			Section:     "Write-Ahead Log (WAL)",
+		},
+		{
+			Parameter:   "archive_mode",
+			Value:       "on",
+			Explanation: "Enables WAL archiving for backup and point-in-time recovery. Requires restart.",
+			Section:     "Write-Ahead Log (WAL)",
+		},
+		{
+			Parameter:   "archive_command",
+			Value:       "'/bin/true'",
+			Explanation: "Placeholder command. Replace with your actual archiving script or service.",
+			Section:     "Write-Ahead Log (WAL)",
+		},
+	}
 
-	recommendations = append(recommendations, configRecommendation{
-		Parameter:   "archive_command",
-		Value:       "'/bin/true'",
-		Explanation: "Placeholder command. Replace with your actual archiving script or service.",
-		Section:     "Write-Ahead Log (WAL)",
-	})
-
-	// VM-specific WAL settings
+	// Add VM-specific WAL settings
 	if vmEnv {
-		recommendations = append(recommendations, configRecommendation{
+		recs = append(recs, configRecommendation{
 			Parameter:   "wal_recycle",
 			Value:       "off",
 			Explanation: "Disabled for VM environments to allow new WAL file creation instead of recycling.",
 			Section:     "Write-Ahead Log (WAL)",
 		})
-
-		recommendations = append(recommendations, configRecommendation{
+		recs = append(recs, configRecommendation{
 			Parameter:   "wal_init_zero",
 			Value:       "off",
 			Explanation: "Disabled for VM environments to write only final byte at creation (requires pre-allocated disk space).",
@@ -294,141 +259,144 @@ func generateConfiguration(ramGB float64, cpuCores int, storageType, workloadTyp
 		})
 	}
 
-	// Query Planning
+	return recs
+}
+
+// addQueryPlanningSettings returns query planner recommendations
+func addQueryPlanningSettings(storageType string) []configRecommendation {
 	randomPageCost := "4.0"
 	if storageType == "SSD" || storageType == "NVMe" {
 		randomPageCost = "1.1"
 	}
-	recommendations = append(recommendations, configRecommendation{
-		Parameter:   "random_page_cost",
-		Value:       randomPageCost,
-		Explanation: fmt.Sprintf("Set to 1.1 for SSD/NVMe storage to reflect low random access cost. Default 4.0 for HDD."),
-		Section:     "Query Planning",
-	})
 
-	recommendations = append(recommendations, configRecommendation{
-		Parameter:   "cpu_tuple_cost",
-		Value:       "0.03",
-		Explanation: "Increased from default 0.01 for more realistic query costing on modern hardware.",
-		Section:     "Query Planning",
-	})
+	return []configRecommendation{
+		{
+			Parameter:   "random_page_cost",
+			Value:       randomPageCost,
+			Explanation: fmt.Sprintf("Set to 1.1 for SSD/NVMe storage to reflect low random access cost. Default 4.0 for HDD."),
+			Section:     "Query Planning",
+		},
+		{
+			Parameter:   "cpu_tuple_cost",
+			Value:       "0.03",
+			Explanation: "Increased from default 0.01 for more realistic query costing on modern hardware.",
+			Section:     "Query Planning",
+		},
+	}
+}
 
-	// Logging & Monitoring
-	recommendations = append(recommendations, configRecommendation{
-		Parameter:   "logging_collector",
-		Value:       "on",
-		Explanation: "Enables background log collection process for stderr/csvlog output.",
-		Section:     "Logging & Monitoring",
-	})
+// addLoggingSettings returns logging and monitoring recommendations
+func addLoggingSettings() []configRecommendation {
+	return []configRecommendation{
+		{
+			Parameter:   "logging_collector",
+			Value:       "on",
+			Explanation: "Enables background log collection process for stderr/csvlog output.",
+			Section:     "Logging & Monitoring",
+		},
+		{
+			Parameter:   "log_directory",
+			Value:       "'/var/log/postgresql'",
+			Explanation: "Place outside data directory to exclude logs from base backups.",
+			Section:     "Logging & Monitoring",
+		},
+		{
+			Parameter:   "log_checkpoints",
+			Value:       "on",
+			Explanation: "Logs checkpoint activity for monitoring I/O patterns.",
+			Section:     "Logging & Monitoring",
+		},
+		{
+			Parameter:   "log_min_duration_statement",
+			Value:       "1000",
+			Explanation: "Logs queries taking longer than 1 second (1000ms). Adjust based on workload expectations.",
+			Section:     "Logging & Monitoring",
+		},
+		{
+			Parameter:   "log_line_prefix",
+			Value:       "'%m [%p]: u=[%u] db=[%d] app=[%a] c=[%h] s=[%c:%l] tx=[%v:%x]'",
+			Explanation: "Detailed log line prefix including timestamp, process, user, database, application, connection, session, and transaction info.",
+			Section:     "Logging & Monitoring",
+		},
+		{
+			Parameter:   "log_lock_waits",
+			Value:       "on",
+			Explanation: "Logs when session waits longer than deadlock_timeout to acquire a lock.",
+			Section:     "Logging & Monitoring",
+		},
+		{
+			Parameter:   "log_statement",
+			Value:       "ddl",
+			Explanation: "Logs all DDL statements (CREATE, ALTER, DROP) for audit trail.",
+			Section:     "Logging & Monitoring",
+		},
+		{
+			Parameter:   "log_connections",
+			Value:       "on",
+			Explanation: "Logs each successful connection for security and auditing.",
+			Section:     "Logging & Monitoring",
+		},
+		{
+			Parameter:   "log_disconnections",
+			Value:       "on",
+			Explanation: "Logs session termination and duration for monitoring.",
+			Section:     "Logging & Monitoring",
+		},
+		{
+			Parameter:   "log_temp_files",
+			Value:       "0",
+			Explanation: "Logs all temporary file creation, indicating work_mem may need tuning.",
+			Section:     "Logging & Monitoring",
+		},
+	}
+}
 
-	recommendations = append(recommendations, configRecommendation{
-		Parameter:   "log_directory",
-		Value:       "'/var/log/postgresql'",
-		Explanation: "Place outside data directory to exclude logs from base backups.",
-		Section:     "Logging & Monitoring",
-	})
+// addAutovacuumSettings returns autovacuum recommendations
+func addAutovacuumSettings() []configRecommendation {
+	return []configRecommendation{
+		{
+			Parameter:   "log_autovacuum_min_duration",
+			Value:       "0",
+			Explanation: "Logs all autovacuum activity for monitoring table maintenance.",
+			Section:     "Autovacuum",
+		},
+		{
+			Parameter:   "autovacuum_max_workers",
+			Value:       "5",
+			Explanation: "Increased from default 3 to enable more parallel vacuum operations.",
+			Section:     "Autovacuum",
+		},
+		{
+			Parameter:   "autovacuum_vacuum_cost_limit",
+			Value:       "5000",
+			Explanation: "Increased from default to allow autovacuum to do more I/O work per iteration.",
+			Section:     "Autovacuum",
+		},
+	}
+}
 
-	recommendations = append(recommendations, configRecommendation{
-		Parameter:   "log_checkpoints",
-		Value:       "on",
-		Explanation: "Logs checkpoint activity for monitoring I/O patterns.",
-		Section:     "Logging & Monitoring",
-	})
-
-	recommendations = append(recommendations, configRecommendation{
-		Parameter:   "log_min_duration_statement",
-		Value:       "1000",
-		Explanation: "Logs queries taking longer than 1 second (1000ms). Adjust based on workload expectations.",
-		Section:     "Logging & Monitoring",
-	})
-
-	recommendations = append(recommendations, configRecommendation{
-		Parameter:   "log_line_prefix",
-		Value:       "'%m [%p]: u=[%u] db=[%d] app=[%a] c=[%h] s=[%c:%l] tx=[%v:%x]'",
-		Explanation: "Detailed log line prefix including timestamp, process, user, database, application, connection, session, and transaction info.",
-		Section:     "Logging & Monitoring",
-	})
-
-	recommendations = append(recommendations, configRecommendation{
-		Parameter:   "log_lock_waits",
-		Value:       "on",
-		Explanation: "Logs when session waits longer than deadlock_timeout to acquire a lock.",
-		Section:     "Logging & Monitoring",
-	})
-
-	recommendations = append(recommendations, configRecommendation{
-		Parameter:   "log_statement",
-		Value:       "ddl",
-		Explanation: "Logs all DDL statements (CREATE, ALTER, DROP) for audit trail.",
-		Section:     "Logging & Monitoring",
-	})
-
-	recommendations = append(recommendations, configRecommendation{
-		Parameter:   "log_connections",
-		Value:       "on",
-		Explanation: "Logs each successful connection for security and auditing.",
-		Section:     "Logging & Monitoring",
-	})
-
-	recommendations = append(recommendations, configRecommendation{
-		Parameter:   "log_disconnections",
-		Value:       "on",
-		Explanation: "Logs session termination and duration for monitoring.",
-		Section:     "Logging & Monitoring",
-	})
-
-	recommendations = append(recommendations, configRecommendation{
-		Parameter:   "log_temp_files",
-		Value:       "0",
-		Explanation: "Logs all temporary file creation, indicating work_mem may need tuning.",
-		Section:     "Logging & Monitoring",
-	})
-
-	// Autovacuum
-	recommendations = append(recommendations, configRecommendation{
-		Parameter:   "log_autovacuum_min_duration",
-		Value:       "0",
-		Explanation: "Logs all autovacuum activity for monitoring table maintenance.",
-		Section:     "Autovacuum",
-	})
-
-	recommendations = append(recommendations, configRecommendation{
-		Parameter:   "autovacuum_max_workers",
-		Value:       "5",
-		Explanation: "Increased from default 3 to enable more parallel vacuum operations.",
-		Section:     "Autovacuum",
-	})
-
-	recommendations = append(recommendations, configRecommendation{
-		Parameter:   "autovacuum_vacuum_cost_limit",
-		Value:       "5000",
-		Explanation: "Increased from default to allow autovacuum to do more I/O work per iteration.",
-		Section:     "Autovacuum",
-	})
-
-	// Client Connection Defaults
-	recommendations = append(recommendations, configRecommendation{
-		Parameter:   "idle_in_transaction_session_timeout",
-		Value:       "600000",
-		Explanation: "Terminates sessions idle in transaction for more than 10 minutes (600000ms) to prevent lock buildup.",
-		Section:     "Client Connection Defaults",
-	})
-
-	recommendations = append(recommendations, configRecommendation{
-		Parameter:   "lc_messages",
-		Value:       "C",
-		Explanation: "Sets message locale to C for log analyzer compatibility.",
-		Section:     "Client Connection Defaults",
-	})
-
-	recommendations = append(recommendations, configRecommendation{
-		Parameter:   "shared_preload_libraries",
-		Value:       "'pg_stat_statements'",
-		Explanation: "Loads pg_stat_statements extension for query performance monitoring. Requires restart.",
-		Section:     "Client Connection Defaults",
-	})
-
-	return recommendations
+// addClientConnectionSettings returns client connection default recommendations
+func addClientConnectionSettings() []configRecommendation {
+	return []configRecommendation{
+		{
+			Parameter:   "idle_in_transaction_session_timeout",
+			Value:       "600000",
+			Explanation: "Terminates sessions idle in transaction for more than 10 minutes (600000ms) to prevent lock buildup.",
+			Section:     "Client Connection Defaults",
+		},
+		{
+			Parameter:   "lc_messages",
+			Value:       "C",
+			Explanation: "Sets message locale to C for log analyzer compatibility.",
+			Section:     "Client Connection Defaults",
+		},
+		{
+			Parameter:   "shared_preload_libraries",
+			Value:       "'pg_stat_statements'",
+			Explanation: "Loads pg_stat_statements extension for query performance monitoring. Requires restart.",
+			Section:     "Client Connection Defaults",
+		},
+	}
 }
 
 // calculateSharedBuffers calculates shared_buffers based on total RAM

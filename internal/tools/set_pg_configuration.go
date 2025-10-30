@@ -43,54 +43,22 @@ func SetPGConfigurationTool(dbClient *database.Client) Tool {
 		Handler: func(args map[string]interface{}) (mcp.ToolResponse, error) {
 			parameter, ok := args["parameter"].(string)
 			if !ok || parameter == "" {
-				return mcp.ToolResponse{
-					Content: []mcp.ContentItem{
-						{
-							Type: "text",
-							Text: "Missing or invalid 'parameter' argument",
-						},
-					},
-					IsError: true,
-				}, nil
+				return mcp.NewToolError("Missing or invalid 'parameter' argument")
 			}
 
 			value, ok := args["value"].(string)
 			if !ok {
-				return mcp.ToolResponse{
-					Content: []mcp.ContentItem{
-						{
-							Type: "text",
-							Text: "Missing or invalid 'value' argument",
-						},
-					},
-					IsError: true,
-				}, nil
+				return mcp.NewToolError("Missing or invalid 'value' argument")
 			}
 
 			// Check if database is ready
 			if !dbClient.IsMetadataLoaded() {
-				return mcp.ToolResponse{
-					Content: []mcp.ContentItem{
-						{
-							Type: "text",
-							Text: "Database is still initializing. Please wait a moment and try again.",
-						},
-					},
-					IsError: true,
-				}, nil
+				return mcp.NewToolError("Database is still initializing. Please wait a moment and try again.")
 			}
 
 			pool := dbClient.GetPool()
 			if pool == nil {
-				return mcp.ToolResponse{
-					Content: []mcp.ContentItem{
-						{
-							Type: "text",
-							Text: "Database connection not available",
-						},
-					},
-					IsError: true,
-				}, nil
+				return mcp.NewToolError("Database connection not available")
 			}
 
 			ctx := context.Background()
@@ -127,15 +95,7 @@ func SetPGConfigurationTool(dbClient *database.Client) Tool {
 			)
 
 			if err != nil {
-				return mcp.ToolResponse{
-					Content: []mcp.ContentItem{
-						{
-							Type: "text",
-							Text: fmt.Sprintf("Parameter '%s' not found or error querying pg_settings: %v\n\nUse the pg://settings resource to view available parameters.", parameter, err),
-						},
-					},
-					IsError: true,
-				}, nil
+				return mcp.NewToolError(fmt.Sprintf("Parameter '%s' not found or error querying pg_settings: %v\n\nUse the pg://settings resource to view available parameters.", parameter, err))
 			}
 
 			// Construct ALTER SYSTEM SET command
@@ -150,15 +110,7 @@ func SetPGConfigurationTool(dbClient *database.Client) Tool {
 			// Execute the ALTER SYSTEM SET command
 			_, err = pool.Exec(ctx, sqlCommand)
 			if err != nil {
-				return mcp.ToolResponse{
-					Content: []mcp.ContentItem{
-						{
-							Type: "text",
-							Text: fmt.Sprintf("Failed to set parameter '%s': %v\n\nSQL: %s", parameter, err, sqlCommand),
-						},
-					},
-					IsError: true,
-				}, nil
+				return mcp.NewToolError(fmt.Sprintf("Failed to set parameter '%s': %v\n\nSQL: %s", parameter, err, sqlCommand))
 			}
 
 			// Reload configuration to apply changes that don't require restart
@@ -195,14 +147,7 @@ func SetPGConfigurationTool(dbClient *database.Client) Tool {
 
 			sb.WriteString(fmt.Sprintf("\nSQL executed: %s\n", sqlCommand))
 
-			return mcp.ToolResponse{
-				Content: []mcp.ContentItem{
-					{
-						Type: "text",
-						Text: sb.String(),
-					},
-				},
-			}, nil
+			return mcp.NewToolSuccess(sb.String())
 		},
 	}
 }

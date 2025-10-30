@@ -45,17 +45,17 @@ func main() {
 	resourceRegistry := resources.NewRegistry()
 
 	// System information resources
-	resourceRegistry.Register("pg://settings", resources.PGSettingsResource(dbClient))
-	resourceRegistry.Register("pg://system_info", resources.PGSystemInfoResource(dbClient))
+	resourceRegistry.Register(resources.URISettings, resources.PGSettingsResource(dbClient))
+	resourceRegistry.Register(resources.URISystemInfo, resources.PGSystemInfoResource(dbClient))
 
 	// Statistics resources
-	resourceRegistry.Register("pg://stat/activity", resources.PGStatActivityResource(dbClient))
-	resourceRegistry.Register("pg://stat/database", resources.PGStatDatabaseResource(dbClient))
-	resourceRegistry.Register("pg://stat/user_tables", resources.PGStatUserTablesResource(dbClient))
-	resourceRegistry.Register("pg://stat/user_indexes", resources.PGStatUserIndexesResource(dbClient))
-	resourceRegistry.Register("pg://stat/replication", resources.PGStatReplicationResource(dbClient))
-	resourceRegistry.Register("pg://stat/bgwriter", resources.PGStatBgwriterResource(dbClient))
-	resourceRegistry.Register("pg://stat/wal", resources.PGStatWALResource(dbClient))
+	resourceRegistry.Register(resources.URIStatActivity, resources.PGStatActivityResource(dbClient))
+	resourceRegistry.Register(resources.URIStatDatabase, resources.PGStatDatabaseResource(dbClient))
+	resourceRegistry.Register(resources.URIStatUserTables, resources.PGStatUserTablesResource(dbClient))
+	resourceRegistry.Register(resources.URIStatUserIndexes, resources.PGStatUserIndexesResource(dbClient))
+	resourceRegistry.Register(resources.URIStatReplication, resources.PGStatReplicationResource(dbClient))
+	resourceRegistry.Register(resources.URIStatBgwriter, resources.PGStatBgwriterResource(dbClient))
+	resourceRegistry.Register(resources.URIStatWAL, resources.PGStatWALResource(dbClient))
 
 	// Register tools
 	toolRegistry := tools.NewRegistry()

@@ -40,9 +40,14 @@ func NewClient() *Client {
 		model = "claude-sonnet-4-5"
 	}
 
+	baseURL := os.Getenv("ANTHROPIC_BASE_URL")
+	if baseURL == "" {
+		baseURL = "https://api.anthropic.com/v1"
+	}
+
 	return &Client{
 		apiKey:  apiKey,
-		baseURL: "https://api.anthropic.com/v1",
+		baseURL: baseURL,
 		model:   model,
 	}
 }
@@ -108,7 +113,11 @@ SQL Query:`, schemaContext, nlQuery)
 	if err != nil {
 		return "", fmt.Errorf("failed to send request: %w", err)
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			fmt.Fprintf(os.Stderr, "WARNING: Failed to close HTTP response body: %v\n", err)
+		}
+	}()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
