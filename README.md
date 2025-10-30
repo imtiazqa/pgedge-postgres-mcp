@@ -13,170 +13,46 @@ A Model Context Protocol (MCP) server written in Go that enables natural languag
 
 - **Natural Language to SQL**: Convert plain English questions into SQL queries using Claude AI
 - **Read-Only Protection**: All generated queries are executed in read-only transactions to prevent accidental or malicious data modifications
-- **Comprehensive Schema Analysis**: Extracts and utilizes:
-  - Table and view names
-  - Column names and data types
-  - Nullability constraints
-  - Comments from pg_description (table and column descriptions)
-  - Schema information
+- **Comprehensive Schema Analysis**: Extracts and utilizes table/view names, column information, data types, nullability, and pg_description comments
 - **Multi-Database Support**: Query multiple PostgreSQL databases dynamically by specifying connection strings in queries
 - **Configuration Management**: View, modify, and get baseline configuration recommendations for NEW PostgreSQL installations
 - **Bloat Analysis**: Analyze tables and indexes for bloat to determine when vacuuming or reindexing is required
 - **Configuration File Access**: Read PostgreSQL configuration files (postgresql.conf, pg_hba.conf, pg_ident.conf) and server logs
-- **MCP Protocol**: Implements the Model Context Protocol with support for stdio and streaming HTTP (with or without TLS)
-- **Ten MCP Tools**: Execute queries, retrieve schema, modify configuration, get configuration recommendations, analyze bloat, read config files and logs, and read resources
-  - See **[Tools Documentation](docs/TOOLS.md)** for detailed information
-- **Nine MCP Resources**: System information and PostgreSQL statistics (pg_stat_* views)
-  - See **[Resources Documentation](docs/RESOURCES.md)** for detailed information
+- **MCP Protocol**: Implements the Model Context Protocol with support for stdio and streaming HTTP/HTTPS (with or without TLS)
+- **API Token Authentication**: Built-in token authentication with expiration support for HTTP/HTTPS mode
+- **Ten MCP Tools**: Execute queries, retrieve schema, modify configuration, analyze bloat, and more - See **[Tools Documentation](docs/TOOLS.md)**
+- **Nine MCP Resources**: System information and PostgreSQL statistics (pg_stat_* views) - See **[Resources Documentation](docs/RESOURCES.md)**
 
-## Documentation
+## Quick Start
 
-For additional documentation, please see:
-
-- **[Query Examples](docs/EXAMPLES.md)** - Comprehensive collection of example queries including basic data queries, schema discovery, multi-database queries, and advanced usage patterns
-- **[Tools Documentation](docs/TOOLS.md)** - Detailed information about all ten MCP tools and how to use them
-- **[Resources Documentation](docs/RESOURCES.md)** - Complete reference for all nine MCP resources including system info and statistics
-- **[Testing Guide](docs/TESTING.md)** - Information about unit tests, integration tests, linting, and CI/CD
-- **[Architecture Guide](docs/ARCHITECTURE.md)** - Detailed information about the project structure, components, data flow, and how to extend the server with new tools, resources, and prompts
-- **[Troubleshooting Guide](docs/TROUBLESHOOTING.md)** - Comprehensive troubleshooting steps for common issues, connection problems, and debugging techniques
-
-## Prerequisites
+### Prerequisites
 
 - Go 1.21 or higher
 - PostgreSQL database (any version that supports pg_description)
-- Anthropic API key (for Claude AI)
+- Anthropic API key (for Claude AI) - Get yours at https://console.anthropic.com/
 
-## Installation
+### Installation
 
-### From Source
-
-1. Clone the repository:
 ```bash
+# Clone the repository
 git clone <repository-url>
 cd pgedge-postgres-mcp
-```
 
-2. Build the binary:
-```bash
+# Build the binary
 make build
 # Or: go build -o bin/pgedge-postgres-mcp ./cmd/pgedge-postgres-mcp
 ```
 
-3. The binary will be created as `bin/pgedge-postgres-mcp`.
+The binary will be created as `bin/pgedge-postgres-mcp`.
 
-## Configuration
+### Configure for Claude Desktop
 
-The server supports multiple configuration methods with the following priority (highest to lowest):
-1. **Command line flags** (highest priority)
-2. **Environment variables**
-3. **Configuration file**
-4. **Hard-coded defaults** (lowest priority)
+Add to your MCP configuration file:
 
-### Configuration File
+**macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+**Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+**Linux**: `~/.config/Claude/claude_desktop_config.json`
 
-The server can read configuration from a YAML file, making it easier to manage settings without environment variables.
-
-**Default Location**: `pgedge-postgres-mcp.yaml` in the same directory as the binary
-
-**Custom Location**: Use the `-config` flag to specify a different path
-
-**Example Configuration**:
-```yaml
-database:
-  connection_string: "postgres://localhost/postgres?sslmode=disable"
-
-anthropic:
-  api_key: "sk-ant-your-api-key-here"
-  model: "claude-sonnet-4-5"
-
-http:
-  enabled: false
-  address: ":8080"
-  tls:
-    enabled: false
-    cert_file: "./server.crt"
-    key_file: "./server.key"
-    chain_file: ""
-  auth:
-    enabled: true
-    token_file: ""  # defaults to api-tokens.yaml
-```
-
-A complete example configuration file is available at [configs/pgedge-postgres-mcp.yaml.example](configs/pgedge-postgres-mcp.yaml.example).
-
-**Creating a Configuration File**:
-```bash
-# Copy the example to the binary directory
-cp configs/pgedge-postgres-mcp.yaml.example bin/pgedge-postgres-mcp.yaml
-
-# Edit with your settings
-vim bin/pgedge-postgres-mcp.yaml
-
-# Run the server (automatically loads config from default location)
-./bin/pgedge-postgres-mcp
-```
-
-### Command Line Flags
-
-All configuration options can be overridden via command line flags:
-
-**General Options:**
-- `-config` - Path to configuration file (default: same directory as binary)
-- `-db` - PostgreSQL connection string
-- `-api-key` - Anthropic API key
-- `-model` - Claude model to use
-
-**HTTP/HTTPS Options:**
-- `-http` - Enable HTTP transport mode
-- `-addr` - HTTP server address (default ":8080")
-- `-tls` - Enable TLS/HTTPS (requires -http)
-- `-cert` - Path to TLS certificate file
-- `-key` - Path to TLS key file
-- `-chain` - Path to TLS certificate chain file
-
-**Authentication Options:**
-- `-no-auth` - Disable API token authentication
-- `-token-file` - Path to token file (default: api-tokens.yaml)
-- `-add-token` - Add a new API token
-- `-remove-token` - Remove token by ID or hash prefix
-- `-list-tokens` - List all API tokens
-- `-token-note` - Annotation for new token (with -add-token)
-- `-token-expiry` - Token expiry duration: "30d", "1y", "2w", "12h", "never" (with -add-token)
-
-Example:
-```bash
-./bin/pgedge-postgres-mcp \
-  -db "postgres://localhost/mydb" \
-  -api-key "sk-ant-..." \
-  -http \
-  -addr ":9090"
-```
-
-### Environment Variables
-
-The server also supports environment variables for configuration:
-
-- `POSTGRES_CONNECTION_STRING` (required): PostgreSQL connection string
-  - Format: `postgres://username:password@host:port/database?sslmode=disable`
-  - Example: `postgres://myuser:mypass@localhost:5432/mydb?sslmode=disable`
-
-- `ANTHROPIC_API_KEY` (required for natural language queries): Your Anthropic API key
-  - Get yours at: https://console.anthropic.com/
-
-- `ANTHROPIC_MODEL` (optional): Claude model to use
-  - Default: `claude-sonnet-4-5`
-  - Other options: `claude-haiku-4-5`, `claude-opus-4-1`
-
-### Configuration File for Claude Desktop
-
-To use this MCP server with Claude Desktop, add it to your MCP configuration file:
-
-**Location**:
-- macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
-- Windows: `%APPDATA%\Claude\claude_desktop_config.json`
-- Linux: `~/.config/Claude/claude_desktop_config.json`
-
-**Configuration**:
 ```json
 {
   "mcpServers": {
@@ -184,61 +60,84 @@ To use this MCP server with Claude Desktop, add it to your MCP configuration fil
       "command": "/absolute/path/to/pgedge-postgres-mcp/bin/pgedge-postgres-mcp",
       "env": {
         "POSTGRES_CONNECTION_STRING": "postgres://username:password@localhost:5432/database_name?sslmode=disable",
-        "ANTHROPIC_API_KEY": "sk-ant-your-api-key-here",
-        "ANTHROPIC_MODEL": "claude-sonnet-4-5"
+        "ANTHROPIC_API_KEY": "sk-ant-your-api-key-here"
       }
     }
   }
 }
 ```
 
-Replace `/absolute/path/to/pgedge-postgres-mcp` with the full path to your project directory.
+**Important**: Use absolute paths, not relative paths.
 
-## Usage
+### Start Using
 
-### With Claude Desktop
+1. Restart Claude Desktop
+2. The server will automatically start when needed
+3. Ask Claude questions about your database!
 
-1. Configure the server in your Claude Desktop config (see above)
-2. Restart Claude Desktop
-3. The server will automatically start when needed
-4. Use natural language to interact with your database
-
-For detailed information about available tools, see **[Tools Documentation](docs/TOOLS.md)**.
-
-### Query Examples
-
-Once configured, you can ask Claude natural language questions about your data:
-
-**Basic Queries:**
+**Example queries:**
 - "Show me all customers who made purchases in the last month"
 - "What are the top 10 products by revenue?"
-- "List all users who haven't logged in for more than 30 days"
+- "Describe the database schema"
+- "Show me the PostgreSQL server settings"
 
-**Schema Discovery:**
-- "Show me the database schema"
-- "What tables are available?"
-- "Describe the customers table"
+## Usage Examples
 
-**System Information:**
-- "Show me the output from pg://system_info"
-- "Read the pg://settings resource"
-- "What are the current database statistics?"
+### Basic Queries
 
-**Multi-Database Queries:**
-- "Show users at postgres://localhost:5433/other_db" (temporary connection)
-- "Set default database to postgres://analytics-server/analytics" (change default)
+```
+"Show me all active users"
+"What tables are available in the database?"
+"List customers who haven't logged in for more than 30 days"
+```
 
-For a comprehensive collection of examples including advanced queries, multi-database patterns, and real-world scenarios, see **[Query Examples](docs/EXAMPLES.md)**.
+### Schema Discovery
 
-### Multi-Database Support
+```
+"Show me the database schema"
+"Describe the customers table"
+"What columns does the orders table have?"
+```
 
-The server supports querying multiple PostgreSQL databases dynamically by including connection strings in your queries:
+### System Information
 
-- **Temporary queries**: Include `at postgres://...` in your query to connect temporarily
-- **Change default**: Use `set default database to postgres://...` to switch permanently
-- **Connection format**: `postgres://[user[:password]@][host][:port][/dbname][?params]`
+```
+"Show me the PostgreSQL version and system info"
+"What are the current database settings?"
+"Show me current database activity"
+```
 
-See the **[Query Examples](docs/EXAMPLES.md)** guide for detailed examples and patterns.
+### Multi-Database Queries
+
+```
+"Show users at postgres://otherhost:5433/otherdb"
+"Set default database to postgres://analytics-server/analytics"
+```
+
+For comprehensive examples including advanced patterns, see **[Query Examples](docs/EXAMPLES.md)**.
+
+## Documentation
+
+### Essential Guides
+
+- **[Configuration Guide](docs/CONFIGURATION.md)** - Configuration file, environment variables, command line flags, and Claude Desktop setup
+- **[Deployment Guide](docs/DEPLOYMENT.md)** - HTTP/HTTPS server deployment for direct API access
+- **[Authentication Guide](docs/AUTHENTICATION.md)** - API token management for HTTP/HTTPS mode
+
+### Feature Documentation
+
+- **[Tools Documentation](docs/TOOLS.md)** - Complete reference for all ten MCP tools
+- **[Resources Documentation](docs/RESOURCES.md)** - Complete reference for all nine MCP resources
+- **[Query Examples](docs/EXAMPLES.md)** - Comprehensive collection of example queries and patterns
+
+### Technical Guides
+
+- **[MCP Protocol Guide](docs/MCP_PROTOCOL.md)** - Protocol implementation details and streaming support
+- **[Security Guide](docs/SECURITY.md)** - Security best practices and guidelines
+- **[Architecture Guide](docs/ARCHITECTURE.md)** - Code structure and how to extend the server
+- **[Testing Guide](docs/TESTING.md)** - Unit tests, integration tests, and CI/CD
+- **[CI/CD Guide](docs/CI_CD.md)** - Continuous integration workflows and release process
+- **[Troubleshooting Guide](docs/TROUBLESHOOTING.md)** - Common issues and solutions
 
 ## How It Works
 
@@ -250,17 +149,10 @@ See the **[Query Examples](docs/EXAMPLES.md)** guide for detailed examples and p
 2. **Natural Language Processing**: When you ask a question:
    - The question and schema context are sent to Claude AI
    - Claude analyzes the schema and generates appropriate SQL
-   - The generated SQL is executed against your database
+   - The generated SQL is executed against your database in a **read-only transaction**
    - Results are formatted and returned
 
-3. **Schema Context**: The LLM receives rich context including:
-   ```
-   schema_name.table_name (TABLE/VIEW)
-     Description: [from pg_description]
-     Columns:
-       - column_name (data_type) [NULL] - [column description]
-       ...
-   ```
+3. **Read-Only Protection**: All queries via `query_database` are executed in read-only transactions, preventing INSERT, UPDATE, DELETE, and other data modifications.
 
 ## Adding Database Comments
 
@@ -272,7 +164,6 @@ COMMENT ON TABLE customers IS 'Customer information including contact details an
 
 -- Add column comments
 COMMENT ON COLUMN customers.created_at IS 'Timestamp when the customer account was created';
-COMMENT ON COLUMN customers.last_login IS 'Last successful login timestamp';
 COMMENT ON COLUMN customers.segment IS 'Customer segment: premium, standard, or basic';
 
 -- Add view comment
@@ -281,24 +172,60 @@ COMMENT ON VIEW active_customers IS 'Customers who have logged in within the las
 
 These comments help Claude understand your data model and generate more accurate queries.
 
+## HTTP/HTTPS Mode
+
+For direct API access and web integrations, run the server in HTTP mode:
+
+```bash
+# Start HTTP server
+./bin/pgedge-postgres-mcp -http
+
+# Start HTTPS server with TLS
+./bin/pgedge-postgres-mcp -http -tls \
+  -cert /path/to/server.crt \
+  -key /path/to/server.key
+```
+
+**API Endpoints:**
+- `POST /mcp/v1` - JSON-RPC 2.0 endpoint
+- `GET /health` - Health check endpoint
+
+HTTP mode includes built-in API token authentication. See [Authentication Guide](docs/AUTHENTICATION.md) and [Deployment Guide](docs/DEPLOYMENT.md) for details.
+
 ## Development
 
 ### Project Structure
 
 ```
 pgedge-postgres-mcp/
-├── cmd/pgedge-postgres-mcp/          # Application entry point
-├── internal/                # Private packages
-│   ├── database/            # PostgreSQL integration
-│   ├── llm/                 # Claude API client
-│   ├── mcp/                 # MCP protocol
-│   └── tools/               # Tool implementations
-├── docs/                    # Documentation
-├── configs/                 # Configuration examples
-└── bin/                     # Compiled binaries
+├── cmd/pgedge-postgres-mcp/  # Application entry point
+├── internal/                  # Private packages
+│   ├── auth/                  # API token authentication
+│   ├── config/                # Configuration management
+│   ├── database/              # PostgreSQL integration
+│   ├── llm/                   # Claude API client
+│   ├── mcp/                   # MCP protocol implementation
+│   ├── resources/             # MCP resource implementations
+│   └── tools/                 # MCP tool implementations
+├── docs/                      # Documentation
+├── configs/                   # Configuration examples
+└── test/                      # Integration tests
 ```
 
-For detailed architecture information, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+### Running Tests
+
+```bash
+# Run all tests
+go test ./...
+
+# Run with verbose output and coverage
+go test -v -cover ./...
+
+# Run linting
+golangci-lint run
+```
+
+See [Testing Guide](docs/TESTING.md) for details.
 
 ### Running Locally
 
@@ -315,346 +242,55 @@ export ANTHROPIC_API_KEY="sk-ant-your-key"
 
 The server will read JSON-RPC messages from stdin and write responses to stdout.
 
-### Running as HTTP/HTTPS Server
-
-The server supports two transport modes:
-
-1. **stdio mode (default)**: JSON-RPC over standard input/output - used by Claude Desktop
-2. **HTTP/HTTPS mode**: JSON-RPC over HTTP - for direct API access
-
-#### Command Line Options
-
-```bash
-./bin/pgedge-postgres-mcp [options]
-
-Options:
-  -http              Enable HTTP transport mode (default: stdio)
-  -addr string       HTTP server address (default ":8080")
-  -tls               Enable TLS/HTTPS (requires -http)
-  -cert string       Path to TLS certificate file
-  -key string        Path to TLS key file
-  -chain string      Path to TLS certificate chain file (optional)
-```
-
-**Note**: TLS options (`-tls`, `-cert`, `-key`, `-chain`) require the `-http` flag.
-
-#### HTTP Mode
-
-Run the server in HTTP mode for direct API access:
-
-```bash
-# Set environment variables
-export POSTGRES_CONNECTION_STRING="postgres://localhost/mydb?sslmode=disable"
-export ANTHROPIC_API_KEY="sk-ant-your-key"
-
-# Start HTTP server on port 8080
-./bin/pgedge-postgres-mcp -http
-
-# Or specify a custom address
-./bin/pgedge-postgres-mcp -http -addr ":3000"
-```
-
-The server provides two endpoints:
-
-- **POST /mcp/v1**: JSON-RPC 2.0 endpoint for MCP requests
-- **GET /health**: Health check endpoint
-
-Example using curl:
-
-```bash
-# Health check (no authentication required)
-curl http://localhost:8080/health
-
-# First, create an API token (see Authentication section below)
-./bin/pgedge-postgres-mcp -add-token -token-note "Test" -token-expiry "30d"
-
-# Initialize connection (requires authentication)
-curl -X POST http://localhost:8080/mcp/v1 \
-  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "jsonrpc": "2.0",
-    "id": 1,
-    "method": "initialize",
-    "params": {
-      "protocolVersion": "2024-11-05",
-      "capabilities": {},
-      "clientInfo": {
-        "name": "test-client",
-        "version": "1.0.0"
-      }
-    }
-  }'
-
-# List available tools (requires authentication)
-curl -X POST http://localhost:8080/mcp/v1 \
-  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "jsonrpc": "2.0",
-    "id": 2,
-    "method": "tools/list",
-    "params": {}
-  }'
-```
-
-**Note:** To run without authentication during development, use the `-no-auth` flag (not recommended for production).
-
-#### HTTPS Mode
-
-For production deployments, use HTTPS with TLS certificates:
-
-```bash
-# Generate self-signed certificate for testing
-openssl req -x509 -newkey rsa:4096 -keyout server.key -out server.crt \
-  -days 365 -nodes -subj "/CN=localhost"
-
-# Start HTTPS server
-./bin/pgedge-postgres-mcp -http -tls \
-  -cert server.crt \
-  -key server.key
-```
-
-For production, use certificates from a trusted Certificate Authority (CA):
-
-```bash
-# With CA-signed certificates
-./bin/pgedge-postgres-mcp -http -tls \
-  -cert /path/to/server.crt \
-  -key /path/to/server.key \
-  -chain /path/to/ca-chain.crt
-```
-
-**Certificate Requirements:**
-- Minimum TLS version: 1.2
-- Certificate and key must be PEM-encoded
-- Chain file is optional but recommended for CA-signed certificates
-- If paths are not specified, server looks in the same directory as the binary
-
-Example HTTPS request:
-
-```bash
-# With self-signed certificate (testing only)
-curl -k https://localhost:8080/health
-
-# With trusted certificate
-curl https://yourdomain.com:8080/health
-```
-
-#### API Token Authentication
-
-The server includes built-in API token authentication for HTTP/HTTPS mode, enabled by default.
-
-**Token Management Commands:**
-
-```bash
-# Add a new token (prompts for note and expiry if not provided)
-./bin/pgedge-postgres-mcp -add-token
-
-# Add token with note and expiry
-./bin/pgedge-postgres-mcp -add-token \
-  -token-note "Production API" \
-  -token-expiry "1y"
-
-# List all tokens
-./bin/pgedge-postgres-mcp -list-tokens
-
-# Remove a token by ID or hash prefix
-./bin/pgedge-postgres-mcp -remove-token token-1234567890
-./bin/pgedge-postgres-mcp -remove-token b3f805
-```
-
-**Expiry Formats:**
-- `30d` - 30 days
-- `1y` - 1 year
-- `2w` - 2 weeks
-- `12h` - 12 hours
-- `never` - No expiration
-
-**Using Tokens:**
-
-```bash
-# The generated token is shown only once
-Token: O9ms9jqTfUdy-DIjvpFWeqd_yH_NEj7me0mgOnOjGdQ=
-
-# Include token in Authorization header
-curl -X POST https://localhost:8080/mcp/v1 \
-  -H "Authorization: Bearer O9ms9jqTfUdy-DIjvpFWeqd_yH_NEj7me0mgOnOjGdQ=" \
-  -H "Content-Type: application/json" \
-  -d '{"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}}'
-```
-
-**Token Configuration:**
-
-```bash
-# Disable authentication (not recommended for production)
-./bin/pgedge-postgres-mcp -http -no-auth
-
-# Use custom token file location
-./bin/pgedge-postgres-mcp -http -token-file /etc/pgedge-mcp/tokens.yaml
-```
-
-**Token Storage:**
-- Default location: `api-tokens.yaml` in same directory as binary
-- Tokens are stored as SHA256 hashes
-- File permissions automatically set to 0600 (owner read/write only)
-- Expired tokens are automatically cleaned up on server start
-
-**Authentication Behavior:**
-- Authentication is **enabled by default** in HTTP/HTTPS mode
-- The `/health` endpoint is always accessible without authentication
-- Server exits with error if auth is enabled but no token file exists
-- Invalid or expired tokens return `401 Unauthorized`
-
-#### Security Considerations for HTTP/HTTPS Mode
-
-1. **API Token Authentication**
-   - Always use authentication in production (enabled by default)
-   - Store token file with restricted permissions (0600)
-   - Rotate tokens regularly using expiry dates
-   - Use unique tokens for different services/users
-   - Never commit tokens or token files to version control
-
-2. **Always use HTTPS in production**
-   - HTTP mode sends data in plaintext including tokens
-   - HTTPS encrypts all communication including API keys and database results
-   - Self-signed certificates acceptable for internal testing only
-
-3. **Protect your TLS private keys**
-   - Store keys with restricted file permissions (chmod 600)
-   - Never commit keys to version control
-   - Rotate certificates before expiration
-
-4. **Network access control**
-   - Use firewall rules to restrict access
-   - Consider running behind a reverse proxy (nginx, HAProxy)
-   - Implement rate limiting at the proxy level
-   - Use separate tokens for different network zones
-
-5. **Database connection security**
-   - Use SSL for PostgreSQL connections
-   - Use connection strings with minimal required privileges
-   - Consider using connection pooling for production workloads
-
-### Testing
-
-The project includes comprehensive testing at multiple levels:
-
-```bash
-# Run all tests (unit + integration + linting)
-go test ./...
-
-# Run with verbose output and coverage
-go test -v -cover ./...
-```
-
-**Test Coverage:**
-- Unit tests for all major components
-- Integration tests for the compiled MCP server binary
-- Automated linting with golangci-lint
-- MCP protocol compliance tests
-
-For detailed information about testing, including integration tests, CI/CD workflows, and troubleshooting, see **[Testing Guide](docs/TESTING.md)**.
-
 ### Testing with MCP Inspector
-
-You can test the server using the MCP Inspector tool:
 
 ```bash
 npx @modelcontextprotocol/inspector /path/to/bin/pgedge-postgres-mcp
 ```
 
-## CI/CD
+## Security
 
-The project uses GitHub Actions for continuous integration with automated build and test workflows. Tests run against multiple Go versions (1.21, 1.22, 1.23) and PostgreSQL versions (14, 15, 16, 17).
+**Key security features:**
+- Read-only transaction enforcement for all queries
+- API token authentication with expiration
+- TLS/HTTPS support
+- SHA256 token hashing
+- File permission enforcement (0600)
+- Database connection security (SSL/TLS)
 
-For detailed information about CI/CD workflows and configuration, see **[Testing Guide](docs/TESTING.md)**.
-
-## MCP Protocol Implementation
-
-This server implements the Model Context Protocol version `2024-11-05` with support for:
-
-- **Tools**: Ten callable functions for database interaction, configuration, maintenance analysis, and configuration file access
-- **Resources**: Nine read-only resources for system information and statistics
-- **Prompts**: Custom prompts for common database tasks
-
-For detailed documentation:
-- **[Tools Documentation](docs/TOOLS.md)** - Complete reference for all ten MCP tools
-- **[Resources Documentation](docs/RESOURCES.md)** - Complete reference for all nine MCP resources
-
-## Security Considerations
-
-1. **Database Credentials**: Store connection strings securely
-   - Use environment variables
-   - Never commit credentials to version control
-   - Consider using password files or secret management systems
-
-2. **API Keys**: Protect your Anthropic API key
-   - Store in environment variables
-   - Rotate keys regularly
-   - Monitor API usage
-
-3. **Query Safety**: The server executes generated SQL with protections
-   - **Read-Only by Default**: All queries through `query_database` are executed in read-only transactions using `SET TRANSACTION READ ONLY`, preventing INSERT, UPDATE, DELETE, and other data modifications
-   - Write operations will fail with: "cannot execute ... in a read-only transaction"
-   - Review the SQL before execution when possible
-   - Use read-only database users for additional protection
-   - Monitor for suspicious queries
-
-4. **Configuration Management**: The `set_pg_configuration` tool modifies server settings
-   - Requires PostgreSQL superuser privileges
-   - Changes persist across server restarts via `postgresql.auto.conf`
-   - Test configuration changes in development before applying to production
-   - Some parameters require a server restart to take effect
-   - Keep backups of configuration files before making changes
-
-5. **Network Security**:
-   - Use SSL/TLS for PostgreSQL connections when possible
-   - Restrict database access to trusted networks
+See [Security Guide](docs/SECURITY.md) for comprehensive security best practices.
 
 ## Troubleshooting
 
-**For detailed troubleshooting, see [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)**
-
 ### Quick Diagnostics
-
-**Check logs:**
-```bash
-# macOS
-tail -f ~/Library/Logs/Claude/mcp*.log
-
-# Look for these messages:
-# Database ready: X tables/views loaded
-```
-
-### Common Issues
 
 **Server exits immediately:**
 - Check `POSTGRES_CONNECTION_STRING` is correct
 - Verify PostgreSQL is running
-- See detailed solutions in [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
 
-**Tools not appearing:**
+**Tools not appearing in Claude Desktop:**
 - Restart Claude Desktop completely
-- Verify MCP config has absolute path to binary
+- Verify absolute path to binary in config
 - Check JSON syntax in config file
 
 **Natural language queries fail:**
-- Set `ANTHROPIC_API_KEY` in MCP config
-- Verify API key is valid at https://console.anthropic.com/
-- Check you have API credits
+- Verify `ANTHROPIC_API_KEY` is set and valid
+- Check you have API credits at https://console.anthropic.com/
 
-**Poor query results:**
-- Add COMMENT statements to your database
-- Be more specific in your questions
-- Ask Claude to "show me the database schema" first
+For detailed troubleshooting, see [Troubleshooting Guide](docs/TROUBLESHOOTING.md).
 
 ## License
 
-This software is released under [The PostgreSQL License](LICENSE).
-
-Copyright (c) 2025, pgEdge, Inc.
+This software is released under The PostgreSQL License.
 
 ## Support
 
-For issues, questions, or contributions, please use the [GitHub issue tracker](https://github.com/pgEdge/pgedge-postgres-mcp/issues).
+- **Issues**: Report bugs and feature requests at the [GitHub Issues](https://github.com/pgEdge/pgedge-postgres-mcp/issues) page
+- **Documentation**: Browse the [docs](docs/) directory for comprehensive guides
+- **Examples**: See [Query Examples](docs/EXAMPLES.md) for usage patterns
+
+## Related Projects
+
+- [Model Context Protocol](https://modelcontextprotocol.io/) - Official MCP documentation
+- [Claude Desktop](https://claude.ai/) - Anthropic's Claude AI assistant
+- [PostgreSQL](https://www.postgresql.org/) - The world's most advanced open source database
