@@ -7,6 +7,7 @@ bin/
 
 # Test binary
 *.test
+/pgedge-postgres-mcp
 
 # Output of the go coverage tool
 *.out
