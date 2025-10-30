@@ -763,7 +763,7 @@ func TestReadOnlyProtection(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to start server: %v", err)
 	}
-	defer server.Stop()
+	defer server.Close()
 
 	// First, create a test table directly using SQL (not through the MCP server)
 	// This bypasses the read-only protection
@@ -793,19 +793,14 @@ func TestReadOnlyProtection(t *testing.T) {
 
 	// Test 1: Verify SELECT queries work (read-only should allow this)
 	t.Run("SELECT query succeeds", func(t *testing.T) {
-		req := MCPRequest{
-			JSONRPC: "2.0",
-			Method:  "tools/call",
-			ID:      "test-select",
-			Params: map[string]interface{}{
-				"name": "query_database",
-				"arguments": map[string]interface{}{
-					"query": "Show me all values from read_only_test table",
-				},
+		params := map[string]interface{}{
+			"name": "query_database",
+			"arguments": map[string]interface{}{
+				"query": "Show me all values from read_only_test table",
 			},
 		}
 
-		resp, err := server.SendRequest("tools/call", req.Params)
+		resp, err := server.SendRequest("tools/call", params)
 		if err != nil {
 			t.Fatalf("Failed to send request: %v", err)
 		}
@@ -815,13 +810,14 @@ func TestReadOnlyProtection(t *testing.T) {
 		}
 
 		// Verify we got results
-		if resp.Result == nil {
-			t.Fatal("Expected result but got nil")
+		if len(resp.Result) == 0 {
+			t.Fatal("Expected result but got empty")
 		}
 
-		result, ok := resp.Result.(map[string]interface{})
-		if !ok {
-			t.Fatalf("Expected result to be a map, got %T", resp.Result)
+		// Unmarshal the Result
+		var result map[string]interface{}
+		if err := json.Unmarshal(resp.Result, &result); err != nil {
+			t.Fatalf("Failed to unmarshal result: %v", err)
 		}
 
 		content, ok := result["content"].([]interface{})
@@ -848,27 +844,22 @@ func TestReadOnlyProtection(t *testing.T) {
 
 	// Test 2: Verify INSERT queries fail due to read-only protection
 	t.Run("INSERT query blocked by read-only", func(t *testing.T) {
-		req := MCPRequest{
-			JSONRPC: "2.0",
-			Method:  "tools/call",
-			ID:      "test-insert",
-			Params: map[string]interface{}{
-				"name": "query_database",
-				"arguments": map[string]interface{}{
-					"query": "Insert a new row with test_value 'attempted insert' into read_only_test table",
-				},
+		params := map[string]interface{}{
+			"name": "query_database",
+			"arguments": map[string]interface{}{
+				"query": "Insert a new row with test_value 'attempted insert' into read_only_test table",
 			},
 		}
 
-		resp, err := server.SendRequest("tools/call", req.Params)
+		resp, err := server.SendRequest("tools/call", params)
 		if err != nil {
 			t.Fatalf("Failed to send request: %v", err)
 		}
 
 		// We expect this to fail - either as an error response or in the result
-		if resp.Result != nil {
-			result, ok := resp.Result.(map[string]interface{})
-			if ok {
+		if len(resp.Result) > 0 {
+			var result map[string]interface{}
+			if err := json.Unmarshal(resp.Result, &result); err == nil {
 				content, ok := result["content"].([]interface{})
 				if ok && len(content) > 0 {
 					contentItem, ok := content[0].(map[string]interface{})
