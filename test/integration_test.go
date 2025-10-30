@@ -175,7 +175,7 @@ func (s *MCPServer) SendRequest(method string, params interface{}) (*MCPResponse
 
 // Close stops the MCP server
 func (s *MCPServer) Close() error {
-	s.stdin.Close()
+	_ = s.stdin.Close()
 
 	// Give it a moment to shutdown gracefully
 	done := make(chan error, 1)
@@ -212,7 +212,7 @@ func TestMCPServerIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to start MCP server: %v", err)
 	}
-	defer server.Close()
+	defer func() { _ = server.Close() }()
 
 	t.Run("Initialize", func(t *testing.T) {
 		testInitialize(t, server)
@@ -763,7 +763,7 @@ func TestReadOnlyProtection(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to start server: %v", err)
 	}
-	defer server.Close()
+	defer func() { _ = server.Close() }()
 
 	// First, create a test table directly using SQL (not through the MCP server)
 	// This bypasses the read-only protection
@@ -786,7 +786,7 @@ func TestReadOnlyProtection(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create test table: %v", err)
 	}
-	defer pool.Exec(ctx, "DROP TABLE IF EXISTS read_only_test")
+	defer func() { _, _ = pool.Exec(ctx, "DROP TABLE IF EXISTS read_only_test") }()
 
 	// Wait for server to be ready and load metadata
 	time.Sleep(2 * time.Second)

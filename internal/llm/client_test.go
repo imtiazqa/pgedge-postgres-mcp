@@ -24,13 +24,13 @@ func TestNewClient(t *testing.T) {
 	originalAPIKey := os.Getenv("ANTHROPIC_API_KEY")
 	originalModel := os.Getenv("ANTHROPIC_MODEL")
 	defer func() {
-		os.Setenv("ANTHROPIC_API_KEY", originalAPIKey)
-		os.Setenv("ANTHROPIC_MODEL", originalModel)
+		_ = os.Setenv("ANTHROPIC_API_KEY", originalAPIKey)
+		_ = os.Setenv("ANTHROPIC_MODEL", originalModel)
 	}()
 
 	t.Run("default model when not set", func(t *testing.T) {
-		os.Unsetenv("ANTHROPIC_MODEL")
-		os.Setenv("ANTHROPIC_API_KEY", "test-key")
+		_ = os.Unsetenv("ANTHROPIC_MODEL")
+		_ = os.Setenv("ANTHROPIC_API_KEY", "test-key")
 
 		client := NewClient()
 		if client == nil {
@@ -48,8 +48,8 @@ func TestNewClient(t *testing.T) {
 	})
 
 	t.Run("custom model from env", func(t *testing.T) {
-		os.Setenv("ANTHROPIC_MODEL", "claude-3-opus-20240229")
-		os.Setenv("ANTHROPIC_API_KEY", "test-key-2")
+		_ = os.Setenv("ANTHROPIC_MODEL", "claude-3-opus-20240229")
+		_ = os.Setenv("ANTHROPIC_API_KEY", "test-key-2")
 
 		client := NewClient()
 		if client.model != "claude-3-opus-20240229" {
@@ -58,7 +58,7 @@ func TestNewClient(t *testing.T) {
 	})
 
 	t.Run("no api key", func(t *testing.T) {
-		os.Unsetenv("ANTHROPIC_API_KEY")
+		_ = os.Unsetenv("ANTHROPIC_API_KEY")
 
 		client := NewClient()
 		if client.apiKey != "" {

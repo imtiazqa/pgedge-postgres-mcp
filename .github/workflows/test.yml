@@ -27,6 +27,14 @@ jobs:
     - name: Download dependencies
       run: go mod download
 
+    - name: Install golangci-lint
+      run: |
+        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.61.0
+        echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+
+    - name: Run lint tests
+      run: go test -v .
+
     - name: Run unit tests
       run: go test -v -race -coverprofile=coverage.out -covermode=atomic ./internal/...
 
@@ -105,26 +113,3 @@ jobs:
         TEST_ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY || 'dummy-key-for-testing' }}
       run: go test -v ./test/... -run QueryPostgreSQLVersion
       continue-on-error: true
-
-  lint:
-    name: Lint
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set up Go
-      uses: actions/setup-go@v5
-      with:
-        go-version: '1.23'
-        cache: true
-
-    - name: Download dependencies
-      run: go mod download
-
-    - name: Run golangci-lint
-      uses: golangci/golangci-lint-action@v6
-      with:
-        version: latest
-        args: --timeout=5m

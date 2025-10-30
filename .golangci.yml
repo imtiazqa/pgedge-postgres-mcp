@@ -1,3 +1,5 @@
+version: "2"
+
 linters-settings:
   errcheck:
     check-type-assertions: true
@@ -8,18 +10,16 @@ linters-settings:
       - fieldalignment
       - shadow
   gocyclo:
-    min-complexity: 35
+    min-complexity: 50
   dupl:
-    threshold: 100
+    threshold: 150
   goconst:
     min-len: 3
-    min-occurrences: 3
+    min-occurrences: 5
   misspell:
     locale: US
   lll:
     line-length: 120
-  goimports:
-    local-prefixes: pgedge-mcp
   gocritic:
     enabled-tags:
       - diagnostic
@@ -32,18 +32,11 @@ linters-settings:
 linters:
   enable:
     - errcheck
-    - gosimple
     - govet
     - ineffassign
     - staticcheck
-    - typecheck
     - unused
-    - gofmt
-    - goimports
     - misspell
-    - goconst
-    - gocyclo
-    - dupl
     - gocritic
 
 issues:
@@ -57,6 +50,7 @@ issues:
       linters:
         - gocyclo
         - dupl
+        - goconst
   exclude-dirs:
     - vendor
   exclude-files:

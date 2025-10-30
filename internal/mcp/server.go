@@ -225,7 +225,7 @@ func sendResponse(id, result interface{}) {
 		return
 	}
 	fmt.Println(string(data))
-	os.Stdout.Sync()
+	_ = os.Stdout.Sync()
 }
 
 func sendError(id interface{}, code int, message string, data interface{}) {
@@ -245,5 +245,5 @@ func sendError(id interface{}, code int, message string, data interface{}) {
 		return
 	}
 	fmt.Println(string(respData))
-	os.Stdout.Sync()
+	_ = os.Stdout.Sync()
 }

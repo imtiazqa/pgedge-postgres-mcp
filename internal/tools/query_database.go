@@ -206,7 +206,7 @@ func QueryDatabaseTool(dbClient *database.Client, llmClient *llm.Client) Tool {
 					IsError: true,
 				}, nil
 			}
-			defer tx.Rollback(ctx) // Rollback if not committed
+			defer func() { _ = tx.Rollback(ctx) }() // Rollback if not committed
 
 			// Set transaction to read-only to prevent any data modifications
 			_, err = tx.Exec(ctx, "SET TRANSACTION READ ONLY")
