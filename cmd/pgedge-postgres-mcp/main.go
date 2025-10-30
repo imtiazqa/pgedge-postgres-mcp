@@ -41,7 +41,7 @@ func main() {
 	model := flag.String("model", "", "Anthropic model to use (overrides config file)")
 	httpMode := flag.Bool("http", false, "Enable HTTP transport mode (default: stdio)")
 	httpAddr := flag.String("addr", "", "HTTP server address")
-	httpsMode := flag.Bool("https", false, "Enable HTTPS (requires -http)")
+	tlsMode := flag.Bool("tls", false, "Enable TLS/HTTPS (requires -http)")
 	certFile := flag.String("cert", "", "Path to TLS certificate file")
 	keyFile := flag.String("key", "", "Path to TLS key file")
 	chainFile := flag.String("chain", "", "Path to TLS certificate chain file (optional)")
@@ -127,9 +127,9 @@ func main() {
 		case "addr":
 			cliFlags.HTTPAddrSet = true
 			cliFlags.HTTPAddr = *httpAddr
-		case "https":
+		case "tls":
 			cliFlags.TLSEnabledSet = true
-			cliFlags.TLSEnabled = *httpsMode
+			cliFlags.TLSEnabled = *tlsMode
 		case "cert":
 			cliFlags.TLSCertSet = true
 			cliFlags.TLSCertFile = *certFile
@@ -149,8 +149,8 @@ func main() {
 	})
 
 	// Validate basic flag dependencies before loading full config
-	if !*httpMode && (*httpsMode || *certFile != "" || *keyFile != "" || *chainFile != "") {
-		fmt.Fprintf(os.Stderr, "ERROR: TLS options (-https, -cert, -key, -chain) require -http flag\n")
+	if !*httpMode && (*tlsMode || *certFile != "" || *keyFile != "" || *chainFile != "") {
+		fmt.Fprintf(os.Stderr, "ERROR: TLS options (-tls, -cert, -key, -chain) require -http flag\n")
 		flag.Usage()
 		os.Exit(1)
 	}

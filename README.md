@@ -23,7 +23,7 @@ A Model Context Protocol (MCP) server written in Go that enables natural languag
 - **Configuration Management**: View, modify, and get baseline configuration recommendations for NEW PostgreSQL installations
 - **Bloat Analysis**: Analyze tables and indexes for bloat to determine when vacuuming or reindexing is required
 - **Configuration File Access**: Read PostgreSQL configuration files (postgresql.conf, pg_hba.conf, pg_ident.conf) and server logs
-- **MCP Protocol**: Implements the Model Context Protocol for stdio communication
+- **MCP Protocol**: Implements the Model Context Protocol with support for stdio and streaming HTTP (with or without TLS)
 - **Ten MCP Tools**: Execute queries, retrieve schema, modify configuration, get configuration recommendations, analyze bloat, read config files and logs, and read resources
   - See **[Tools Documentation](docs/TOOLS.md)** for detailed information
 - **Nine MCP Resources**: System information and PostgreSQL statistics (pg_stat_* views)
@@ -129,7 +129,7 @@ All configuration options can be overridden via command line flags:
 **HTTP/HTTPS Options:**
 - `-http` - Enable HTTP transport mode
 - `-addr` - HTTP server address (default ":8080")
-- `-https` - Enable HTTPS (requires -http)
+- `-tls` - Enable TLS/HTTPS (requires -http)
 - `-cert` - Path to TLS certificate file
 - `-key` - Path to TLS key file
 - `-chain` - Path to TLS certificate chain file
@@ -330,13 +330,13 @@ The server supports two transport modes:
 Options:
   -http              Enable HTTP transport mode (default: stdio)
   -addr string       HTTP server address (default ":8080")
-  -https             Enable HTTPS (requires -http)
+  -tls               Enable TLS/HTTPS (requires -http)
   -cert string       Path to TLS certificate file
   -key string        Path to TLS key file
   -chain string      Path to TLS certificate chain file (optional)
 ```
 
-**Note**: TLS options (`-https`, `-cert`, `-key`, `-chain`) require the `-http` flag.
+**Note**: TLS options (`-tls`, `-cert`, `-key`, `-chain`) require the `-http` flag.
 
 #### HTTP Mode
 
@@ -410,7 +410,7 @@ openssl req -x509 -newkey rsa:4096 -keyout server.key -out server.crt \
   -days 365 -nodes -subj "/CN=localhost"
 
 # Start HTTPS server
-./bin/pgedge-postgres-mcp -http -https \
+./bin/pgedge-postgres-mcp -http -tls \
   -cert server.crt \
   -key server.key
 ```
@@ -419,7 +419,7 @@ For production, use certificates from a trusted Certificate Authority (CA):
 
 ```bash
 # With CA-signed certificates
-./bin/pgedge-postgres-mcp -http -https \
+./bin/pgedge-postgres-mcp -http -tls \
   -cert /path/to/server.crt \
   -key /path/to/server.key \
   -chain /path/to/ca-chain.crt

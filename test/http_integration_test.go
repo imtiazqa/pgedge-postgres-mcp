@@ -60,7 +60,8 @@ func StartHTTPMCPServer(t *testing.T, connString, apiKey, addr string, useTLS bo
 	}
 
 	// Build command line arguments
-	args := []string{"-http", "-addr", addr}
+	// Disable authentication for testing
+	args := []string{"-http", "-addr", addr, "-no-auth"}
 
 	// Generate self-signed certificates for HTTPS testing
 	if useTLS {
@@ -71,7 +72,7 @@ func StartHTTPMCPServer(t *testing.T, connString, apiKey, addr string, useTLS bo
 		server.certFile = certFile
 		server.keyFile = keyFile
 
-		args = append(args, "-https", "-cert", certFile, "-key", keyFile)
+		args = append(args, "-tls", "-cert", certFile, "-key", keyFile)
 		server.baseURL = "https://" + addr
 	} else {
 		server.baseURL = "http://" + addr
@@ -655,8 +656,8 @@ func TestHTTPCommandLineFlags(t *testing.T) {
 	}
 
 	t.Run("TLSWithoutHTTPFails", func(t *testing.T) {
-		// Try to use -https without -http
-		cmd := exec.Command(binaryPath, "-https")
+		// Try to use -tls without -http
+		cmd := exec.Command(binaryPath, "-tls")
 		cmd.Env = append(os.Environ(),
 			"POSTGRES_CONNECTION_STRING=postgres://localhost/postgres",
 			"ANTHROPIC_API_KEY=dummy",
@@ -664,7 +665,7 @@ func TestHTTPCommandLineFlags(t *testing.T) {
 
 		output, err := cmd.CombinedOutput()
 		if err == nil {
-			t.Error("Expected command to fail when using -https without -http")
+			t.Error("Expected command to fail when using -tls without -http")
 		}
 
 		outputStr := string(output)
@@ -672,7 +673,7 @@ func TestHTTPCommandLineFlags(t *testing.T) {
 			t.Errorf("Expected error message about requiring -http flag, got: %s", outputStr)
 		}
 
-		t.Logf("Correctly rejected -https without -http: %s", outputStr)
+		t.Logf("Correctly rejected -tls without -http: %s", outputStr)
 	})
 
 	t.Run("CertWithoutHTTPFails", func(t *testing.T) {
@@ -702,7 +703,7 @@ func TestHTTPCommandLineFlags(t *testing.T) {
 		output, _ := cmd.CombinedOutput()
 		outputStr := string(output)
 
-		requiredFlags := []string{"-http", "-addr", "-https", "-cert", "-key", "-chain"}
+		requiredFlags := []string{"-http", "-addr", "-tls", "-cert", "-key", "-chain"}
 		for _, flag := range requiredFlags {
 			if !strings.Contains(outputStr, flag) {
 				t.Errorf("Help output should contain flag %s", flag)

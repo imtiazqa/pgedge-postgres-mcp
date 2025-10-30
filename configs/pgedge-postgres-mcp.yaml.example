@@ -51,7 +51,7 @@ http:
   tls:
     # Enable HTTPS (requires http.enabled: true)
     # Default: false
-    # Command line flag: -https
+    # Command line flag: -tls
     enabled: false
 
     # Path to TLS certificate file
