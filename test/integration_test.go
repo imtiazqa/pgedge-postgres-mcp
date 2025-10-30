@@ -475,19 +475,19 @@ func testReadPgSettingsResource(t *testing.T, server *MCPServer) {
 		t.Error("Content text is empty")
 	}
 
-	// The text contains a header followed by JSON array
-	// Extract just the JSON portion (starts with '[')
-	jsonStartIdx := strings.Index(text, "[")
-	if jsonStartIdx == -1 {
-		t.Error("JSON array not found in text")
+	// The text contains JSON object with a "settings" array
+	// Parse the entire JSON object first
+	var settingsData map[string]interface{}
+	if err := json.Unmarshal([]byte(text), &settingsData); err != nil {
+		t.Errorf("Content JSON is not valid: %v", err)
+		return
 	}
 
-	jsonText := text[jsonStartIdx:]
-
-	// Verify it's valid JSON (should be a JSON array of settings)
-	var settings []interface{}
-	if err := json.Unmarshal([]byte(jsonText), &settings); err != nil {
-		t.Errorf("Content JSON is not valid: %v", err)
+	// Extract the settings array
+	settings, ok := settingsData["settings"].([]interface{})
+	if !ok {
+		t.Error("Settings array not found in JSON object")
+		return
 	}
 
 	if len(settings) == 0 {
