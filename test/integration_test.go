@@ -12,6 +12,7 @@ package test
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -21,6 +22,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // MCPRequest represents a JSON-RPC request to the MCP server
@@ -742,4 +745,170 @@ func testQueryPostgreSQLVersion(t *testing.T, server *MCPServer, apiKey string) 
 	}
 
 	t.Log("QueryPostgreSQLVersion test passed - successfully queried PostgreSQL version using natural language")
+}
+
+// TestReadOnlyProtection tests that generated queries are executed in read-only mode
+func TestReadOnlyProtection(t *testing.T) {
+	connString := os.Getenv("TEST_POSTGRES_CONNECTION_STRING")
+	if connString == "" {
+		t.Skip("TEST_POSTGRES_CONNECTION_STRING not set")
+	}
+
+	apiKey := os.Getenv("TEST_ANTHROPIC_API_KEY")
+	if apiKey == "" || apiKey == "dummy-key-for-testing" {
+		t.Skip("Skipping read-only protection test - requires TEST_ANTHROPIC_API_KEY")
+	}
+
+	server, err := StartMCPServer(t, connString, apiKey)
+	if err != nil {
+		t.Fatalf("Failed to start server: %v", err)
+	}
+	defer server.Stop()
+
+	// First, create a test table directly using SQL (not through the MCP server)
+	// This bypasses the read-only protection
+	ctx := context.Background()
+	pool, err := pgxpool.New(ctx, connString)
+	if err != nil {
+		t.Fatalf("Failed to connect to database: %v", err)
+	}
+	defer pool.Close()
+
+	// Create a test table
+	_, err = pool.Exec(ctx, `
+		DROP TABLE IF EXISTS read_only_test;
+		CREATE TABLE read_only_test (
+			id SERIAL PRIMARY KEY,
+			test_value TEXT
+		);
+		INSERT INTO read_only_test (test_value) VALUES ('initial value');
+	`)
+	if err != nil {
+		t.Fatalf("Failed to create test table: %v", err)
+	}
+	defer pool.Exec(ctx, "DROP TABLE IF EXISTS read_only_test")
+
+	// Wait for server to be ready and load metadata
+	time.Sleep(2 * time.Second)
+
+	// Test 1: Verify SELECT queries work (read-only should allow this)
+	t.Run("SELECT query succeeds", func(t *testing.T) {
+		req := MCPRequest{
+			JSONRPC: "2.0",
+			Method:  "tools/call",
+			ID:      "test-select",
+			Params: map[string]interface{}{
+				"name": "query_database",
+				"arguments": map[string]interface{}{
+					"query": "Show me all values from read_only_test table",
+				},
+			},
+		}
+
+		resp, err := server.SendRequest("tools/call", req.Params)
+		if err != nil {
+			t.Fatalf("Failed to send request: %v", err)
+		}
+
+		if resp.Error != nil {
+			t.Errorf("SELECT query should succeed, but got error: %v", resp.Error.Message)
+		}
+
+		// Verify we got results
+		if resp.Result == nil {
+			t.Fatal("Expected result but got nil")
+		}
+
+		result, ok := resp.Result.(map[string]interface{})
+		if !ok {
+			t.Fatalf("Expected result to be a map, got %T", resp.Result)
+		}
+
+		content, ok := result["content"].([]interface{})
+		if !ok || len(content) == 0 {
+			t.Fatal("Expected content array in result")
+		}
+
+		contentItem, ok := content[0].(map[string]interface{})
+		if !ok {
+			t.Fatal("Expected content item to be a map")
+		}
+
+		text, ok := contentItem["text"].(string)
+		if !ok {
+			t.Fatal("Expected text field in content item")
+		}
+
+		if !strings.Contains(text, "initial value") {
+			t.Errorf("Expected query result to contain 'initial value', got: %s", text)
+		}
+
+		t.Log("✓ SELECT query succeeded as expected")
+	})
+
+	// Test 2: Verify INSERT queries fail due to read-only protection
+	t.Run("INSERT query blocked by read-only", func(t *testing.T) {
+		req := MCPRequest{
+			JSONRPC: "2.0",
+			Method:  "tools/call",
+			ID:      "test-insert",
+			Params: map[string]interface{}{
+				"name": "query_database",
+				"arguments": map[string]interface{}{
+					"query": "Insert a new row with test_value 'attempted insert' into read_only_test table",
+				},
+			},
+		}
+
+		resp, err := server.SendRequest("tools/call", req.Params)
+		if err != nil {
+			t.Fatalf("Failed to send request: %v", err)
+		}
+
+		// We expect this to fail - either as an error response or in the result
+		if resp.Result != nil {
+			result, ok := resp.Result.(map[string]interface{})
+			if ok {
+				content, ok := result["content"].([]interface{})
+				if ok && len(content) > 0 {
+					contentItem, ok := content[0].(map[string]interface{})
+					if ok {
+						text, ok := contentItem["text"].(string)
+						if ok {
+							// Check if the error message indicates read-only protection
+							textLower := strings.ToLower(text)
+							if strings.Contains(textLower, "read-only") ||
+							   strings.Contains(textLower, "cannot execute") ||
+							   strings.Contains(textLower, "read only") {
+								t.Logf("✓ INSERT query correctly blocked by read-only protection: %s", text)
+								return
+							}
+							t.Errorf("Expected read-only error, but got: %s", text)
+						}
+					}
+				}
+			}
+		}
+
+		if resp.Error == nil {
+			t.Error("Expected INSERT query to fail due to read-only protection, but it succeeded")
+		} else {
+			t.Logf("✓ INSERT query correctly blocked with error: %s", resp.Error.Message)
+		}
+	})
+
+	// Verify that the INSERT did not actually modify the data
+	t.Run("Verify no data modification occurred", func(t *testing.T) {
+		var count int
+		err := pool.QueryRow(ctx, "SELECT COUNT(*) FROM read_only_test").Scan(&count)
+		if err != nil {
+			t.Fatalf("Failed to query table: %v", err)
+		}
+
+		if count != 1 {
+			t.Errorf("Expected exactly 1 row in table, got %d - INSERT may have succeeded", count)
+		} else {
+			t.Log("✓ Table still contains exactly 1 row - no modification occurred")
+		}
+	})
 }

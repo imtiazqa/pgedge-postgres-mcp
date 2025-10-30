@@ -178,7 +178,7 @@ func QueryDatabaseTool(dbClient *database.Client, llmClient *llm.Client) Tool {
 				}, nil
 			}
 
-			// Execute the SQL query on the appropriate connection
+			// Execute the SQL query on the appropriate connection in a read-only transaction
 			ctx := context.Background()
 			pool := dbClient.GetPoolFor(connStr)
 			if pool == nil {
@@ -193,7 +193,36 @@ func QueryDatabaseTool(dbClient *database.Client, llmClient *llm.Client) Tool {
 				}, nil
 			}
 
-			rows, err := pool.Query(ctx, sqlQuery)
+			// Begin a transaction with read-only protection
+			tx, err := pool.Begin(ctx)
+			if err != nil {
+				return mcp.ToolResponse{
+					Content: []mcp.ContentItem{
+						{
+							Type: "text",
+							Text: fmt.Sprintf("Failed to begin transaction: %v", err),
+						},
+					},
+					IsError: true,
+				}, nil
+			}
+			defer tx.Rollback(ctx) // Rollback if not committed
+
+			// Set transaction to read-only to prevent any data modifications
+			_, err = tx.Exec(ctx, "SET TRANSACTION READ ONLY")
+			if err != nil {
+				return mcp.ToolResponse{
+					Content: []mcp.ContentItem{
+						{
+							Type: "text",
+							Text: fmt.Sprintf("Failed to set transaction read-only: %v", err),
+						},
+					},
+					IsError: true,
+				}, nil
+			}
+
+			rows, err := tx.Query(ctx, sqlQuery)
 			if err != nil {
 				return mcp.ToolResponse{
 					Content: []mcp.ContentItem{
@@ -257,6 +286,19 @@ func QueryDatabaseTool(dbClient *database.Client, llmClient *llm.Client) Tool {
 						{
 							Type: "text",
 							Text: fmt.Sprintf("Error formatting results: %v", err),
+						},
+					},
+					IsError: true,
+				}, nil
+			}
+
+			// Commit the read-only transaction
+			if err := tx.Commit(ctx); err != nil {
+				return mcp.ToolResponse{
+					Content: []mcp.ContentItem{
+						{
+							Type: "text",
+							Text: fmt.Sprintf("Failed to commit transaction: %v", err),
 						},
 					},
 					IsError: true,
