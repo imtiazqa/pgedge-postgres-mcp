@@ -21,7 +21,10 @@ import (
 func ValidateStringParam(args map[string]interface{}, name string) (string, *mcp.ToolResponse) {
 	value, ok := args[name].(string)
 	if !ok || value == "" {
-		resp, _ := mcp.NewToolError(fmt.Sprintf("Missing or invalid '%s' argument", name))
+		resp, err := mcp.NewToolError(fmt.Sprintf("Missing or invalid '%s' argument", name))
+		if err != nil {
+			return "", &resp
+		}
 		return "", &resp
 	}
 	return value, nil
@@ -42,7 +45,10 @@ func ValidateOptionalStringParam(args map[string]interface{}, name string, defau
 func ValidateNumberParam(args map[string]interface{}, name string) (float64, *mcp.ToolResponse) {
 	value, ok := args[name].(float64)
 	if !ok {
-		resp, _ := mcp.NewToolError(fmt.Sprintf("Error: %s must be a number", name))
+		resp, err := mcp.NewToolError(fmt.Sprintf("Error: %s must be a number", name))
+		if err != nil {
+			return 0, &resp
+		}
 		return 0, &resp
 	}
 	return value, nil
@@ -72,7 +78,10 @@ func ValidateBoolParam(args map[string]interface{}, name string, defaultValue bo
 // Returns a ToolResponse error if validation fails, nil otherwise
 func ValidatePositiveNumber(value float64, name string) *mcp.ToolResponse {
 	if value <= 0 {
-		resp, _ := mcp.NewToolError(fmt.Sprintf("Error: %s must be greater than 0", name))
+		resp, err := mcp.NewToolError(fmt.Sprintf("Error: %s must be greater than 0", name))
+		if err != nil {
+			return &resp
+		}
 		return &resp
 	}
 	return nil

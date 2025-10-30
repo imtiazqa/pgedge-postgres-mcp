@@ -64,10 +64,9 @@ func TestExecuteResourceQuery(t *testing.T) {
 func TestRowProcessor(t *testing.T) {
 	t.Run("processor function signature", func(t *testing.T) {
 		// Verify the RowProcessor type signature is correct
-		var processor RowProcessor
-		processor = func(rows pgx.Rows) (interface{}, error) {
+		processor := RowProcessor(func(rows pgx.Rows) (interface{}, error) {
 			return map[string]string{"test": "value"}, nil
-		}
+		})
 
 		if processor == nil {
 			t.Error("Processor should not be nil")

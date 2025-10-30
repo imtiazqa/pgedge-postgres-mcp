@@ -196,12 +196,13 @@ func TestGenerateConfiguration(t *testing.T) {
 			// Check storage-specific parameters
 			for _, rec := range config {
 				if rec.Parameter == "random_page_cost" {
-					if tt.storageType == "SSD" || tt.storageType == "NVMe" {
+					switch tt.storageType {
+					case "SSD", "NVMe":
 						if rec.Value != "1.1" {
 							t.Errorf("random_page_cost for %s should be 1.1, got %s",
 								tt.storageType, rec.Value)
 						}
-					} else if tt.storageType == "HDD" {
+					case "HDD":
 						if rec.Value != "4.0" {
 							t.Errorf("random_page_cost for HDD should be 4.0, got %s", rec.Value)
 						}

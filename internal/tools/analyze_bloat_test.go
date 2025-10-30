@@ -498,6 +498,18 @@ func TestTableBloatStruct(t *testing.T) {
 		if bloat.DeadTuplePercent != 9.09 {
 			t.Errorf("DeadTuplePercent = %.2f, want 9.09", bloat.DeadTuplePercent)
 		}
+		if bloat.TotalSize != "1 GB" {
+			t.Errorf("TotalSize = %s, want 1 GB", bloat.TotalSize)
+		}
+		if bloat.TotalSizeBytes != 1073741824 {
+			t.Errorf("TotalSizeBytes = %d, want 1073741824", bloat.TotalSizeBytes)
+		}
+		if bloat.LastVacuum == nil || !bloat.LastVacuum.Equal(now) {
+			t.Errorf("LastVacuum mismatch")
+		}
+		if bloat.ModsSinceAnalyze != 500 {
+			t.Errorf("ModsSinceAnalyze = %d, want 500", bloat.ModsSinceAnalyze)
+		}
 		if len(bloat.Recommendations) != 1 {
 			t.Errorf("Recommendations length = %d, want 1", len(bloat.Recommendations))
 		}

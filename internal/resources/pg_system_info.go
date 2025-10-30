@@ -91,8 +91,8 @@ func parseVersionString(fullVersion, version, versionNumber string) SystemInfo {
 		rest := fullVersion[idx+4:]
 
 		// Extract architecture (up to comma)
-		if commaIdx := strings.Index(rest, ","); commaIdx != -1 {
-			info.Architecture = rest[:commaIdx]
+		if arch, after, ok := strings.Cut(rest, ","); ok {
+			info.Architecture = arch
 
 			// Extract OS from architecture string
 			// Format is typically: x86_64-pc-linux-gnu or aarch64-apple-darwin
@@ -104,7 +104,7 @@ func parseVersionString(fullVersion, version, versionNumber string) SystemInfo {
 				}
 			}
 
-			rest = rest[commaIdx+1:]
+			rest = after
 		}
 
 		// Extract compiler information

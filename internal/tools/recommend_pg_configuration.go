@@ -273,7 +273,7 @@ func addQueryPlanningSettings(storageType string) []configRecommendation {
 		{
 			Parameter:   "random_page_cost",
 			Value:       randomPageCost,
-			Explanation: fmt.Sprintf("Set to 1.1 for SSD/NVMe storage to reflect low random access cost. Default 4.0 for HDD."),
+			Explanation: "Set to 1.1 for SSD/NVMe storage to reflect low random access cost. Default 4.0 for HDD.",
 			Section:     "Query Planning",
 		},
 		{
@@ -404,11 +404,12 @@ func calculateSharedBuffers(ramGB float64) float64 {
 	ramMB := ramGB * 1024.0
 	base := ramMB / 4.0
 
-	if ramGB < 3 {
-		base = base * 0.5
-	} else if ramGB < 8 {
-		base = base * 0.75
-	} else if ramGB > 64 {
+	switch {
+	case ramGB < 3:
+		base *= 0.5
+	case ramGB < 8:
+		base *= 0.75
+	case ramGB > 64:
 		base = math.Max(16*1024.0, ramMB/6.0)
 	}
 
@@ -423,10 +424,11 @@ func calculateWorkMem(ramGB, sharedBuffersMB float64, cpuCores int, workloadType
 	workMemMB := availableMB / float64(16*cpuCores)
 
 	// Adjust for workload type
-	if workloadType == "OLAP" {
-		workMemMB = workMemMB * 2.0 // OLAP benefits from more work_mem
-	} else if workloadType == "OLTP" {
-		workMemMB = workMemMB * 0.75 // OLTP uses less per operation
+	switch workloadType {
+	case "OLAP":
+		workMemMB *= 2.0 // OLAP benefits from more work_mem
+	case "OLTP":
+		workMemMB *= 0.75 // OLTP uses less per operation
 	}
 
 	// Cap at reasonable maximums
@@ -470,10 +472,11 @@ func calculateMaxWALSize(diskSpaceGB float64, workloadType string) string {
 	maxWALGB := diskSpaceGB * 0.6
 
 	// Workload adjustments
-	if workloadType == "OLTP" {
-		maxWALGB = maxWALGB * 0.5 // OLTP generates less WAL
-	} else if workloadType == "OLAP" {
-		maxWALGB = maxWALGB * 1.25 // OLAP can generate more WAL
+	switch workloadType {
+	case "OLTP":
+		maxWALGB *= 0.5 // OLTP generates less WAL
+	case "OLAP":
+		maxWALGB *= 1.25 // OLAP can generate more WAL
 	}
 
 	// Cap at reasonable values

@@ -56,11 +56,12 @@ func PGStatUserIndexesResource(dbClient *database.Client) Resource {
 
 					// Mark potentially unused indexes
 					var usage string
-					if idxScan == 0 {
+					switch {
+					case idxScan == 0:
 						usage = "unused"
-					} else if idxScan < 100 {
+					case idxScan < 100:
 						usage = "rarely_used"
-					} else {
+					default:
 						usage = "active"
 					}
 

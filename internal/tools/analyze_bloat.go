@@ -224,7 +224,8 @@ func AnalyzeBloatTool(dbClient *database.Client) Tool {
 
 			output.WriteString(fmt.Sprintf("Found %d table(s) with bloat >= %.1f%%\n\n", len(tables), minDeadTuplePercent))
 
-			for i, t := range tables {
+			for i := range tables {
+				t := &tables[i]
 				output.WriteString(fmt.Sprintf("%d. %s.%s\n", i+1, t.SchemaName, t.TableName))
 				output.WriteString(fmt.Sprintf("   Size: %s (%d bytes)\n", t.TotalSize, t.TotalSizeBytes))
 				output.WriteString(fmt.Sprintf("   Live tuples: %d\n", t.LiveTuples))
