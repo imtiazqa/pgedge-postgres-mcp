@@ -1,0 +1,69 @@
+/*-------------------------------------------------------------------------
+ *
+ * pgEdge Postgres MCP Server
+ *
+ * Copyright (c) 2025, pgEdge, Inc.
+ * This software is released under The PostgreSQL License
+ *
+ *-------------------------------------------------------------------------
+ */
+
+package auth
+
+import (
+	"fmt"
+	"net/http"
+	"os"
+	"strings"
+)
+
+// AuthMiddleware creates an HTTP middleware that validates API tokens
+func AuthMiddleware(tokenStore *TokenStore, enabled bool) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Skip authentication if disabled
+			if !enabled {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			// Skip authentication for health check endpoint
+			if r.URL.Path == "/health" {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			// Get token from Authorization header
+			authHeader := r.Header.Get("Authorization")
+			if authHeader == "" {
+				http.Error(w, "Missing Authorization header", http.StatusUnauthorized)
+				return
+			}
+
+			// Parse Bearer token
+			parts := strings.SplitN(authHeader, " ", 2)
+			if len(parts) != 2 || parts[0] != "Bearer" {
+				http.Error(w, "Invalid Authorization header format. Expected: Bearer <token>", http.StatusUnauthorized)
+				return
+			}
+
+			token := parts[1]
+
+			// Validate token
+			valid, err := tokenStore.ValidateToken(token)
+			if err != nil {
+				_, _ = fmt.Fprintf(os.Stderr, "Token validation error: %v\n", err)
+				http.Error(w, fmt.Sprintf("Invalid token: %v", err), http.StatusUnauthorized)
+				return
+			}
+
+			if !valid {
+				http.Error(w, "Invalid or unknown token", http.StatusUnauthorized)
+				return
+			}
+
+			// Token is valid, proceed with request
+			next.ServeHTTP(w, r)
+		})
+	}
+}

@@ -14,7 +14,9 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"time"
 
+	"pgedge-postgres-mcp/internal/auth"
 	"pgedge-postgres-mcp/internal/config"
 	"pgedge-postgres-mcp/internal/database"
 	"pgedge-postgres-mcp/internal/llm"
@@ -43,8 +45,65 @@ func main() {
 	certFile := flag.String("cert", "", "Path to TLS certificate file")
 	keyFile := flag.String("key", "", "Path to TLS key file")
 	chainFile := flag.String("chain", "", "Path to TLS certificate chain file (optional)")
+	noAuth := flag.Bool("no-auth", false, "Disable API token authentication in HTTP mode")
+	tokenFilePath := flag.String("token-file", "", "Path to API token file")
+
+	// Token management commands
+	addTokenCmd := flag.Bool("add-token", false, "Add a new API token")
+	removeTokenCmd := flag.String("remove-token", "", "Remove an API token by ID or hash prefix")
+	listTokensCmd := flag.Bool("list-tokens", false, "List all API tokens")
+	tokenNote := flag.String("token-note", "", "Annotation for the new token (used with -add-token)")
+	tokenExpiry := flag.String("token-expiry", "", "Token expiry duration: '30d', '1y', '2w', '12h', 'never' (used with -add-token)")
 
 	flag.Parse()
+
+	// Handle token management commands
+	if *addTokenCmd || *removeTokenCmd != "" || *listTokensCmd {
+		defaultTokenPath := auth.GetDefaultTokenPath(execPath)
+		tokenFile := *tokenFilePath
+		if tokenFile == "" {
+			tokenFile = defaultTokenPath
+		}
+
+		if *addTokenCmd {
+			var expiry time.Duration
+			switch {
+			case *tokenExpiry != "" && *tokenExpiry != "never":
+				var err error
+				expiry, err = parseDuration(*tokenExpiry)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "ERROR: Invalid expiry duration: %v\n", err)
+					os.Exit(1)
+				}
+			case *tokenExpiry == "":
+				expiry = 0 // Will prompt user
+			default:
+				expiry = -1 // Never expires
+			}
+
+			if err := addTokenCommand(tokenFile, *tokenNote, expiry); err != nil {
+				fmt.Fprintf(os.Stderr, "ERROR: %v\n", err)
+				os.Exit(1)
+			}
+			return
+		}
+
+		if *removeTokenCmd != "" {
+			if err := removeTokenCommand(tokenFile, *removeTokenCmd); err != nil {
+				fmt.Fprintf(os.Stderr, "ERROR: %v\n", err)
+				os.Exit(1)
+			}
+			return
+		}
+
+		if *listTokensCmd {
+			if err := listTokensCommand(tokenFile); err != nil {
+				fmt.Fprintf(os.Stderr, "ERROR: %v\n", err)
+				os.Exit(1)
+			}
+			return
+		}
+	}
 
 	// Track which flags were explicitly set
 	cliFlags := config.CLIFlags{}
@@ -80,6 +139,12 @@ func main() {
 		case "chain":
 			cliFlags.TLSChainSet = true
 			cliFlags.TLSChainFile = *chainFile
+		case "no-auth":
+			cliFlags.AuthEnabledSet = true
+			cliFlags.AuthEnabled = !*noAuth // Invert because it's "no-auth"
+		case "token-file":
+			cliFlags.AuthTokenSet = true
+			cliFlags.AuthTokenFile = *tokenFilePath
 		}
 	})
 
@@ -107,6 +172,11 @@ func main() {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: %v\n", err)
 		os.Exit(1)
+	}
+
+	// Set default token file path if not specified and HTTP is enabled
+	if cfg.HTTP.Enabled && cfg.HTTP.Auth.TokenFile == "" {
+		cfg.HTTP.Auth.TokenFile = auth.GetDefaultTokenPath(execPath)
 	}
 
 	// Set environment variables for clients that read them directly
@@ -142,6 +212,34 @@ func main() {
 			if _, err := os.Stat(cfg.HTTP.TLS.ChainFile); err != nil {
 				fmt.Fprintf(os.Stderr, "ERROR: Chain file not found: %s\n", cfg.HTTP.TLS.ChainFile)
 				os.Exit(1)
+			}
+		}
+	}
+
+	// Load token store if HTTP auth is enabled
+	var tokenStore *auth.TokenStore
+	if cfg.HTTP.Enabled && cfg.HTTP.Auth.Enabled {
+		if _, err := os.Stat(cfg.HTTP.Auth.TokenFile); os.IsNotExist(err) {
+			fmt.Fprintf(os.Stderr, "ERROR: Token file not found: %s\n", cfg.HTTP.Auth.TokenFile)
+			fmt.Fprintf(os.Stderr, "Create tokens with: %s -add-token\n", os.Args[0])
+			fmt.Fprintf(os.Stderr, "Or disable authentication with: -no-auth\n")
+			os.Exit(1)
+		}
+
+		tokenStore, err = auth.LoadTokenStore(cfg.HTTP.Auth.TokenFile)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "ERROR: Failed to load token file: %v\n", err)
+			os.Exit(1)
+		}
+
+		fmt.Fprintf(os.Stderr, "Loaded %d API token(s) from %s\n", len(tokenStore.Tokens), cfg.HTTP.Auth.TokenFile)
+
+		// Clean up expired tokens
+		if removed := tokenStore.CleanupExpiredTokens(); removed > 0 {
+			fmt.Fprintf(os.Stderr, "Removed %d expired token(s)\n", removed)
+			// Save the cleaned store
+			if err := auth.SaveTokenStore(cfg.HTTP.Auth.TokenFile, tokenStore); err != nil {
+				fmt.Fprintf(os.Stderr, "WARNING: Failed to save cleaned token file: %v\n", err)
 			}
 		}
 	}
@@ -201,11 +299,13 @@ func main() {
 	if cfg.HTTP.Enabled {
 		// HTTP/HTTPS mode
 		httpConfig := &mcp.HTTPConfig{
-			Addr:      cfg.HTTP.Address,
-			TLSEnable: cfg.HTTP.TLS.Enabled,
-			CertFile:  cfg.HTTP.TLS.CertFile,
-			KeyFile:   cfg.HTTP.TLS.KeyFile,
-			ChainFile: cfg.HTTP.TLS.ChainFile,
+			Addr:        cfg.HTTP.Address,
+			TLSEnable:   cfg.HTTP.TLS.Enabled,
+			CertFile:    cfg.HTTP.TLS.CertFile,
+			KeyFile:     cfg.HTTP.TLS.KeyFile,
+			ChainFile:   cfg.HTTP.TLS.ChainFile,
+			AuthEnabled: cfg.HTTP.Auth.Enabled,
+			TokenStore:  tokenStore,
 		}
 
 		if cfg.HTTP.TLS.Enabled {
@@ -217,6 +317,12 @@ func main() {
 			}
 		} else {
 			fmt.Fprintf(os.Stderr, "Starting MCP server in HTTP mode on %s\n", cfg.HTTP.Address)
+		}
+
+		if cfg.HTTP.Auth.Enabled {
+			fmt.Fprintf(os.Stderr, "Authentication: ENABLED\n")
+		} else {
+			fmt.Fprintf(os.Stderr, "Authentication: DISABLED (warning: server is not secured)\n")
 		}
 
 		err = server.RunHTTP(httpConfig)

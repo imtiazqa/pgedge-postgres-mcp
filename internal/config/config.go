@@ -43,9 +43,16 @@ type AnthropicConfig struct {
 
 // HTTPConfig holds HTTP/HTTPS server settings
 type HTTPConfig struct {
-	Enabled bool   `yaml:"enabled"`
-	Address string `yaml:"address"`
+	Enabled bool      `yaml:"enabled"`
+	Address string    `yaml:"address"`
 	TLS     TLSConfig `yaml:"tls"`
+	Auth    AuthConfig `yaml:"auth"`
+}
+
+// AuthConfig holds authentication settings
+type AuthConfig struct {
+	Enabled   bool   `yaml:"enabled"`    // Whether authentication is required
+	TokenFile string `yaml:"token_file"` // Path to token configuration file
 }
 
 // TLSConfig holds TLS/HTTPS settings
@@ -124,6 +131,12 @@ type CLIFlags struct {
 	TLSKeySet     bool
 	TLSChainFile  string
 	TLSChainSet   bool
+
+	// Auth flags
+	AuthEnabled    bool
+	AuthEnabledSet bool
+	AuthTokenFile  string
+	AuthTokenSet   bool
 }
 
 // defaultConfig returns configuration with hard-coded defaults
@@ -144,6 +157,10 @@ func defaultConfig() *Config {
 				CertFile:  "./server.crt",
 				KeyFile:   "./server.key",
 				ChainFile: "",
+			},
+			Auth: AuthConfig{
+				Enabled:   true, // Authentication enabled by default
+				TokenFile: "",   // Will be set to default path if not specified
 			},
 		},
 	}
@@ -200,6 +217,13 @@ func mergeConfig(dest, src *Config) {
 	if src.HTTP.TLS.ChainFile != "" {
 		dest.HTTP.TLS.ChainFile = src.HTTP.TLS.ChainFile
 	}
+
+	// Auth - note: we need to preserve false values, so check if src differs from default
+	// Use a simple heuristic: if token file is set, assume auth config is intentional
+	if src.HTTP.Auth.TokenFile != "" || !src.HTTP.Auth.Enabled {
+		dest.HTTP.Auth.Enabled = src.HTTP.Auth.Enabled
+		dest.HTTP.Auth.TokenFile = src.HTTP.Auth.TokenFile
+	}
 }
 
 // applyEnvironmentVariables overrides config with environment variables if they exist
@@ -253,6 +277,14 @@ func applyCLIFlags(cfg *Config, flags CLIFlags) {
 	if flags.TLSChainSet {
 		cfg.HTTP.TLS.ChainFile = flags.TLSChainFile
 	}
+
+	// Auth
+	if flags.AuthEnabledSet {
+		cfg.HTTP.Auth.Enabled = flags.AuthEnabled
+	}
+	if flags.AuthTokenSet {
+		cfg.HTTP.Auth.TokenFile = flags.AuthTokenFile
+	}
 }
 
 // validateConfig checks if the configuration is valid
@@ -274,6 +306,13 @@ func validateConfig(cfg *Config) error {
 		}
 		if cfg.HTTP.TLS.KeyFile == "" {
 			return fmt.Errorf("TLS key file is required when HTTPS is enabled")
+		}
+	}
+
+	// If HTTP is enabled and auth is enabled, token file is required
+	if cfg.HTTP.Enabled && cfg.HTTP.Auth.Enabled {
+		if cfg.HTTP.Auth.TokenFile == "" {
+			return fmt.Errorf("authentication token file is required when HTTP auth is enabled (use -no-auth to disable)")
 		}
 	}
 

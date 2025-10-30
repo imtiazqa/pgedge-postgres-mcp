@@ -17,15 +17,19 @@ import (
 	"io"
 	"net/http"
 	"os"
+
+	"pgedge-postgres-mcp/internal/auth"
 )
 
 // HTTPConfig holds configuration for HTTP/HTTPS server mode
 type HTTPConfig struct {
-	Addr      string // Server address (e.g., ":8080")
-	TLSEnable bool   // Enable HTTPS
-	CertFile  string // Path to TLS certificate file
-	KeyFile   string // Path to TLS key file
-	ChainFile string // Optional path to certificate chain file
+	Addr        string           // Server address (e.g., ":8080")
+	TLSEnable   bool             // Enable HTTPS
+	CertFile    string           // Path to TLS certificate file
+	KeyFile     string           // Path to TLS key file
+	ChainFile   string           // Optional path to certificate chain file
+	AuthEnabled bool             // Enable API token authentication
+	TokenStore  *auth.TokenStore // Token store for authentication
 }
 
 // RunHTTP starts the MCP server in HTTP/HTTPS mode
@@ -39,10 +43,16 @@ func (s *Server) RunHTTP(config *HTTPConfig) error {
 	mux.HandleFunc("/mcp/v1", s.handleHTTPRequest)
 	mux.HandleFunc("/health", s.handleHealthCheck)
 
+	// Wrap with authentication middleware if enabled
+	var handler http.Handler = mux
+	if config.AuthEnabled {
+		handler = auth.AuthMiddleware(config.TokenStore, true)(handler)
+	}
+
 	// Configure server
 	httpServer := &http.Server{
 		Addr:    config.Addr,
-		Handler: mux,
+		Handler: handler,
 	}
 
 	// Start server with or without TLS

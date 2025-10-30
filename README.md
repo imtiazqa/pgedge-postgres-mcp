@@ -97,6 +97,9 @@ http:
     cert_file: "./server.crt"
     key_file: "./server.key"
     chain_file: ""
+  auth:
+    enabled: true
+    token_file: ""  # defaults to api-tokens.yaml
 ```
 
 A complete example configuration file is available at [configs/pgedge-postgres-mcp.yaml.example](configs/pgedge-postgres-mcp.yaml.example).
@@ -117,16 +120,28 @@ vim bin/pgedge-postgres-mcp.yaml
 
 All configuration options can be overridden via command line flags:
 
+**General Options:**
 - `-config` - Path to configuration file (default: same directory as binary)
 - `-db` - PostgreSQL connection string
 - `-api-key` - Anthropic API key
 - `-model` - Claude model to use
+
+**HTTP/HTTPS Options:**
 - `-http` - Enable HTTP transport mode
-- `-addr` - HTTP server address
+- `-addr` - HTTP server address (default ":8080")
 - `-https` - Enable HTTPS (requires -http)
 - `-cert` - Path to TLS certificate file
 - `-key` - Path to TLS key file
 - `-chain` - Path to TLS certificate chain file
+
+**Authentication Options:**
+- `-no-auth` - Disable API token authentication
+- `-token-file` - Path to token file (default: api-tokens.yaml)
+- `-add-token` - Add a new API token
+- `-remove-token` - Remove token by ID or hash prefix
+- `-list-tokens` - List all API tokens
+- `-token-note` - Annotation for new token (with -add-token)
+- `-token-expiry` - Token expiry duration: "30d", "1y", "2w", "12h", "never" (with -add-token)
 
 Example:
 ```bash
@@ -347,11 +362,15 @@ The server provides two endpoints:
 Example using curl:
 
 ```bash
-# Health check
+# Health check (no authentication required)
 curl http://localhost:8080/health
 
-# Initialize connection
+# First, create an API token (see Authentication section below)
+./bin/pgedge-postgres-mcp -add-token -token-note "Test" -token-expiry "30d"
+
+# Initialize connection (requires authentication)
 curl -X POST http://localhost:8080/mcp/v1 \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
@@ -367,8 +386,9 @@ curl -X POST http://localhost:8080/mcp/v1 \
     }
   }'
 
-# List available tools
+# List available tools (requires authentication)
 curl -X POST http://localhost:8080/mcp/v1 \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
@@ -377,6 +397,8 @@ curl -X POST http://localhost:8080/mcp/v1 \
     "params": {}
   }'
 ```
+
+**Note:** To run without authentication during development, use the `-no-auth` flag (not recommended for production).
 
 #### HTTPS Mode
 
@@ -419,23 +441,97 @@ curl -k https://localhost:8080/health
 curl https://yourdomain.com:8080/health
 ```
 
+#### API Token Authentication
+
+The server includes built-in API token authentication for HTTP/HTTPS mode, enabled by default.
+
+**Token Management Commands:**
+
+```bash
+# Add a new token (prompts for note and expiry if not provided)
+./bin/pgedge-postgres-mcp -add-token
+
+# Add token with note and expiry
+./bin/pgedge-postgres-mcp -add-token \
+  -token-note "Production API" \
+  -token-expiry "1y"
+
+# List all tokens
+./bin/pgedge-postgres-mcp -list-tokens
+
+# Remove a token by ID or hash prefix
+./bin/pgedge-postgres-mcp -remove-token token-1234567890
+./bin/pgedge-postgres-mcp -remove-token b3f805
+```
+
+**Expiry Formats:**
+- `30d` - 30 days
+- `1y` - 1 year
+- `2w` - 2 weeks
+- `12h` - 12 hours
+- `never` - No expiration
+
+**Using Tokens:**
+
+```bash
+# The generated token is shown only once
+Token: O9ms9jqTfUdy-DIjvpFWeqd_yH_NEj7me0mgOnOjGdQ=
+
+# Include token in Authorization header
+curl -X POST https://localhost:8080/mcp/v1 \
+  -H "Authorization: Bearer O9ms9jqTfUdy-DIjvpFWeqd_yH_NEj7me0mgOnOjGdQ=" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}}'
+```
+
+**Token Configuration:**
+
+```bash
+# Disable authentication (not recommended for production)
+./bin/pgedge-postgres-mcp -http -no-auth
+
+# Use custom token file location
+./bin/pgedge-postgres-mcp -http -token-file /etc/pgedge-mcp/tokens.yaml
+```
+
+**Token Storage:**
+- Default location: `api-tokens.yaml` in same directory as binary
+- Tokens are stored as SHA256 hashes
+- File permissions automatically set to 0600 (owner read/write only)
+- Expired tokens are automatically cleaned up on server start
+
+**Authentication Behavior:**
+- Authentication is **enabled by default** in HTTP/HTTPS mode
+- The `/health` endpoint is always accessible without authentication
+- Server exits with error if auth is enabled but no token file exists
+- Invalid or expired tokens return `401 Unauthorized`
+
 #### Security Considerations for HTTP/HTTPS Mode
 
-1. **Always use HTTPS in production**
-   - HTTP mode sends data in plaintext
-   - HTTPS encrypts all communication including API keys and database results
+1. **API Token Authentication**
+   - Always use authentication in production (enabled by default)
+   - Store token file with restricted permissions (0600)
+   - Rotate tokens regularly using expiry dates
+   - Use unique tokens for different services/users
+   - Never commit tokens or token files to version control
 
-2. **Protect your TLS private keys**
+2. **Always use HTTPS in production**
+   - HTTP mode sends data in plaintext including tokens
+   - HTTPS encrypts all communication including API keys and database results
+   - Self-signed certificates acceptable for internal testing only
+
+3. **Protect your TLS private keys**
    - Store keys with restricted file permissions (chmod 600)
    - Never commit keys to version control
    - Rotate certificates before expiration
 
-3. **Network access control**
+4. **Network access control**
    - Use firewall rules to restrict access
    - Consider running behind a reverse proxy (nginx, HAProxy)
-   - Implement rate limiting and authentication at the proxy level
+   - Implement rate limiting at the proxy level
+   - Use separate tokens for different network zones
 
-4. **Database connection security**
+5. **Database connection security**
    - Use SSL for PostgreSQL connections
    - Use connection strings with minimal required privileges
    - Consider using connection pooling for production workloads
