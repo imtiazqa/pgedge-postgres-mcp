@@ -324,15 +324,6 @@ Includes multiple jobs:
 - Uses golangci-lint for code quality checks
 - Configuration in `.golangci.yml`
 
-### Status Badges
-
-Add these badges to track CI/CD status:
-
-```markdown
-![Build](https://github.com/YOUR_ORG/pgedge-mcp/workflows/Build/badge.svg)
-![Tests](https://github.com/YOUR_ORG/pgedge-mcp/workflows/Tests/badge.svg)
-```
-
 ### Secrets Configuration
 
 To enable all CI/CD features, configure these GitHub repository secrets:
