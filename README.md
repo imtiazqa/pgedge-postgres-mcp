@@ -12,6 +12,7 @@ A Model Context Protocol (MCP) server written in Go that enables natural languag
 ## Features
 
 - **Natural Language to SQL**: Convert plain English questions into SQL queries using Claude AI
+- **Read-Only Protection**: All generated queries are executed in read-only transactions to prevent accidental or malicious data modifications
 - **Comprehensive Schema Analysis**: Extracts and utilizes:
   - Table and view names
   - Column names and data types
@@ -494,10 +495,11 @@ Returns PostgreSQL server configuration parameters including current values, def
    - Rotate keys regularly
    - Monitor API usage
 
-3. **Query Safety**: The server executes generated SQL directly
+3. **Query Safety**: The server executes generated SQL with protections
+   - **Read-Only by Default**: All queries through `query_database` are executed in read-only transactions using `SET TRANSACTION READ ONLY`, preventing INSERT, UPDATE, DELETE, and other data modifications
+   - Write operations will fail with: "cannot execute ... in a read-only transaction"
    - Review the SQL before execution when possible
-   - Use read-only database users when appropriate
-   - Consider implementing query validation/sandboxing
+   - Use read-only database users for additional protection
    - Monitor for suspicious queries
 
 4. **Configuration Management**: The `set_pg_configuration` tool modifies server settings
