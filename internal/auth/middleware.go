@@ -11,11 +11,29 @@
 package auth
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
 	"strings"
 )
+
+// contextKey is a custom type for context keys to avoid collisions
+type contextKey string
+
+const (
+	// TokenHashContextKey is the context key for storing the authenticated token hash
+	TokenHashContextKey contextKey = "token_hash"
+)
+
+// GetTokenHashFromContext retrieves the token hash from the request context
+// Returns empty string if no token hash is found (e.g., unauthenticated request)
+func GetTokenHashFromContext(ctx context.Context) string {
+	if hash, ok := ctx.Value(TokenHashContextKey).(string); ok {
+		return hash
+	}
+	return ""
+}
 
 // AuthMiddleware creates an HTTP middleware that validates API tokens
 func AuthMiddleware(tokenStore *TokenStore, enabled bool) func(http.Handler) http.Handler {
@@ -61,6 +79,13 @@ func AuthMiddleware(tokenStore *TokenStore, enabled bool) func(http.Handler) htt
 				http.Error(w, "Invalid or unknown token", http.StatusUnauthorized)
 				return
 			}
+
+			// Hash the token to use as connection pool key
+			tokenHash := HashToken(token)
+
+			// Store token hash in context for per-token connection isolation
+			ctx := context.WithValue(r.Context(), TokenHashContextKey, tokenHash)
+			r = r.WithContext(ctx)
 
 			// Token is valid, proceed with request
 			next.ServeHTTP(w, r)

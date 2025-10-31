@@ -208,20 +208,21 @@ func InitializeTokenStore() *TokenStore {
 }
 
 // CleanupExpiredTokens removes expired tokens from the store
-func (s *TokenStore) CleanupExpiredTokens() int {
+// Returns the number of tokens removed and their hashes (for connection cleanup)
+func (s *TokenStore) CleanupExpiredTokens() (int, []string) {
 	if s.Tokens == nil {
-		return 0
+		return 0, nil
 	}
 
-	count := 0
+	var removedHashes []string
 	now := time.Now()
 
 	for id, token := range s.Tokens {
 		if token.ExpiresAt != nil && token.ExpiresAt.Before(now) {
+			removedHashes = append(removedHashes, token.Hash)
 			delete(s.Tokens, id)
-			count++
 		}
 	}
 
-	return count
+	return len(removedHashes), removedHashes
 }

@@ -233,68 +233,136 @@ func main() {
 		}
 
 		fmt.Fprintf(os.Stderr, "Loaded %d API token(s) from %s\n", len(tokenStore.Tokens), cfg.HTTP.Auth.TokenFile)
+	}
 
-		// Clean up expired tokens
-		if removed := tokenStore.CleanupExpiredTokens(); removed > 0 {
+	// Create LLM client (shared across all modes)
+	llmClient := llm.NewClient()
+
+	// Register resources first (so they can be used by tools)
+	resourceRegistry := resources.NewRegistry()
+
+	var server *mcp.Server
+	var clientManager *database.ClientManager
+
+	// Choose tool provider based on mode
+	if cfg.HTTP.Enabled && cfg.HTTP.Auth.Enabled {
+		// HTTP mode with authentication: Use per-token connection isolation
+		clientManager = database.NewClientManager()
+
+		// Clean up expired tokens on startup (no connections exist yet)
+		if removed, _ := tokenStore.CleanupExpiredTokens(); removed > 0 {
 			fmt.Fprintf(os.Stderr, "Removed %d expired token(s)\n", removed)
 			// Save the cleaned store
 			if err := auth.SaveTokenStore(cfg.HTTP.Auth.TokenFile, tokenStore); err != nil {
 				fmt.Fprintf(os.Stderr, "WARNING: Failed to save cleaned token file: %v\n", err)
 			}
 		}
+
+		// Start periodic cleanup of expired tokens and their connections
+		go func() {
+			ticker := time.NewTicker(5 * time.Minute)
+			defer ticker.Stop()
+			for range ticker.C {
+				if removed, hashes := tokenStore.CleanupExpiredTokens(); removed > 0 {
+					fmt.Fprintf(os.Stderr, "Removed %d expired token(s)\n", removed)
+					// Clean up database connections for expired tokens
+					if err := clientManager.RemoveClients(hashes); err != nil {
+						fmt.Fprintf(os.Stderr, "WARNING: Failed to cleanup connections: %v\n", err)
+					}
+					// Save the cleaned store
+					if err := auth.SaveTokenStore(cfg.HTTP.Auth.TokenFile, tokenStore); err != nil {
+						fmt.Fprintf(os.Stderr, "WARNING: Failed to save cleaned token file: %v\n", err)
+					}
+				}
+			}
+		}()
+
+		// Create a fallback client for initialization (not used for actual requests)
+		fallbackClient := database.NewClient()
+
+		// Initialize fallback database connection in background
+		go func() {
+			if err := fallbackClient.Connect(); err != nil {
+				fmt.Fprintf(os.Stderr, "ERROR: Failed to connect to database: %v\n", err)
+				return
+			}
+
+			if err := fallbackClient.LoadMetadata(); err != nil {
+				fmt.Fprintf(os.Stderr, "ERROR: Failed to load database metadata: %v\n", err)
+				return
+			}
+
+			fmt.Fprintf(os.Stderr, "Database ready: %d tables/views loaded\n", len(fallbackClient.GetMetadata()))
+		}()
+
+		// Set up resources with fallback client
+		resourceRegistry.Register(resources.URISettings, resources.PGSettingsResource(fallbackClient))
+		resourceRegistry.Register(resources.URISystemInfo, resources.PGSystemInfoResource(fallbackClient))
+		resourceRegistry.Register(resources.URIStatActivity, resources.PGStatActivityResource(fallbackClient))
+		resourceRegistry.Register(resources.URIStatDatabase, resources.PGStatDatabaseResource(fallbackClient))
+		resourceRegistry.Register(resources.URIStatUserTables, resources.PGStatUserTablesResource(fallbackClient))
+		resourceRegistry.Register(resources.URIStatUserIndexes, resources.PGStatUserIndexesResource(fallbackClient))
+		resourceRegistry.Register(resources.URIStatReplication, resources.PGStatReplicationResource(fallbackClient))
+		resourceRegistry.Register(resources.URIStatBgwriter, resources.PGStatBgwriterResource(fallbackClient))
+		resourceRegistry.Register(resources.URIStatWAL, resources.PGStatWALResource(fallbackClient))
+
+		// Use context-aware provider for per-token connection isolation
+		contextAwareProvider := tools.NewContextAwareProvider(clientManager, llmClient, resourceRegistry, true, fallbackClient)
+		if err := contextAwareProvider.RegisterTools(nil); err != nil {
+			fmt.Fprintf(os.Stderr, "ERROR: Failed to register tools: %v\n", err)
+			os.Exit(1)
+		}
+
+		server = mcp.NewServer(contextAwareProvider)
+		server.SetResourceProvider(resourceRegistry)
+
+		fmt.Fprintf(os.Stderr, "Connection isolation: ENABLED (per-token database connections)\n")
+	} else {
+		// Stdio mode or HTTP without auth: Use shared database connection
+		dbClient := database.NewClient()
+
+		// Initialize database in background
+		go func() {
+			if err := dbClient.Connect(); err != nil {
+				fmt.Fprintf(os.Stderr, "ERROR: Failed to connect to database: %v\n", err)
+				return
+			}
+
+			if err := dbClient.LoadMetadata(); err != nil {
+				fmt.Fprintf(os.Stderr, "ERROR: Failed to load database metadata: %v\n", err)
+				return
+			}
+
+			fmt.Fprintf(os.Stderr, "Database ready: %d tables/views loaded\n", len(dbClient.GetMetadata()))
+		}()
+
+		// Set up resources with shared client
+		resourceRegistry.Register(resources.URISettings, resources.PGSettingsResource(dbClient))
+		resourceRegistry.Register(resources.URISystemInfo, resources.PGSystemInfoResource(dbClient))
+		resourceRegistry.Register(resources.URIStatActivity, resources.PGStatActivityResource(dbClient))
+		resourceRegistry.Register(resources.URIStatDatabase, resources.PGStatDatabaseResource(dbClient))
+		resourceRegistry.Register(resources.URIStatUserTables, resources.PGStatUserTablesResource(dbClient))
+		resourceRegistry.Register(resources.URIStatUserIndexes, resources.PGStatUserIndexesResource(dbClient))
+		resourceRegistry.Register(resources.URIStatReplication, resources.PGStatReplicationResource(dbClient))
+		resourceRegistry.Register(resources.URIStatBgwriter, resources.PGStatBgwriterResource(dbClient))
+		resourceRegistry.Register(resources.URIStatWAL, resources.PGStatWALResource(dbClient))
+
+		// Register tools with shared client
+		toolRegistry := tools.NewRegistry()
+		toolRegistry.Register("query_database", tools.QueryDatabaseTool(dbClient, llmClient))
+		toolRegistry.Register("get_schema_info", tools.GetSchemaInfoTool(dbClient))
+		toolRegistry.Register("set_pg_configuration", tools.SetPGConfigurationTool(dbClient))
+		toolRegistry.Register("recommend_pg_configuration", tools.RecommendPGConfigurationTool())
+		toolRegistry.Register("analyze_bloat", tools.AnalyzeBloatTool(dbClient))
+		toolRegistry.Register("read_server_log", tools.ReadServerLogTool(dbClient))
+		toolRegistry.Register("read_postgresql_conf", tools.ReadPostgresqlConfTool(dbClient))
+		toolRegistry.Register("read_pg_hba_conf", tools.ReadPgHbaConfTool(dbClient))
+		toolRegistry.Register("read_pg_ident_conf", tools.ReadPgIdentConfTool(dbClient))
+		toolRegistry.Register("read_resource", tools.ReadResourceTool(resourceRegistry))
+
+		server = mcp.NewServer(toolRegistry)
+		server.SetResourceProvider(resourceRegistry)
 	}
-
-	// Create clients
-	dbClient := database.NewClient()
-	llmClient := llm.NewClient()
-
-	// Initialize database in background
-	go func() {
-		if err := dbClient.Connect(); err != nil {
-			fmt.Fprintf(os.Stderr, "ERROR: Failed to connect to database: %v\n", err)
-			return
-		}
-
-		if err := dbClient.LoadMetadata(); err != nil {
-			fmt.Fprintf(os.Stderr, "ERROR: Failed to load database metadata: %v\n", err)
-			return
-		}
-
-		fmt.Fprintf(os.Stderr, "Database ready: %d tables/views loaded\n", len(dbClient.GetMetadata()))
-	}()
-
-	// Register resources first (so they can be used by tools)
-	resourceRegistry := resources.NewRegistry()
-
-	// System information resources
-	resourceRegistry.Register(resources.URISettings, resources.PGSettingsResource(dbClient))
-	resourceRegistry.Register(resources.URISystemInfo, resources.PGSystemInfoResource(dbClient))
-
-	// Statistics resources
-	resourceRegistry.Register(resources.URIStatActivity, resources.PGStatActivityResource(dbClient))
-	resourceRegistry.Register(resources.URIStatDatabase, resources.PGStatDatabaseResource(dbClient))
-	resourceRegistry.Register(resources.URIStatUserTables, resources.PGStatUserTablesResource(dbClient))
-	resourceRegistry.Register(resources.URIStatUserIndexes, resources.PGStatUserIndexesResource(dbClient))
-	resourceRegistry.Register(resources.URIStatReplication, resources.PGStatReplicationResource(dbClient))
-	resourceRegistry.Register(resources.URIStatBgwriter, resources.PGStatBgwriterResource(dbClient))
-	resourceRegistry.Register(resources.URIStatWAL, resources.PGStatWALResource(dbClient))
-
-	// Register tools
-	toolRegistry := tools.NewRegistry()
-	toolRegistry.Register("query_database", tools.QueryDatabaseTool(dbClient, llmClient))
-	toolRegistry.Register("get_schema_info", tools.GetSchemaInfoTool(dbClient))
-	toolRegistry.Register("set_pg_configuration", tools.SetPGConfigurationTool(dbClient))
-	toolRegistry.Register("recommend_pg_configuration", tools.RecommendPGConfigurationTool())
-	toolRegistry.Register("analyze_bloat", tools.AnalyzeBloatTool(dbClient))
-	toolRegistry.Register("read_server_log", tools.ReadServerLogTool(dbClient))
-	toolRegistry.Register("read_postgresql_conf", tools.ReadPostgresqlConfTool(dbClient))
-	toolRegistry.Register("read_pg_hba_conf", tools.ReadPgHbaConfTool(dbClient))
-	toolRegistry.Register("read_pg_ident_conf", tools.ReadPgIdentConfTool(dbClient))
-	toolRegistry.Register("read_resource", tools.ReadResourceTool(resourceRegistry))
-
-	// Start MCP server
-	server := mcp.NewServer(toolRegistry)
-	server.SetResourceProvider(resourceRegistry)
 
 	if cfg.HTTP.Enabled {
 		// HTTP/HTTPS mode
@@ -337,5 +405,10 @@ func main() {
 	}
 
 	// Cleanup
-	dbClient.Close()
+	if clientManager != nil {
+		// Close all per-token connections
+		if err := clientManager.CloseAll(); err != nil {
+			fmt.Fprintf(os.Stderr, "WARNING: Error closing database connections: %v\n", err)
+		}
+	}
 }

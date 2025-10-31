@@ -7,8 +7,20 @@ The pgEdge MCP Server includes built-in API token authentication for HTTP/HTTPS 
 - **Enabled by default** in HTTP/HTTPS mode
 - **SHA256 token hashing** for secure storage
 - **Token expiration** with automatic cleanup
+- **Per-token connection isolation** for multi-user security
 - **Bearer token authentication** using HTTP Authorization header
 - **Not required** for stdio mode (Claude Desktop)
+
+### Connection Isolation
+
+When authentication is enabled, each API token gets its own isolated database connection pool. This provides:
+
+- **Security**: Prevents users from accessing each other's database sessions
+- **Isolation**: Temporary tables and session variables are isolated per token
+- **Automatic cleanup**: Database connections are closed when tokens expire
+- **Resource management**: Independent connection pools per token
+
+See [Security Guide - Connection Isolation](SECURITY.md#connection-isolation) for more details.
 
 ## Token Management
 

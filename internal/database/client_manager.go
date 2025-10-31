@@ -1,0 +1,143 @@
+/*-------------------------------------------------------------------------
+ *
+ * pgEdge Postgres MCP Server
+ *
+ * Copyright (c) 2025, pgEdge, Inc.
+ * This software is released under The PostgreSQL License
+ *
+ *-------------------------------------------------------------------------
+ */
+
+package database
+
+import (
+	"fmt"
+	"os"
+	"sync"
+)
+
+// ClientManager manages per-token database clients for connection isolation
+// Each authenticated token gets its own database client to prevent connection sharing
+type ClientManager struct {
+	mu      sync.RWMutex
+	clients map[string]*Client // map of token hash -> client
+}
+
+// NewClientManager creates a new client manager
+func NewClientManager() *ClientManager {
+	return &ClientManager{
+		clients: make(map[string]*Client),
+	}
+}
+
+// GetClient returns a database client for the given token hash
+// Creates a new client if one doesn't exist for this token
+func (cm *ClientManager) GetClient(tokenHash string) (*Client, error) {
+	if tokenHash == "" {
+		return nil, fmt.Errorf("token hash is required for authenticated requests")
+	}
+
+	// Try to get existing client (read lock)
+	cm.mu.RLock()
+	if client, exists := cm.clients[tokenHash]; exists {
+		cm.mu.RUnlock()
+		return client, nil
+	}
+	cm.mu.RUnlock()
+
+	// Create new client (write lock)
+	cm.mu.Lock()
+	defer cm.mu.Unlock()
+
+	// Double-check after acquiring write lock
+	if client, exists := cm.clients[tokenHash]; exists {
+		return client, nil
+	}
+
+	// Create and initialize new client
+	client := NewClient()
+	if err := client.Connect(); err != nil {
+		return nil, fmt.Errorf("failed to connect database for token: %w", err)
+	}
+
+	if err := client.LoadMetadata(); err != nil {
+		client.Close()
+		return nil, fmt.Errorf("failed to load metadata for token: %w", err)
+	}
+
+	cm.clients[tokenHash] = client
+	fmt.Fprintf(os.Stderr, "Created new database connection for token hash: %s (total: %d)\n",
+		tokenHash[:12], len(cm.clients))
+
+	return client, nil
+}
+
+// RemoveClient removes and closes the database client for the given token hash
+// This should be called when a token is removed or expires
+func (cm *ClientManager) RemoveClient(tokenHash string) error {
+	cm.mu.Lock()
+	defer cm.mu.Unlock()
+
+	client, exists := cm.clients[tokenHash]
+	if !exists {
+		return nil // Already removed
+	}
+
+	// Close the client connection
+	client.Close()
+
+	// Remove from map
+	delete(cm.clients, tokenHash)
+
+	fmt.Fprintf(os.Stderr, "Removed database connection for token hash: %s (remaining: %d)\n",
+		tokenHash[:12], len(cm.clients))
+
+	return nil
+}
+
+// RemoveClients removes and closes database clients for multiple token hashes
+// This is useful for bulk cleanup when multiple tokens expire
+func (cm *ClientManager) RemoveClients(tokenHashes []string) error {
+	cm.mu.Lock()
+	defer cm.mu.Unlock()
+
+	for _, tokenHash := range tokenHashes {
+		if client, exists := cm.clients[tokenHash]; exists {
+			// Close the client connection
+			client.Close()
+
+			// Remove from map
+			delete(cm.clients, tokenHash)
+		}
+	}
+
+	if len(tokenHashes) > 0 {
+		fmt.Fprintf(os.Stderr, "Removed %d database connection(s) (remaining: %d)\n",
+			len(tokenHashes), len(cm.clients))
+	}
+
+	return nil
+}
+
+// CloseAll closes all managed database clients
+// This should be called on server shutdown
+func (cm *ClientManager) CloseAll() error {
+	cm.mu.Lock()
+	defer cm.mu.Unlock()
+
+	for _, client := range cm.clients {
+		client.Close()
+	}
+
+	cm.clients = make(map[string]*Client)
+
+	return nil
+}
+
+// GetClientCount returns the number of active database clients
+// Useful for monitoring and testing
+func (cm *ClientManager) GetClientCount() int {
+	cm.mu.RLock()
+	defer cm.mu.RUnlock()
+	return len(cm.clients)
+}

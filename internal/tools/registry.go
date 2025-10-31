@@ -11,6 +11,8 @@
 package tools
 
 import (
+	"context"
+
 	"pgedge-postgres-mcp/internal/mcp"
 )
 
@@ -56,7 +58,7 @@ func (r *Registry) List() []mcp.Tool {
 }
 
 // Execute runs a tool by name with the given arguments
-func (r *Registry) Execute(name string, args map[string]interface{}) (mcp.ToolResponse, error) {
+func (r *Registry) Execute(ctx context.Context, name string, args map[string]interface{}) (mcp.ToolResponse, error) {
 	tool, exists := r.Get(name)
 	if !exists {
 		return mcp.ToolResponse{
@@ -70,5 +72,7 @@ func (r *Registry) Execute(name string, args map[string]interface{}) (mcp.ToolRe
 		}, nil
 	}
 
+	// Note: basic registry doesn't use context, it's mainly for stdio mode
+	// ContextAwareProvider uses context for per-token connection isolation in HTTP mode
 	return tool.Handler(args)
 }

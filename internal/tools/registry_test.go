@@ -11,6 +11,7 @@
 package tools
 
 import (
+	"context"
 	"testing"
 
 	"pgedge-postgres-mcp/internal/mcp"
@@ -182,7 +183,7 @@ func TestExecute(t *testing.T) {
 			"value": "test",
 		}
 
-		response, err := registry.Execute("counter", args)
+		response, err := registry.Execute(context.Background(), "counter", args)
 		if err != nil {
 			t.Errorf("Execute() unexpected error: %v", err)
 		}
@@ -201,7 +202,7 @@ func TestExecute(t *testing.T) {
 	})
 
 	t.Run("non-existent tool", func(t *testing.T) {
-		response, err := registry.Execute("non_existent", map[string]interface{}{})
+		response, err := registry.Execute(context.Background(), "non_existent", map[string]interface{}{})
 		if err != nil {
 			t.Errorf("Execute() unexpected error: %v", err)
 		}
@@ -240,7 +241,7 @@ func TestExecute(t *testing.T) {
 
 		registry.Register("error_tool", tool)
 
-		response, err := registry.Execute("error_tool", map[string]interface{}{})
+		response, err := registry.Execute(context.Background(), "error_tool", map[string]interface{}{})
 		if err != nil {
 			t.Errorf("Execute() unexpected error: %v", err)
 		}
@@ -296,7 +297,7 @@ func TestExecute(t *testing.T) {
 
 		registry.Register("versioned_tool", tool2)
 
-		response, err := registry.Execute("versioned_tool", map[string]interface{}{})
+		response, err := registry.Execute(context.Background(), "versioned_tool", map[string]interface{}{})
 		if err != nil {
 			t.Errorf("Execute() unexpected error: %v", err)
 		}

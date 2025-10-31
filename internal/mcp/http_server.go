@@ -11,6 +11,7 @@
 package mcp
 
 import (
+	"context"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
@@ -125,8 +126,8 @@ func (s *Server) handleHTTPRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Handle the request and capture the response
-	response := s.handleRequestHTTP(req)
+	// Handle the request and capture the response (pass request context)
+	response := s.handleRequestHTTP(r.Context(), req)
 
 	// Send response
 	w.Header().Set("Content-Type", "application/json")
@@ -138,7 +139,7 @@ func (s *Server) handleHTTPRequest(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleRequestHTTP handles a JSON-RPC request and returns the response
-func (s *Server) handleRequestHTTP(req JSONRPCRequest) JSONRPCResponse {
+func (s *Server) handleRequestHTTP(ctx context.Context, req JSONRPCRequest) JSONRPCResponse {
 	switch req.Method {
 	case "initialize":
 		return s.handleInitializeHTTP(req)
@@ -152,7 +153,7 @@ func (s *Server) handleRequestHTTP(req JSONRPCRequest) JSONRPCResponse {
 	case "tools/list":
 		return s.handleToolsListHTTP(req)
 	case "tools/call":
-		return s.handleToolCallHTTP(req)
+		return s.handleToolCallHTTP(ctx, req)
 	case "resources/list":
 		return s.handleResourcesListHTTP(req)
 	case "resources/read":
@@ -195,7 +196,7 @@ func (s *Server) handleToolsListHTTP(req JSONRPCRequest) JSONRPCResponse {
 	}
 }
 
-func (s *Server) handleToolCallHTTP(req JSONRPCRequest) JSONRPCResponse {
+func (s *Server) handleToolCallHTTP(ctx context.Context, req JSONRPCRequest) JSONRPCResponse {
 	var params ToolCallParams
 
 	// Convert interface{} to JSON bytes first
@@ -208,7 +209,8 @@ func (s *Server) handleToolCallHTTP(req JSONRPCRequest) JSONRPCResponse {
 		return createErrorResponse(req.ID, -32602, "Invalid params", err.Error())
 	}
 
-	response, err := s.tools.Execute(params.Name, params.Arguments)
+	// Pass context for per-token connection isolation
+	response, err := s.tools.Execute(ctx, params.Name, params.Arguments)
 	if err != nil {
 		return createErrorResponse(req.ID, -32603, "Internal error", err.Error())
 	}

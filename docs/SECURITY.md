@@ -357,6 +357,53 @@ See [Authentication Guide](AUTHENTICATION.md) for detailed token management.
    chmod 600 api-tokens.yaml
    ```
 
+### Connection Isolation
+
+**Per-Token Database Connections:**
+
+When authentication is enabled in HTTP/HTTPS mode, the MCP server implements **per-token connection isolation** to ensure security and prevent cross-user data access.
+
+**How it works:**
+- Each API token gets its own dedicated database connection pool
+- Database connections are never shared between different tokens
+- When a token expires, its database connections are automatically closed
+- This prevents one user from accessing database resources opened by another user
+
+**Security benefits:**
+1. **Isolation**: Users with different tokens cannot interfere with each other's database sessions
+2. **Session Security**: Temporary tables, prepared statements, and session variables are isolated per token
+3. **Automatic Cleanup**: Expired tokens trigger automatic cleanup of their database connections
+4. **Resource Management**: Connection pools are managed independently for each token
+
+**When connection isolation is active:**
+```bash
+# Start server with authentication enabled
+./bin/pgedge-postgres-mcp -http -tls \
+  -cert /path/to/cert.pem \
+  -key /path/to/key.pem
+
+# Server log will show:
+# Connection isolation: ENABLED (per-token database connections)
+```
+
+**When connection isolation is NOT active:**
+- Stdio mode (single-user, no authentication)
+- HTTP mode with `-no-auth` flag (all requests share one connection)
+
+**Monitoring connection pools:**
+
+The server logs connection creation and cleanup:
+```
+Created new database connection for token hash: 5f4dcc3b5aa7 (total: 3)
+Removed database connection for token hash: 5f4dcc3b5aa7 (remaining: 2)
+```
+
+**Best practices:**
+- Always enable authentication for multi-user deployments
+- Monitor server logs for connection pool growth
+- Set appropriate token expiration times to prevent connection pool exhaustion
+- Consider database connection limits when issuing tokens to many users
+
 ## TLS/Certificate Security
 
 ### Private Key Protection

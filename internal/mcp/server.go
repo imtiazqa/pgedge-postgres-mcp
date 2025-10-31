@@ -12,6 +12,7 @@ package mcp
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -26,7 +27,7 @@ const (
 // ToolProvider is an interface for listing and executing tools
 type ToolProvider interface {
 	List() []Tool
-	Execute(name string, args map[string]interface{}) (ToolResponse, error)
+	Execute(ctx context.Context, name string, args map[string]interface{}) (ToolResponse, error)
 }
 
 // ResourceProvider is an interface for listing and reading resources
@@ -162,7 +163,8 @@ func (s *Server) handleToolCall(req JSONRPCRequest) {
 		return
 	}
 
-	response, err := s.tools.Execute(params.Name, params.Arguments)
+	// For stdio mode, use background context (no authentication)
+	response, err := s.tools.Execute(context.Background(), params.Name, params.Arguments)
 	if err != nil {
 		sendError(req.ID, -32603, "Tool execution error", err.Error())
 		return

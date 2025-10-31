@@ -293,12 +293,22 @@ func TestCleanupExpiredTokens(t *testing.T) {
 		store.AddToken("valid-1", "hash3", "note3", &validTime)
 		store.AddToken("valid-2", "hash4", "note4", nil) // Never expires
 
-		removed := store.CleanupExpiredTokens()
+		removed, hashes := store.CleanupExpiredTokens()
 		if removed != 2 {
 			t.Fatalf("Expected 2 tokens removed, got %d", removed)
 		}
+		if len(hashes) != 2 {
+			t.Fatalf("Expected 2 hashes returned, got %d", len(hashes))
+		}
 		if len(store.Tokens) != 2 {
 			t.Fatalf("Expected 2 tokens remaining, got %d", len(store.Tokens))
+		}
+		// Verify the correct hashes were returned
+		expectedHashes := map[string]bool{"hash1": true, "hash2": true}
+		for _, hash := range hashes {
+			if !expectedHashes[hash] {
+				t.Fatalf("Unexpected hash in removed list: %s", hash)
+			}
 		}
 	})
 
@@ -308,9 +318,12 @@ func TestCleanupExpiredTokens(t *testing.T) {
 		store.AddToken("valid-1", "hash1", "note1", &validTime)
 		store.AddToken("valid-2", "hash2", "note2", nil)
 
-		removed := store.CleanupExpiredTokens()
+		removed, hashes := store.CleanupExpiredTokens()
 		if removed != 0 {
 			t.Fatalf("Expected 0 tokens removed, got %d", removed)
+		}
+		if len(hashes) != 0 {
+			t.Fatalf("Expected 0 hashes returned, got %d", len(hashes))
 		}
 		if len(store.Tokens) != 2 {
 			t.Fatalf("Expected 2 tokens remaining, got %d", len(store.Tokens))
