@@ -25,4 +25,9 @@ const (
 	URIStatReplication  = "pg://stat/replication"
 	URIStatBgwriter     = "pg://stat/bgwriter"
 	URIStatWAL          = "pg://stat/wal"
+
+	// I/O Statistics Resources
+	URIStatIOUserTables   = "pg://statio/user_tables"
+	URIStatIOUserIndexes  = "pg://statio/user_indexes"
+	URIStatIOUserSequences = "pg://statio/user_sequences"
 )

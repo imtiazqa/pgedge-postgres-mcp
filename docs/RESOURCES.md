@@ -327,6 +327,141 @@ Provides Write-Ahead Log (WAL) statistics including WAL records, full page image
 - Understand transaction log activity
 - Optimize WAL settings
 
+## I/O Statistics Resources
+
+I/O statistics resources provide disk block-level access patterns showing reads from disk vs. cache hits. These resources are essential for identifying I/O bottlenecks and evaluating cache effectiveness.
+
+### pg://statio/user_tables
+
+Shows disk block I/O statistics for user tables including heap, index, TOAST, and TOAST index blocks. Tracks blocks read from disk vs. cache hits. Essential for identifying I/O bottlenecks and cache efficiency.
+
+**Output**: JSON with table I/O statistics:
+```json
+{
+  "table_count": 25,
+  "tables": [
+    {
+      "schemaname": "public",
+      "relname": "users",
+      "heap_blks_read": 1000,
+      "heap_blks_hit": 99000,
+      "heap_hit_ratio": 99.00,
+      "idx_blks_read": 500,
+      "idx_blks_hit": 49500,
+      "idx_hit_ratio": 99.00,
+      "toast_blks_read": 0,
+      "toast_blks_hit": 0,
+      "toast_hit_ratio": null,
+      "tidx_blks_read": 0,
+      "tidx_blks_hit": 0,
+      "tidx_hit_ratio": null
+    }
+  ],
+  "description": "Per-table I/O statistics showing disk reads vs cache hits. Tables ordered by total disk reads (highest first). Hit ratios above 95% indicate good cache efficiency."
+}
+```
+
+**Key Metrics:**
+- `heap_blks_read`/`heap_blks_hit`: Heap table block reads/hits
+- `idx_blks_read`/`idx_blks_hit`: Index block reads/hits
+- `toast_blks_read`/`toast_blks_hit`: TOAST table block reads/hits (for large values)
+- `tidx_blks_read`/`tidx_blks_hit`: TOAST index block reads/hits
+- Hit ratios: Percentage of blocks served from cache (>95% is good)
+
+**Use Cases:**
+- Identify tables causing high I/O load
+- Evaluate cache effectiveness
+- Determine if shared_buffers should be increased
+- Find tables that would benefit from more memory
+
+### pg://statio/user_indexes
+
+Shows disk block I/O statistics for user indexes. Tracks blocks read from disk vs. cache hits for each index. Essential for identifying indexes causing high I/O load and evaluating cache effectiveness.
+
+**Output**: JSON with index I/O statistics:
+```json
+{
+  "index_count": 50,
+  "indexes": [
+    {
+      "schemaname": "public",
+      "relname": "users",
+      "indexrelname": "users_pkey",
+      "idx_blks_read": 100,
+      "idx_blks_hit": 9900,
+      "hit_ratio": 99.00,
+      "io_status": "excellent"
+    },
+    {
+      "schemaname": "public",
+      "relname": "orders",
+      "indexrelname": "orders_created_idx",
+      "idx_blks_read": 5000,
+      "idx_blks_hit": 5000,
+      "hit_ratio": 50.00,
+      "io_status": "needs_attention"
+    }
+  ],
+  "description": "Per-index I/O statistics showing disk reads vs cache hits. Indexes ordered by disk reads (highest first). Hit ratios above 95% are excellent, below 80% may indicate cache pressure."
+}
+```
+
+**I/O Status Classifications:**
+- `excellent`: hit_ratio >= 95% (good cache efficiency)
+- `good`: 80% <= hit_ratio < 95% (acceptable)
+- `needs_attention`: 50% <= hit_ratio < 80% (cache pressure)
+- `poor`: hit_ratio < 50% (significant I/O issues)
+- `no_activity`: No block reads/hits recorded
+
+**Use Cases:**
+- Identify indexes causing high I/O load
+- Evaluate index cache effectiveness
+- Determine if shared_buffers should be increased
+- Find hot indexes that need optimization
+
+### pg://statio/user_sequences
+
+Shows disk block I/O statistics for user sequences. Sequences should typically have very high cache hit ratios since they're frequently accessed. Low hit ratios may indicate cache pressure or excessive sequence usage patterns.
+
+**Output**: JSON with sequence I/O statistics:
+```json
+{
+  "sequence_count": 10,
+  "sequences": [
+    {
+      "schemaname": "public",
+      "relname": "users_id_seq",
+      "blks_read": 10,
+      "blks_hit": 9990,
+      "hit_ratio": 99.90,
+      "cache_status": "excellent"
+    },
+    {
+      "schemaname": "public",
+      "relname": "orders_id_seq",
+      "blks_read": 500,
+      "blks_hit": 4500,
+      "hit_ratio": 90.00,
+      "cache_status": "needs_attention"
+    }
+  ],
+  "description": "Per-sequence I/O statistics showing disk reads vs cache hits. Sequences ordered by disk reads (highest first). Hit ratios above 99% are expected; lower values may indicate cache issues."
+}
+```
+
+**Cache Status Classifications:**
+- `excellent`: hit_ratio >= 99% (expected for sequences)
+- `good`: 95% <= hit_ratio < 99% (acceptable but monitor)
+- `needs_attention`: 80% <= hit_ratio < 95% (investigate cache pressure)
+- `poor`: hit_ratio < 80% (significant cache issues)
+- `no_activity`: No block reads/hits recorded
+
+**Use Cases:**
+- Monitor sequence cache efficiency
+- Identify sequences with poor cache performance
+- Detect excessive sequence usage patterns
+- Troubleshoot cache pressure issues
+
 ## Accessing Resources
 
 Resources can be accessed in two ways:

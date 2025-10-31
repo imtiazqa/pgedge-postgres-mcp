@@ -464,4 +464,7 @@ func registerResources(registry *resources.Registry, client *database.Client) {
 	registry.Register(resources.URIStatReplication, resources.PGStatReplicationResource(client))
 	registry.Register(resources.URIStatBgwriter, resources.PGStatBgwriterResource(client))
 	registry.Register(resources.URIStatWAL, resources.PGStatWALResource(client))
+	registry.Register(resources.URIStatIOUserTables, resources.PGStatIOUserTablesResource(client))
+	registry.Register(resources.URIStatIOUserIndexes, resources.PGStatIOUserIndexesResource(client))
+	registry.Register(resources.URIStatIOUserSequences, resources.PGStatIOUserSequencesResource(client))
 }

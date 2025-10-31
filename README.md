@@ -22,7 +22,7 @@ A Model Context Protocol (MCP) server written in Go that enables natural languag
 - **MCP Protocol**: Implements the Model Context Protocol with support for stdio and streaming HTTP/HTTPS (with or without TLS)
 - **API Token Authentication**: Built-in token authentication with expiration support for HTTP/HTTPS mode
 - **Eleven MCP Tools**: Execute queries, retrieve schema, modify configuration, analyze bloat, get server info, and more - See **[Tools Documentation](docs/TOOLS.md)**
-- **Nine MCP Resources**: System information and PostgreSQL statistics (pg_stat_* views) - See **[Resources Documentation](docs/RESOURCES.md)**
+- **Twelve MCP Resources**: System information, PostgreSQL statistics (pg_stat_* views), and I/O statistics (pg_statio_* views) - See **[Resources Documentation](docs/RESOURCES.md)**
 
 ## Quick Start
 
@@ -207,7 +207,7 @@ For comprehensive examples including advanced patterns, see **[Query Examples](d
 ### Feature Documentation
 
 - **[Tools Documentation](docs/TOOLS.md)** - Complete reference for all ten MCP tools
-- **[Resources Documentation](docs/RESOURCES.md)** - Complete reference for all nine MCP resources
+- **[Resources Documentation](docs/RESOURCES.md)** - Complete reference for all twelve MCP resources
 - **[Query Examples](docs/EXAMPLES.md)** - Comprehensive collection of example queries and patterns
 
 ### Technical Guides
