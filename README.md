@@ -23,6 +23,11 @@ A Model Context Protocol (MCP) server that enables **natural language queries** 
 - 🌐 **HTTP/HTTPS Mode** - Direct API access with token authentication
 - 🔐 **Secure** - TLS support, token auth, read-only enforcement
 
+## TODO
+
+- Remove the default database when running with authentication enabled
+- Allow users to register server connection strings when authentication is enabled
+
 ## Quick Start
 
 ### 1. Installation
