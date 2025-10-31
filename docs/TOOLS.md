@@ -175,6 +175,7 @@ Based on server hardware, operating system, and expected workload characteristic
 ```
 
 **Parameters**:
+
 - `total_ram_gb` (required): Total system RAM in gigabytes (e.g., 16, 32, 64, 128)
 - `cpu_cores` (required): Number of CPU cores available to PostgreSQL (e.g., 4, 8, 16, 32)
 - `storage_type` (required): Type of storage - `HDD` (spinning disk), `SSD` (solid state drive), or `NVMe` (high-performance SSD)
@@ -275,41 +276,50 @@ here are the recommended baseline PostgreSQL configuration parameters:
 ### Operating System Tuning
 
 1. **Filesystem Settings**
-   - Use XFS filesystem for data and WAL directories
-   - Add 'noatime' to mount options in /etc/fstab
-   - Increase read-ahead from 128KB to 4096KB
+
+    - Use XFS filesystem for data and WAL directories
+    - Add 'noatime' to mount options in /etc/fstab
+    - Increase read-ahead from 128KB to 4096KB
 
 2. **I/O Scheduler**
-   - For HDD: Use 'mq-deadline' (RHEL 8+) or 'deadline' (RHEL 7)
-   - For SSD/NVMe: Use 'none' (RHEL 8+) or 'noop' (RHEL 7)
+
+    - For HDD: Use 'mq-deadline' (RHEL 8+) or 'deadline' (RHEL 7)
+    - For SSD/NVMe: Use 'none' (RHEL 8+) or 'noop' (RHEL 7)
 
 3. **Memory Settings (Linux)**
-   - vm.dirty_bytes = 1073741824 (1GB, or set to storage cache size)
-   - vm.dirty_background_bytes = 268435456 (1/4 of dirty_bytes)
+
+    - vm.dirty_bytes = 1073741824 (1GB, or set to storage cache size)
+    - vm.dirty_background_bytes = 268435456 (1/4 of dirty_bytes)
 
 ### PostgreSQL Best Practices
 
 1. **Connection Pooling**
-   - Use pgbouncer or pgpool for connection pooling if you need more than the recommended max_connections
+
+    - Use pgbouncer or pgpool for connection pooling if you need more than the recommended max_connections
 
 2. **Monitoring**
+
    - Monitor pg_stat_bgwriter for checkpoint tuning
    - Use pg_stat_statements to identify slow queries
    - Monitor autovacuum activity via logs
 
 3. **Storage Layout**
-   - Consider separate mount points for:
-     * Data directory (/pgdata)
-     * WAL directory (/pgwaldata)
-     * Indexes (optional, for specific workloads)
+
+    - Consider separate mount points for:
+
+        * Data directory (/pgdata)
+        * WAL directory (/pgwaldata)
+        * Indexes (optional, for specific workloads)
 
 4. **Backup and Recovery**
-   - Configure archive_command with your backup solution
-   - Test recovery procedures regularly
-   - Consider using pg_basebackup or WAL-based backup solutions
+
+    - Configure archive_command with your backup solution
+    - Test recovery procedures regularly
+    - Consider using pg_basebackup or WAL-based backup solutions
 ```
 
 **Use Cases**:
+
 - Fresh PostgreSQL installations requiring initial configuration
 - Setting up NEW development, testing, or staging environments
 - Planning hardware specifications for new deployments
@@ -317,6 +327,7 @@ here are the recommended baseline PostgreSQL configuration parameters:
 - Establishing baseline settings before workload-specific optimization
 
 **NOT Suitable For**:
+
 - Fine-tuning existing production systems
 - Optimizing pre-tuned PostgreSQL installations
 - Systems that have already been customized for specific workloads
@@ -324,6 +335,7 @@ here are the recommended baseline PostgreSQL configuration parameters:
 - Performance troubleshooting of existing installations
 
 **Important Notes**:
+
 - **⚠️ CRITICAL**: These are BASELINE settings for NEW installations ONLY
 - DO NOT blindly apply to existing production or pre-tuned PostgreSQL installations
 - These are starting points that require monitoring and adjustment based on actual workload
@@ -371,12 +383,14 @@ Full analysis with index details:
 ```
 
 **Parameters**:
+
 - `schema_name` (optional): Filter to specific schema (default: all schemas)
 - `table_name` (optional): Filter to specific table (requires schema_name)
 - `min_dead_tuple_percent` (optional): Minimum dead tuple percentage to show (default: 5.0, range: 0-100)
 - `include_indexes` (optional): Include index bloat analysis (default: true)
 
 **Output**:
+
 ```
 Table Bloat Analysis
 ====================
@@ -436,6 +450,7 @@ Summary: 3 tables analyzed
 ```
 
 **Recommendations Thresholds**:
+
 - **>50% dead tuples**: Urgent VACUUM + consider VACUUM FULL during maintenance window
 - **>20% dead tuples**: Urgent VACUUM immediately
 - **>10% dead tuples**: Run VACUUM soon to reclaim space
@@ -447,6 +462,7 @@ Summary: 3 tables analyzed
 - **>7 days since last analyze with modifications**: Consider running ANALYZE
 
 **Use Cases**:
+
 - Identifying tables requiring maintenance (VACUUM/ANALYZE)
 - Planning maintenance windows
 - Monitoring table bloat over time
@@ -455,6 +471,7 @@ Summary: 3 tables analyzed
 - Troubleshooting query performance issues related to bloat
 
 **Important Notes**:
+
 - Dead tuple percentage is calculated as: `dead_tuples / (live_tuples + dead_tuples) × 100`
 - VACUUM reclaims space within the table file
 - VACUUM FULL rewrites the entire table (requires exclusive lock and more time)
@@ -488,9 +505,11 @@ Read last 50 lines for quick check:
 ```
 
 **Parameters**:
+
 - `lines` (optional): Number of lines to read from the end of the log file (default: 100, max: 10000)
 
 **Output**:
+
 ```
 PostgreSQL Server Log
 =====================
@@ -509,6 +528,7 @@ Showing last ~100 lines:
 ```
 
 **Use Cases**:
+
 - Troubleshooting connection issues
 - Investigating query errors
 - Monitoring slow queries
@@ -517,11 +537,13 @@ Showing last ~100 lines:
 - Identifying performance bottlenecks
 
 **Requirements**:
+
 - Requires `pg_monitor` role or superuser privileges
 - Logging must be enabled (`logging_collector = on`)
 - Log files must be accessible in the PostgreSQL `log_directory`
 
 **Important Notes**:
+
 - Output limited to prevent overwhelming responses with large log files
 - Log format depends on `log_line_prefix` configuration
 - Use `lines` parameter to control output size
@@ -541,6 +563,7 @@ Read all configuration files:
 **Parameters**: None
 
 **Output**:
+
 ```
 PostgreSQL Configuration Files
 ==============================
@@ -579,6 +602,7 @@ track_io_timing = on
 ```
 
 **Use Cases**:
+
 - Reviewing current configuration settings
 - Comparing configurations across servers
 - Troubleshooting configuration issues
@@ -587,10 +611,12 @@ track_io_timing = on
 - Understanding include directive hierarchy
 
 **Requirements**:
+
 - Requires `pg_read_server_files` role or superuser privileges
 - Configuration files must be readable by PostgreSQL user
 
 **Important Notes**:
+
 - Shows raw configuration file contents including comments
 - Does not show computed values or defaults (use `pg_settings` resource for that)
 - Include directives are parsed and included files are displayed
@@ -612,6 +638,7 @@ Read pg_hba.conf:
 **Parameters**: None
 
 **Output**:
+
 ```
 PostgreSQL Host-Based Authentication Configuration
 ==================================================
@@ -644,6 +671,7 @@ hostssl all             all             192.168.1.0/24          scram-sha-256
 ```
 
 **Use Cases**:
+
 - Troubleshooting connection authentication issues
 - Reviewing security policies
 - Documenting access control rules
@@ -652,10 +680,12 @@ hostssl all             all             192.168.1.0/24          scram-sha-256
 - Understanding connection requirements
 
 **Requirements**:
+
 - Requires `pg_read_server_files` role or superuser privileges
 - File must be readable by PostgreSQL user
 
 **Important Notes**:
+
 - Shows raw file contents including comments
 - Changes to pg_hba.conf require `pg_reload_conf()` or server reload
 - Rules are processed in order (first match wins)
@@ -671,6 +701,7 @@ Read the contents of pg_ident.conf (User Name Mapping configuration file). This 
 **Input Examples**:
 
 Read pg_ident.conf:
+
 ```json
 {}
 ```
@@ -678,6 +709,7 @@ Read pg_ident.conf:
 **Parameters**: None
 
 **Output**:
+
 ```
 PostgreSQL User Name Mapping Configuration
 ==================================================
@@ -703,6 +735,7 @@ krbusers        user@EXAMPLE.COM        db_user
 ```
 
 **Use Cases**:
+
 - Understanding external to internal user mapping
 - Troubleshooting authentication issues with peer, ident, or cert methods
 - Reviewing security mappings
@@ -711,10 +744,12 @@ krbusers        user@EXAMPLE.COM        db_user
 - Auditing user access patterns
 
 **Requirements**:
+
 - Requires `pg_read_server_files` role or superuser privileges
 - File must be readable by PostgreSQL user
 
 **Important Notes**:
+
 - Shows raw file contents including comments
 - Changes to pg_ident.conf require `pg_reload_conf()` or server reload
 - Used in conjunction with pg_hba.conf `map=` option
@@ -734,6 +769,7 @@ Reads MCP resources by their URI. Provides access to system information and stat
 **Input Examples**:
 
 List all available resources:
+
 ```json
 {
   "list": true
@@ -741,6 +777,7 @@ List all available resources:
 ```
 
 Read a specific resource:
+
 ```json
 {
   "uri": "pg://system_info"
@@ -748,6 +785,7 @@ Read a specific resource:
 ```
 
 **Available Resource URIs**:
+
 - `pg://settings` - PostgreSQL configuration parameters
 - `pg://system_info` - PostgreSQL version, OS, and build architecture
 - `pg://stat/activity` - Current connections and queries
@@ -758,4 +796,4 @@ Read a specific resource:
 - `pg://stat/bgwriter` - Background writer statistics
 - `pg://stat/wal` - WAL statistics (PostgreSQL 14+ only)
 
-See [RESOURCES.md](RESOURCES.md) for detailed information about each resource.
+See [resources.md](resources.md) for detailed information about each resource.

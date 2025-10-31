@@ -1,0 +1,64 @@
+site_name: The Spock Extension
+
+extra_css:
+  - stylesheets/extra.css
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+
+plugins:
+  - search
+
+theme:
+  name: material
+  custom_dir: docs/overrides
+
+  logo_dark_mode: 'img/logo-dark.png'
+  logo_light_mode: 'img/logo-light.png'
+
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.prune
+    - navigation.top
+    - toc.follow
+
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: white
+      accent: cyan
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: black
+      accent: cyan
+      toggle:
+        icon: material/brightness-4
+        name: Switch to system preference
+
+extra:
+  generator: false
+
+copyright: Copyright &copy; 2025 pgEdge, Inc
+repo_url: https://github.com/pgEdge/spock
+
+nav:
+  - Introduction: index.md
+  - Configuration: configuration.md
+  - Tools: tools.md 
+  - Resources: resources.md
+  - Query Examples: examples.md
+  - Deployment: deployment.md
+  - Authentication: authentication.md
+  - MCP Protocol Guide: mcp_protocol.md
+  - Security Guide: security.md
+  - Architecture Guide: architecture.md
+  - Testing Guide: testing.md
+  - CI/CD Guide: ci_cd.md
+  - Troubleshooting Guide: troubleshooting.md

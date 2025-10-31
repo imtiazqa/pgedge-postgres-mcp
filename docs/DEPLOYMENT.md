@@ -9,7 +9,7 @@ The server supports two transport modes:
 1. **stdio mode (default)**: JSON-RPC over standard input/output - used by Claude Desktop
 2. **HTTP/HTTPS mode**: JSON-RPC over HTTP - for direct API access, web applications, and external integrations
 
-This guide focuses on HTTP/HTTPS mode. For stdio mode (Claude Desktop), see the main [Configuration Guide](CONFIGURATION.md).
+This guide focuses on HTTP/HTTPS mode. For stdio mode (Claude Desktop), see the main [Configuration Guide](configuration.md).
 
 ## Quick Start
 
@@ -57,7 +57,7 @@ HTTP/HTTPS Options:
 
 **Note**: TLS options (`-tls`, `-cert`, `-key`, `-chain`) require the `-http` flag.
 
-For configuration file setup, see [Configuration Guide](CONFIGURATION.md).
+For configuration file setup, see [Configuration Guide](configuration.md).
 
 ## HTTP Mode
 
@@ -85,7 +85,7 @@ Response:
 
 ### Making MCP Requests
 
-First, create an API token (see [Authentication Guide](AUTHENTICATION.md) for details):
+First, create an API token (see [Authentication Guide](authentication.md) for details):
 
 ```bash
 ./bin/pgedge-postgres-mcp -add-token -token-note "Test" -token-expiry "30d"
@@ -443,23 +443,16 @@ docker logs -f pgedge-mcp
 ./bin/pgedge-postgres-mcp -http 2>> /var/log/pgedge-mcp/server.log
 ```
 
-### Prometheus Monitoring (Future)
-
-While native Prometheus metrics are not yet implemented, you can monitor:
-- Health endpoint availability
-- HTTP response times
-- Database connection status
-
 ## Security Best Practices
 
-1. **Always use authentication** - See [Authentication Guide](AUTHENTICATION.md)
+1. **Always use authentication** - See [Authentication Guide](authentication.md)
 2. **Use HTTPS in production** - Never HTTP for external access
 3. **Restrict network access** - Use firewall rules and private networks
 4. **Rotate certificates** - Set up automatic renewal for Let's Encrypt
 5. **Use reverse proxy** - Add rate limiting and DDoS protection
 6. **Monitor logs** - Set up alerting for errors and suspicious activity
 
-For comprehensive security guidance, see [Security Guide](SECURITY.md).
+For comprehensive security guidance, see [Security Guide](security.md).
 
 ## Troubleshooting
 
@@ -507,12 +500,12 @@ openssl x509 -in server.crt -noout -dates
 openssl verify -CAfile ca-chain.crt server.crt
 ```
 
-For more troubleshooting help, see the [Troubleshooting Guide](TROUBLESHOOTING.md).
+For more troubleshooting help, see the [Troubleshooting Guide](troubleshooting.md).
 
 ## Related Documentation
 
-- [Configuration Guide](CONFIGURATION.md) - Configuration file and environment setup
-- [Authentication Guide](AUTHENTICATION.md) - API token management
-- [Security Guide](SECURITY.md) - Security best practices
-- [MCP Protocol Guide](MCP_PROTOCOL.md) - Protocol implementation details
-- [Troubleshooting Guide](TROUBLESHOOTING.md) - Common issues and solutions
+- [Configuration Guide](configuration.md) - Configuration file and environment setup
+- [Authentication Guide](authentication.md) - API token management
+- [Security Guide](security.md) - Security best practices
+- [MCP Protocol Guide](mcp_protocol.md) - Protocol implementation details
+- [Troubleshooting Guide](troubleshooting.md) - Common issues and solutions

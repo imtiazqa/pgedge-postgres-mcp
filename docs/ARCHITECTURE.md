@@ -27,8 +27,8 @@ pgedge-postgres-mcp/
 │
 ├── docs/                     # Documentation
 │   ├── README.md             # Full documentation
-│   ├── TROUBLESHOOTING.md    # Troubleshooting guide
-│   └── ARCHITECTURE.md       # This file
+│   ├── troubleshooting.md    # Troubleshooting guide
+│   └── architecture.md       # This file
 │
 ├── configs/                  # Configuration examples
 │   ├── .env.example          # Environment variables
@@ -47,49 +47,62 @@ pgedge-postgres-mcp/
 ### cmd/pgedge-postgres-mcp
 - **Purpose**: Application entry point
 - **Responsibilities**:
-  - Initialize database client
-  - Initialize LLM client
-  - Register tools
-  - Start MCP server
+
+    - Initialize database client
+    - Initialize LLM client
+    - Register tools
+    - Start MCP server
 
 ### internal/database
 - **Purpose**: PostgreSQL connection and metadata management
 - **Key Components**:
-  - `Client`: Manages connection pool and metadata
-  - `TableInfo`, `ColumnInfo`: Metadata types
+
+    - `Client`: Manages connection pool and metadata
+    - `TableInfo`, `ColumnInfo`: Metadata types
+
 - **Features**:
-  - Asynchronous metadata loading
-  - Thread-safe metadata access
-  - Automatic schema discovery from pg_catalog
+
+    - Asynchronous metadata loading
+    - Thread-safe metadata access
+    - Automatic schema discovery from pg_catalog
 
 ### internal/llm
 - **Purpose**: Claude AI integration for natural language processing
 - **Key Components**:
-  - `Client`: Manages API requests to Claude
+
+    - `Client`: Manages API requests to Claude
+
 - **Features**:
-  - Natural language to SQL conversion
-  - Configurable model selection
-  - Error handling and response parsing
+
+    - Natural language to SQL conversion
+    - Configurable model selection
+    - Error handling and response parsing
 
 ### internal/mcp
 - **Purpose**: Model Context Protocol implementation
 - **Key Components**:
-  - `Server`: Handles stdio communication
-  - Protocol types (Request, Response, Tool, etc.)
+
+    - `Server`: Handles stdio communication
+    - Protocol types (Request, Response, Tool, etc.)
+
 - **Features**:
-  - JSON-RPC 2.0 protocol
-  - Request routing
-  - Protocol version negotiation
+
+    - JSON-RPC 2.0 protocol
+    - Request routing
+    - Protocol version negotiation
 
 ### internal/tools
 - **Purpose**: MCP tool implementations
 - **Key Components**:
-  - `Registry`: Tool registration and execution
-  - Individual tool implementations
+
+    - `Registry`: Tool registration and execution
+    - Individual tool implementations
+
 - **Features**:
-  - Extensible tool system
-  - Easy to add new tools
-  - Consistent error handling
+
+    - Extensible tool system
+    - Easy to add new tools
+    - Consistent error handling
 
 ## Data Flow
 

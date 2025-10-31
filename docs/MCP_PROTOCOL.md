@@ -17,6 +17,7 @@ The server supports two transport modes:
 **Communication**: JSON-RPC 2.0 over standard input/output
 
 **How it works**:
+
 - Server reads JSON-RPC messages from `stdin`
 - Server writes JSON-RPC responses to `stdout`
 - Errors and diagnostics written to `stderr`
@@ -33,10 +34,12 @@ The server supports two transport modes:
 **Communication**: JSON-RPC 2.0 over HTTP/HTTPS with streaming support
 
 **Endpoints**:
+
 - `POST /mcp/v1` - JSON-RPC endpoint
 - `GET /health` - Health check endpoint
 
 **How it works**:
+
 - Client sends HTTP POST request with JSON-RPC payload
 - Server processes request and returns JSON-RPC response
 - Supports HTTP/1.1 with keep-alive
@@ -47,7 +50,7 @@ The server supports two transport modes:
 ./bin/pgedge-postgres-mcp -http -addr ":8080"
 ```
 
-For deployment details, see [Deployment Guide](DEPLOYMENT.md).
+For deployment details, see [Deployment Guide](deployment.md).
 
 ## MCP Capabilities
 
@@ -78,7 +81,7 @@ Ten callable functions for database interaction and management:
 9. **read_pg_ident_conf** - Read pg_ident.conf user mapping config
 10. **read_resource** - Read MCP resources by URI
 
-For detailed tool documentation, see [Tools Documentation](TOOLS.md).
+For detailed tool documentation, see [Tools Documentation](tools.md).
 
 ### Resources
 
@@ -94,7 +97,7 @@ Nine read-only resources for system information and statistics:
 8. **pg://stat/bgwriter** - Background writer statistics
 9. **pg://stat/wal** - WAL statistics (PostgreSQL 14+)
 
-For detailed resource documentation, see [Resources Documentation](RESOURCES.md).
+For detailed resource documentation, see [Resources Documentation](resources.md).
 
 ### Prompts
 
@@ -355,6 +358,7 @@ Custom error codes:
 In HTTP mode, the server supports streaming responses for tools that generate large outputs.
 
 **How it works**:
+
 1. Client sends request to `/mcp/v1`
 2. Server processes request
 3. Server streams response chunks
@@ -411,7 +415,7 @@ curl -X POST https://localhost:8080/mcp/v1 \
 }
 ```
 
-For token management, see [Authentication Guide](AUTHENTICATION.md).
+For token management, see [Authentication Guide](authentication.md).
 
 ## Protocol Extensions
 
@@ -463,33 +467,38 @@ This prevents data modification while allowing full read access.
 ### Server Lifecycle
 
 1. **Startup**:
-   - Parse configuration
-   - Connect to PostgreSQL
-   - Load database metadata (tables, columns, types)
-   - Initialize tool and resource registries
-   - Start transport (stdio or HTTP)
+
+    - Parse configuration
+    - Connect to PostgreSQL
+    - Load database metadata (tables, columns, types)
+    - Initialize tool and resource registries
+    - Start transport (stdio or HTTP)
 
 2. **Request Handling**:
-   - Receive JSON-RPC message
-   - Validate request format
-   - Route to appropriate handler
-   - Execute tool/resource
-   - Return JSON-RPC response
+
+    - Receive JSON-RPC message
+    - Validate request format
+    - Route to appropriate handler
+    - Execute tool/resource
+    - Return JSON-RPC response
 
 3. **Shutdown**:
-   - Close database connections
-   - Clean up resources
-   - Exit gracefully
+
+    - Close database connections
+    - Clean up resources
+    - Exit gracefully
 
 ### Metadata Loading
 
 On startup, the server loads:
+
 - All tables and views (excluding system schemas)
 - Column names and data types
 - Nullability constraints
 - Table and column comments from `pg_description`
 
 This metadata is used for:
+
 - Schema information tools
 - Natural language to SQL conversion
 - Query validation
@@ -497,6 +506,7 @@ This metadata is used for:
 ### Error Handling
 
 The server provides detailed error messages in development:
+
 - Database connection errors
 - SQL syntax errors
 - Permission errors
@@ -513,6 +523,7 @@ npx @modelcontextprotocol/inspector /path/to/bin/pgedge-postgres-mcp
 ```
 
 The MCP Inspector provides a web UI for testing:
+
 - Initialize connection
 - List tools and resources
 - Call tools interactively
@@ -558,20 +569,21 @@ go test ./test/... -v -run TestMCPCompliance
 ```
 
 Tests verify:
+
 - Protocol version negotiation
 - Tool and resource registration
 - Request/response format
 - Error handling
 - Streaming support (HTTP mode)
 
-For more testing information, see [Testing Guide](TESTING.md).
+For more testing information, see [Testing Guide](testing.md).
 
 ## Related Documentation
 
-- [Tools Documentation](TOOLS.md) - Detailed tool reference
-- [Resources Documentation](RESOURCES.md) - Detailed resource reference
-- [Deployment Guide](DEPLOYMENT.md) - HTTP/HTTPS mode deployment
-- [Authentication Guide](AUTHENTICATION.md) - HTTP authentication
-- [Examples](EXAMPLES.md) - Query examples and patterns
-- [Testing Guide](TESTING.md) - Testing procedures
-- [Architecture Guide](ARCHITECTURE.md) - Implementation details
+- [Tools Documentation](tools.md) - Detailed tool reference
+- [Resources Documentation](resources.md) - Detailed resource reference
+- [Deployment Guide](deployment.md) - HTTP/HTTPS mode deployment
+- [Authentication Guide](authentication.md) - HTTP authentication
+- [Examples](examples.md) - Query examples and patterns
+- [Testing Guide](testing.md) - Testing procedures
+- [Architecture Guide](architecture.md) - Implementation details

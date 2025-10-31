@@ -444,5 +444,6 @@ For queries taking too long:
 ## More Examples
 
 For more complex scenarios, see:
-- [Troubleshooting Guide](TROUBLESHOOTING.md) - Debugging and common issues
-- [Architecture Guide](ARCHITECTURE.md) - Understanding how the server works
+
+- [Troubleshooting Guide](troubleshooting.md) - Debugging and common issues
+- [Architecture Guide](architecture.md) - Understanding how the server works

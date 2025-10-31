@@ -179,28 +179,31 @@ go test ./internal/resources -v -run "Integration"
 The integration test suite covers:
 
 1. **All 12 Resources**:
-   - pg://settings
-   - pg://system_info
-   - pg://stat/activity
-   - pg://stat/database
-   - pg://stat/user_tables
-   - pg://stat/user_indexes
-   - pg://stat/replication
-   - pg://stat/bgwriter (with PG17 compatibility)
-   - pg://stat/wal (PG14+ only)
-   - pg://statio/user_tables (with NULL handling)
-   - pg://statio/user_indexes
-   - pg://statio/user_sequences
+
+    - pg://settings
+    - pg://system_info
+    - pg://stat/activity
+    - pg://stat/database
+    - pg://stat/user_tables
+    - pg://stat/user_indexes
+    - pg://stat/replication
+    - pg://stat/bgwriter (with PG17 compatibility)
+    - pg://stat/wal (PG14+ only)
+    - pg://statio/user_tables (with NULL handling)
+    - pg://statio/user_indexes
+    - pg://statio/user_sequences
 
 2. **Version-Specific Behavior**:
-   - PostgreSQL 17: pg_stat_checkpointer split from pg_stat_bgwriter
-   - PostgreSQL 14+: pg_stat_wal availability
-   - Older versions: Graceful degradation
+
+    - PostgreSQL 17: pg_stat_checkpointer split from pg_stat_bgwriter
+    - PostgreSQL 14+: pg_stat_wal availability
+    - Older versions: Graceful degradation
 
 3. **Edge Cases**:
-   - Tables without TOAST (NULL values)
-   - Empty result sets
-   - Missing or unavailable views
+
+    - Tables without TOAST (NULL values)
+    - Empty result sets
+    - Missing or unavailable views
 
 #### Expected Output
 
@@ -277,6 +280,7 @@ func TestConvertNLToSQL_NewProvider_Success(t *testing.T) {
 ### For Configuration Changes
 
 Add tests in `internal/config/config_test.go` to verify:
+
 - New configuration fields load correctly
 - Validation catches missing required fields
 - Priority system works with new fields

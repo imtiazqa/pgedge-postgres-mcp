@@ -11,6 +11,7 @@ Returns PostgreSQL server configuration parameters including current values, def
 **Access**: Read the resource to view all PostgreSQL configuration settings from pg_settings.
 
 **Output**: JSON array with detailed information about each configuration parameter:
+
 ```json
 [
   {
@@ -38,6 +39,7 @@ Returns PostgreSQL version, operating system, and build architecture information
 **Access**: Read the resource to view PostgreSQL system information.
 
 **Output**: JSON object with detailed system information:
+
 ```json
 {
   "postgresql_version": "15.4",
@@ -51,6 +53,7 @@ Returns PostgreSQL version, operating system, and build architecture information
 ```
 
 **Fields:**
+
 - `postgresql_version`: Short version string (e.g., "15.4")
 - `version_number`: Numeric version identifier (e.g., "150004")
 - `full_version`: Complete version string from PostgreSQL version() function
@@ -60,6 +63,7 @@ Returns PostgreSQL version, operating system, and build architecture information
 - `bit_version`: Architecture bit version (e.g., "64-bit", "32-bit")
 
 **Use Cases:**
+
 - Quickly check PostgreSQL version without natural language queries
 - Verify server platform and architecture
 - Audit server build information
@@ -74,6 +78,7 @@ All statistics resources are compatible with PostgreSQL 14 and later. They provi
 Shows information about currently executing queries and connections. Essential for monitoring active database sessions and identifying long-running queries.
 
 **Output**: JSON with current database activity:
+
 ```json
 {
   "activity_count": 5,
@@ -94,6 +99,7 @@ Shows information about currently executing queries and connections. Essential f
 ```
 
 **Use Cases:**
+
 - Monitor currently executing queries
 - Identify long-running queries
 - Track connection counts
@@ -129,6 +135,7 @@ Provides database-wide statistics including transactions, cache hits, tuple oper
 ```
 
 **Key Metrics:**
+
 - `cache_hit_ratio`: Percentage of reads served from cache (should be >99% for good performance)
 - `xact_commit`/`xact_rollback`: Transaction statistics
 - `deadlocks`: Number of deadlocks detected
@@ -138,6 +145,7 @@ Provides database-wide statistics including transactions, cache hits, tuple oper
 Provides per-table statistics including scans, tuple operations, and vacuum/analyze activity. Essential for identifying tables that need maintenance or optimization.
 
 **Output**: JSON with table statistics:
+
 ```json
 {
   "table_count": 25,
@@ -164,6 +172,7 @@ Provides per-table statistics including scans, tuple operations, and vacuum/anal
 ```
 
 **Use Cases:**
+
 - Identify tables with high sequential scans (may need indexes)
 - Monitor vacuum and analyze activity
 - Track table growth and dead tuple accumulation
@@ -202,11 +211,13 @@ Provides index usage statistics for identifying unused indexes that can be dropp
 ```
 
 **Usage Status Classifications:**
+
 - `active`: idx_scan >= 100 (regularly used)
 - `rarely_used`: 0 < idx_scan < 100 (infrequently used)
 - `unused`: idx_scan = 0 (never used, candidate for removal)
 
 **Use Cases:**
+
 - Identify unused indexes to reduce storage and write overhead
 - Find rarely used indexes that may be candidates for removal
 - Verify that new indexes are being utilized
@@ -217,6 +228,7 @@ Provides index usage statistics for identifying unused indexes that can be dropp
 Shows the status of replication connections from this primary server including WAL sender processes, replication lag, and sync state. Empty if the server is not a replication primary or has no active replicas.
 
 **Output**: JSON with replication status:
+
 ```json
 {
   "replica_count": 2,
@@ -240,11 +252,13 @@ Shows the status of replication connections from this primary server including W
 ```
 
 **Key Fields:**
+
 - `state`: Replication state (startup, catchup, streaming, backup, stopping)
 - `sync_state`: Synchronization state (sync, async, quorum, potential)
 - `replay_lag`: Time delay between primary and replica
 
 **Use Cases:**
+
 - Monitor replication health
 - Identify replication lag issues
 - Verify replica connections
@@ -280,11 +294,13 @@ Provides background writer and checkpoint statistics with automatic tuning recom
 ```
 
 **Automatic Recommendations:**
+
 - High requested checkpoints → increase `checkpoint_timeout` or `max_wal_size`
 - High backend buffer writes → tune bgwriter parameters
 - Non-zero `maxwritten_clean` → increase `bgwriter_lru_maxpages`
 
 **Use Cases:**
+
 - Tune checkpoint and background writer settings
 - Optimize I/O performance
 - Identify configuration issues
@@ -295,6 +311,7 @@ Provides background writer and checkpoint statistics with automatic tuning recom
 Provides Write-Ahead Log (WAL) statistics including WAL records, full page images, bytes, buffers, and sync operations. Available in PostgreSQL 14 and later.
 
 **Output**: JSON with WAL statistics:
+
 ```json
 {
   "postgresql_version": 15,
@@ -318,10 +335,12 @@ Provides Write-Ahead Log (WAL) statistics including WAL records, full page image
 ```
 
 **Version Compatibility:**
+
 - PostgreSQL 14+: Full statistics available
 - PostgreSQL 13 and earlier: Returns error message with version information
 
 **Use Cases:**
+
 - Monitor WAL generation patterns
 - Analyze archive performance
 - Understand transaction log activity
@@ -336,6 +355,7 @@ I/O statistics resources provide disk block-level access patterns showing reads 
 Shows disk block I/O statistics for user tables including heap, index, TOAST, and TOAST index blocks. Tracks blocks read from disk vs. cache hits. Essential for identifying I/O bottlenecks and cache efficiency.
 
 **Output**: JSON with table I/O statistics:
+
 ```json
 {
   "table_count": 25,
@@ -362,6 +382,7 @@ Shows disk block I/O statistics for user tables including heap, index, TOAST, an
 ```
 
 **Key Metrics:**
+
 - `heap_blks_read`/`heap_blks_hit`: Heap table block reads/hits
 - `idx_blks_read`/`idx_blks_hit`: Index block reads/hits
 - `toast_blks_read`/`toast_blks_hit`: TOAST table block reads/hits (for large values)
@@ -369,6 +390,7 @@ Shows disk block I/O statistics for user tables including heap, index, TOAST, an
 - Hit ratios: Percentage of blocks served from cache (>95% is good)
 
 **Use Cases:**
+
 - Identify tables causing high I/O load
 - Evaluate cache effectiveness
 - Determine if shared_buffers should be increased
@@ -379,6 +401,7 @@ Shows disk block I/O statistics for user tables including heap, index, TOAST, an
 Shows disk block I/O statistics for user indexes. Tracks blocks read from disk vs. cache hits for each index. Essential for identifying indexes causing high I/O load and evaluating cache effectiveness.
 
 **Output**: JSON with index I/O statistics:
+
 ```json
 {
   "index_count": 50,
@@ -407,6 +430,7 @@ Shows disk block I/O statistics for user indexes. Tracks blocks read from disk v
 ```
 
 **I/O Status Classifications:**
+
 - `excellent`: hit_ratio >= 95% (good cache efficiency)
 - `good`: 80% <= hit_ratio < 95% (acceptable)
 - `needs_attention`: 50% <= hit_ratio < 80% (cache pressure)
@@ -414,6 +438,7 @@ Shows disk block I/O statistics for user indexes. Tracks blocks read from disk v
 - `no_activity`: No block reads/hits recorded
 
 **Use Cases:**
+
 - Identify indexes causing high I/O load
 - Evaluate index cache effectiveness
 - Determine if shared_buffers should be increased
@@ -424,6 +449,7 @@ Shows disk block I/O statistics for user indexes. Tracks blocks read from disk v
 Shows disk block I/O statistics for user sequences. Sequences should typically have very high cache hit ratios since they're frequently accessed. Low hit ratios may indicate cache pressure or excessive sequence usage patterns.
 
 **Output**: JSON with sequence I/O statistics:
+
 ```json
 {
   "sequence_count": 10,
@@ -450,6 +476,7 @@ Shows disk block I/O statistics for user sequences. Sequences should typically h
 ```
 
 **Cache Status Classifications:**
+
 - `excellent`: hit_ratio >= 99% (expected for sequences)
 - `good`: 95% <= hit_ratio < 99% (acceptable but monitor)
 - `needs_attention`: 80% <= hit_ratio < 95% (investigate cache pressure)
@@ -457,6 +484,7 @@ Shows disk block I/O statistics for user sequences. Sequences should typically h
 - `no_activity`: No block reads/hits recorded
 
 **Use Cases:**
+
 - Monitor sequence cache efficiency
 - Identify sequences with poor cache performance
 - Detect excessive sequence usage patterns
@@ -484,6 +512,7 @@ Or list all resources:
 ### 2. Via Natural Language (Claude Desktop)
 
 Simply ask Claude to read a resource:
+
 - "Show me the output from pg://system_info"
 - "Read the pg://settings resource"
 - "What's the current PostgreSQL version?" (uses pg://system_info)

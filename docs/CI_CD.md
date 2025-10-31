@@ -13,31 +13,34 @@ The project uses **GitHub Actions** for automated building, testing, and quality
 **File**: `.github/workflows/build.yml`
 
 **Triggers**:
+
 - Push to any branch
 - Pull requests
 
 **Steps**:
+
 1. Checkout code
 2. Set up Go (versions 1.21, 1.22, 1.23)
 3. Download dependencies
 4. Build binary
 5. Verify binary works
 
-**Badge**: [![Build](https://github.com/pgEdge/pgedge-postgres-mcp/workflows/Build/badge.svg)](https://github.com/pgEdge/pgedge-postgres-mcp/actions/workflows/build.yml)
-
 ### Test Workflow
 
 **File**: `.github/workflows/test.yml`
 
 **Triggers**:
+
 - Push to any branch
 - Pull requests
 
 **Matrix Testing**:
+
 - **Go versions**: 1.21, 1.22, 1.23
 - **PostgreSQL versions**: 14, 15, 16, 17
 
 **Steps**:
+
 1. Start PostgreSQL service
 2. Set up Go
 3. Run unit tests
@@ -45,8 +48,6 @@ The project uses **GitHub Actions** for automated building, testing, and quality
 5. Run linting (golangci-lint)
 6. Generate coverage report
 7. Upload coverage to Codecov (optional)
-
-**Badge**: [![Tests](https://github.com/pgEdge/pgedge-postgres-mcp/workflows/Tests/badge.svg)](https://github.com/pgEdge/pgedge-postgres-mcp/actions/workflows/test.yml)
 
 ## Test Matrix
 
@@ -150,6 +151,7 @@ xdg-open coverage.html  # Linux
 ### Prerequisites
 
 Integration tests require:
+
 - PostgreSQL running locally or via environment
 - Connection string in `TEST_POSTGRES_CONNECTION_STRING`
 - Optional: Anthropic API key in `TEST_ANTHROPIC_API_KEY`
@@ -173,6 +175,7 @@ go test -v -run TestMCPServerIntegration ./test/...
 ### Integration Test Coverage
 
 Tests cover:
+
 - **MCP Protocol**: Initialize, tools/list, resources/list
 - **HTTP Mode**: Server startup, endpoints, authentication
 - **HTTPS Mode**: TLS certificate handling, secure connections
@@ -339,10 +342,11 @@ git commit --no-verify
    ```
 
 4. **Create GitHub release**:
-   - Go to GitHub Releases
-   - Create new release from tag
-   - Upload binaries
-   - Add release notes
+
+    - Go to GitHub Releases
+    - Create new release from tag
+    - Upload binaries
+    - Add release notes
 
 ### Automated Release (Future)
 
@@ -426,6 +430,7 @@ jobs:
 ### Build Status
 
 Check build status:
+
 - GitHub Actions tab
 - README badges
 - Branch protection rules
@@ -435,11 +440,13 @@ Check build status:
 When tests fail:
 
 1. **Check CI logs**:
-   - Go to Actions tab
-   - Click on failed workflow
-   - Examine step logs
+
+    - Go to Actions tab
+    - Click on failed workflow
+    - Examine step logs
 
 2. **Reproduce locally**:
+
    ```bash
    # Use same Go version
    go test -v ./...
@@ -451,6 +458,7 @@ When tests fail:
    ```
 
 3. **Debug**:
+
    ```bash
    # Run specific test with debug output
    go test -v -run TestFailingTest ./package/...
@@ -470,19 +478,22 @@ When tests fail:
    ```
 
 2. **Write tests for new code**:
-   - Unit tests for business logic
-   - Integration tests for API endpoints
-   - Table-driven tests for multiple scenarios
+
+    - Unit tests for business logic
+    - Integration tests for API endpoints
+    - Table-driven tests for multiple scenarios
 
 3. **Keep builds fast**:
-   - Mock external dependencies
-   - Use parallel tests where possible
-   - Skip slow tests in pre-commit hooks
+
+    - Mock external dependencies
+    - Use parallel tests where possible
+    - Skip slow tests in pre-commit hooks
 
 4. **Update CI config when**:
-   - Adding new dependencies
-   - Changing build process
-   - Adding new test suites
+
+    - Adding new dependencies
+    - Changing build process
+    - Adding new test suites
 
 ### For Maintainers
 
@@ -539,7 +550,6 @@ vim .golangci.yml
 
 ## Related Documentation
 
-- [Testing Guide](TESTING.md) - Detailed testing procedures
-- [Architecture Guide](ARCHITECTURE.md) - Code structure and organization
-- [Development Guide](DEVELOPMENT.md) - Local development setup
-- [Troubleshooting Guide](TROUBLESHOOTING.md) - Common issues and solutions
+- [Testing Guide](testing.md) - Detailed testing procedures
+- [Architecture Guide](architecture.md) - Code structure and organization
+- [Troubleshooting Guide](troubleshooting.md) - Common issues and solutions

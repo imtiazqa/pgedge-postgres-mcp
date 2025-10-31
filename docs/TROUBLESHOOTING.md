@@ -3,6 +3,7 @@
 ## Server Exits Immediately After Initialize
 
 ### Symptoms
+
 - Claude Desktop logs show: "Server transport closed unexpectedly"
 - Server starts but disconnects immediately after `initialize` response
 
@@ -11,6 +12,7 @@
 #### 1. Database Connection Issues
 
 **Check the logs for these errors:**
+
 ```
 [pgedge-postgres-mcp] ERROR: Failed to connect to database: ...
 ```
@@ -18,45 +20,45 @@
 **Solutions:**
 
 a) **Verify connection string format:**
-```bash
-# Correct format:
-postgres://username:password@host:port/database?sslmode=disable
+    ```bash
+    # Correct format:
+    postgres://username:password@host:port/database?sslmode=disable
 
-# Examples:
-postgres://postgres:mypassword@localhost:5432/mydb?sslmode=disable
-postgres://user@localhost/dbname?sslmode=disable  # local trusted auth
-```
+    # Examples:
+    postgres://postgres:mypassword@localhost:5432/mydb?sslmode=disable
+    postgres://user@localhost/dbname?sslmode=disable  # local trusted auth
+    ```
 
 b) **Test PostgreSQL connection directly:**
-```bash
-# Using psql
-psql "postgres://username:password@localhost:5432/database"
+    ```bash
+    # Using psql
+    psql "postgres://username:password@localhost:5432/database"
 
-# Or using environment variable
-export POSTGRES_CONNECTION_STRING="postgres://user:pass@localhost:5432/db?sslmode=disable"
-psql "$POSTGRES_CONNECTION_STRING"
-```
+    # Or using environment variable
+    export POSTGRES_CONNECTION_STRING="postgres://user:pass@localhost:5432/db?sslmode=disable"
+    psql "$POSTGRES_CONNECTION_STRING"
+    ```
 
 c) **Common connection string issues:**
-- Missing `?sslmode=disable` for local development
-- Wrong port (default is 5432)
-- Wrong database name
-- Invalid username/password
-- Database not running
+    - Missing `?sslmode=disable` for local development
+    - Wrong port (default is 5432)
+    - Wrong database name
+    - Invalid username/password
+    - Database not running
 
 d) **Check PostgreSQL is running:**
-```bash
-# macOS (Homebrew)
-brew services list | grep postgresql
+    ```bash
+    # macOS (Homebrew)
+    brew services list | grep postgresql
 
-# Linux (systemd)
-systemctl status postgresql
+    # Linux (systemd)
+    systemctl status postgresql
 
-# Check if port 5432 is listening
-lsof -i :5432
-# or
-netstat -an | grep 5432
-```
+    # Check if port 5432 is listening
+    lsof -i :5432
+    # or
+    netstat -an | grep 5432
+    ```
 
 #### 2. Missing Environment Variables
 
@@ -125,39 +127,43 @@ If your database is empty (no user tables), the server will still start but won'
 ### Solutions
 
 1. **Verify server is connected:**
-   - Check Claude Desktop logs
-   - Look for `[pgedge] [info] Server started and connected successfully`
+
+    - Check Claude Desktop logs
+    - Look for `[pgedge] [info] Server started and connected successfully`
 
 2. **Restart Claude Desktop:**
-   - Changes to MCP config require a full restart
-   - Quit completely (not just close window)
-   - Reopen Claude Desktop
+
+    - Changes to MCP config require a full restart
+    - Quit completely (not just close window)
+    - Reopen Claude Desktop
 
 3. **Check MCP config syntax:**
-   ```json
-   {
-     "mcpServers": {
-       "pgedge": {
-         "command": "/full/path/to/pgedge-postgres-mcp",
-         "env": {
-           "POSTGRES_CONNECTION_STRING": "...",
-           "ANTHROPIC_API_KEY": "..."
-         }
-       }
-     }
-   }
-   ```
 
-   - Must be valid JSON (use a JSON validator)
-   - No trailing commas
-   - All strings quoted
+    ```json
+    {
+        "mcpServers": {
+        "pgedge": {
+            "command": "/full/path/to/pgedge-postgres-mcp",
+            "env": {
+            "POSTGRES_CONNECTION_STRING": "...",
+            "ANTHROPIC_API_KEY": "..."
+            }
+        }
+        }
+    }
+    ```
+
+    - Must be valid JSON (use a JSON validator)
+    - No trailing commas
+    - All strings quoted
 
 4. **Test manually:**
-   ```bash
-   export POSTGRES_CONNECTION_STRING="..."
-   export ANTHROPIC_API_KEY="..."
-   echo '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' | ./pgedge-postgres-mcp
-   ```
+
+    ```bash
+    export POSTGRES_CONNECTION_STRING="..."
+    export ANTHROPIC_API_KEY="..."
+    echo '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' | ./pgedge-postgres-mcp
+    ```
 
 ## Natural Language Queries Not Working
 
@@ -175,27 +181,30 @@ If your database is empty (no user tables), the server will still start but won'
    ```
 
 2. **Get API key:**
-   - Visit https://console.anthropic.com/
-   - Create account or sign in
-   - Go to API Keys section
-   - Create new key
+
+    - Visit https://console.anthropic.com/
+    - Create account or sign in
+    - Go to API Keys section
+    - Create new key
 
 3. **Verify API key works:**
-   ```bash
-   curl https://api.anthropic.com/v1/messages \
-     -H "x-api-key: $ANTHROPIC_API_KEY" \
-     -H "anthropic-version: 2023-06-01" \
-     -H "content-type: application/json" \
-     -d '{
-       "model": "claude-sonnet-4-5",
-       "max_tokens": 1024,
-       "messages": [{"role": "user", "content": "Hello"}]
-     }'
-   ```
+
+    ```bash
+    curl https://api.anthropic.com/v1/messages \
+        -H "x-api-key: $ANTHROPIC_API_KEY" \
+        -H "anthropic-version: 2023-06-01" \
+        -H "content-type: application/json" \
+        -d '{
+        "model": "claude-sonnet-4-5",
+        "max_tokens": 1024,
+        "messages": [{"role": "user", "content": "Hello"}]
+        }'
+    ```
 
 4. **Check API credits:**
-   - Ensure your Anthropic account has credits
-   - Check usage at https://console.anthropic.com/
+
+    - Ensure your Anthropic account has credits
+    - Check usage at https://console.anthropic.com/
 
 ## Viewing Logs
 
@@ -221,6 +230,7 @@ tail -f ~/Library/Logs/Claude/mcp*.log
 All server output goes to stderr, which appears in the Claude Desktop logs with `[pgedge]` prefix.
 
 Look for:
+
 - `[pgedge-postgres-mcp] Starting server...` - Server startup
 - `[pgedge-postgres-mcp] Database connected successfully` - DB connected
 - `[pgedge-postgres-mcp] Loaded metadata for X tables/views` - Metadata loaded
@@ -230,6 +240,7 @@ Look for:
 ## SQL Generation Issues
 
 ### Symptoms
+
 - Query returns wrong results
 - Generated SQL doesn't match expectations
 - SQL syntax errors
@@ -237,29 +248,34 @@ Look for:
 ### Solutions
 
 1. **Add database comments:**
-   The quality of generated SQL depends heavily on schema comments.
 
-   ```sql
-   COMMENT ON TABLE customers IS 'Customer accounts and contact information';
-   COMMENT ON COLUMN customers.status IS 'Account status: active, inactive, or suspended';
-   ```
+    The quality of generated SQL depends heavily on schema comments.
 
-   See `example_comments.sql` for more examples.
+    ```sql
+    COMMENT ON TABLE customers IS 'Customer accounts and contact information';
+    COMMENT ON COLUMN customers.status IS 'Account status: active, inactive, or suspended';
+    ```
+
+    See `example_comments.sql` for more examples.
 
 2. **Check schema info:**
-   Ask Claude: "Show me the database schema"
 
-   This will reveal what information the LLM has about your database.
+    Ask Claude: "Show me the database schema"
+
+    This will reveal what information the LLM has about your database.
 
 3. **Be more specific:**
-   Instead of: "Show me recent data"
-   Try: "Show me all orders from the last 7 days ordered by date"
+
+    Instead of: "Show me recent data"
+    Try: "Show me all orders from the last 7 days ordered by date"
 
 4. **Review generated SQL:**
-   The response includes the generated SQL. If it's wrong, you can:
-   - Provide feedback in your next message
-   - Add more schema comments
-   - Rephrase your question
+
+    The response includes the generated SQL. If it's wrong, you can:
+    
+    - Provide feedback in your next message
+    - Add more schema comments
+    - Rephrase your question
 
 ## Build Issues
 

@@ -20,7 +20,7 @@ When authentication is enabled, each API token gets its own isolated database co
 - **Automatic cleanup**: Database connections are closed when tokens expire
 - **Resource management**: Independent connection pools per token
 
-See [Security Guide - Connection Isolation](SECURITY.md#connection-isolation) for more details.
+See [Security Guide - Connection Isolation](security.md#connection-isolation) for more details.
 
 ## Token Management
 
@@ -34,6 +34,7 @@ See [Security Guide - Connection Isolation](SECURITY.md#connection-isolation) fo
 ```
 
 You'll be prompted for:
+
 - **Note**: Description/identifier for the token (e.g., "Production API", "Dev Environment")
 - **Expiry**: Duration or "never" (e.g., "30d", "1y", "never")
 
@@ -332,6 +333,7 @@ tokens:
 ```
 
 **Important**:
+
 - Tokens are stored as **SHA256 hashes** (not plaintext)
 - File permissions automatically set to **0600** (owner read/write only)
 - Original token cannot be retrieved from the file
@@ -513,7 +515,7 @@ If auth is enabled but no token file exists:
 
 ## Security Considerations
 
-See the [Security Guide](SECURITY.md) for comprehensive security best practices including:
+See the [Security Guide](security.md) for comprehensive security best practices including:
 
 - Token storage and protection
 - HTTPS requirements
@@ -523,7 +525,7 @@ See the [Security Guide](SECURITY.md) for comprehensive security best practices 
 
 ## Related Documentation
 
-- [Deployment Guide](DEPLOYMENT.md) - HTTP/HTTPS server setup
-- [Configuration Guide](CONFIGURATION.md) - Configuration file and flags
-- [Security Guide](SECURITY.md) - Security best practices
-- [Troubleshooting Guide](TROUBLESHOOTING.md) - Common issues and solutions
+- [Deployment Guide](deployment.md) - HTTP/HTTPS server setup
+- [Configuration Guide](configuration.md) - Configuration file and flags
+- [Security Guide](security.md) - Security best practices
+- [Troubleshooting Guide](troubleshooting.md) - Common issues and solutions
