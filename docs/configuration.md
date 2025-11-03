@@ -7,6 +7,25 @@ The pgEdge MCP Server supports multiple configuration methods with the following
 3. **Configuration file**
 4. **Hard-coded defaults** (lowest priority)
 
+## Configuration Options Summary
+
+| Configuration File Option | CLI Flag | Environment Variable | Description |
+|--------------------------|----------|---------------------|-------------|
+| `llm.provider` | `-llm-provider` | `PGEDGE_LLM_PROVIDER` | LLM provider to use: "anthropic" or "ollama" |
+| `anthropic.api_key` | `-api-key` | `PGEDGE_ANTHROPIC_API_KEY` | Anthropic API key (required for Anthropic provider) |
+| `anthropic.model` | `-model` | `PGEDGE_ANTHROPIC_MODEL` | Claude model to use (default: "claude-sonnet-4-5") |
+| `ollama.base_url` | `-ollama-url` | `PGEDGE_OLLAMA_BASE_URL` | Ollama API base URL (default: "http://localhost:11434") |
+| `ollama.model` | `-ollama-model` | `PGEDGE_OLLAMA_MODEL` | Ollama model name (required for Ollama provider) |
+| `http.enabled` | `-http` | `PGEDGE_HTTP_ENABLED` | Enable HTTP/HTTPS transport mode |
+| `http.address` | `-addr` | `PGEDGE_HTTP_ADDRESS` | HTTP server bind address (default: ":8080") |
+| `http.tls.enabled` | `-tls` | `PGEDGE_TLS_ENABLED` | Enable TLS/HTTPS (requires HTTP mode) |
+| `http.tls.cert_file` | `-cert` | `PGEDGE_TLS_CERT_FILE` | Path to TLS certificate file |
+| `http.tls.key_file` | `-key` | `PGEDGE_TLS_KEY_FILE` | Path to TLS private key file |
+| `http.tls.chain_file` | `-chain` | `PGEDGE_TLS_CHAIN_FILE` | Path to TLS certificate chain file (optional) |
+| `http.auth.enabled` | `-no-auth` | `PGEDGE_AUTH_ENABLED` | Enable API token authentication (default: true) |
+| `http.auth.token_file` | `-token-file` | `PGEDGE_AUTH_TOKEN_FILE` | Path to API tokens file |
+| `preferences_file` | `-preferences-file` | `PGEDGE_PREFERENCES_FILE` | Path to user preferences file |
+
 ## Configuration File
 
 The server can read configuration from a YAML file, making it easier to manage settings without environment variables.
@@ -60,7 +79,7 @@ The server uses a separate preferences file for user-modifiable settings. This f
 
 **Configuration Priority** (highest to lowest):
 1. Command line flag: `-preferences-file /path/to/prefs.yaml`
-2. Environment variable: `PREFERENCES_FILE=/path/to/prefs.yaml`
+2. Environment variable: `PGEDGE_PREFERENCES_FILE=/path/to/prefs.yaml`
 3. Configuration file: `preferences_file: /path/to/prefs.yaml`
 4. Default: `pgedge-postgres-mcp-prefs.yaml` (same directory as binary)
 
@@ -205,34 +224,51 @@ ollama pull qwen2.5-coder:32b
 
 ## Environment Variables
 
-The server also supports environment variables for configuration options:
+The server supports environment variables for all configuration options. All environment variables use the **`PGEDGE_`** prefix to avoid collisions with other software.
 
 ### LLM Provider Variables
 
 **For Anthropic:**
 
-- **`LLM_PROVIDER`**: Set to "anthropic" (default)
-- **`ANTHROPIC_API_KEY`**: Your Anthropic API key (get from https://console.anthropic.com/)
-- **`ANTHROPIC_MODEL`**: Claude model to use (default: "claude-sonnet-4-5")
+- **`PGEDGE_LLM_PROVIDER`**: Set to "anthropic" (default)
+- **`PGEDGE_ANTHROPIC_API_KEY`**: Your Anthropic API key (get from https://console.anthropic.com/)
+- **`PGEDGE_ANTHROPIC_MODEL`**: Claude model to use (default: "claude-sonnet-4-5")
 
 **For Ollama:**
 
-- **`LLM_PROVIDER`**: Set to "ollama"
-- **`OLLAMA_BASE_URL`**: Ollama API URL (default: "http://localhost:11434")
-- **`OLLAMA_MODEL`**: Ollama model name (e.g., "qwen2.5-coder:32b")
+- **`PGEDGE_LLM_PROVIDER`**: Set to "ollama"
+- **`PGEDGE_OLLAMA_BASE_URL`**: Ollama API URL (default: "http://localhost:11434")
+- **`PGEDGE_OLLAMA_MODEL`**: Ollama model name (e.g., "qwen2.5-coder:32b")
 
-**Other Settings:**
+### HTTP/HTTPS Server Variables
 
-- **`PREFERENCES_FILE`**: Path to user preferences file (default: pgedge-postgres-mcp-prefs.yaml in binary directory)
+- **`PGEDGE_HTTP_ENABLED`**: Enable HTTP transport mode ("true", "1", "yes" to enable)
+- **`PGEDGE_HTTP_ADDRESS`**: HTTP server address (default: ":8080")
+
+### TLS/HTTPS Variables
+
+- **`PGEDGE_TLS_ENABLED`**: Enable TLS/HTTPS ("true", "1", "yes" to enable)
+- **`PGEDGE_TLS_CERT_FILE`**: Path to TLS certificate file
+- **`PGEDGE_TLS_KEY_FILE`**: Path to TLS key file
+- **`PGEDGE_TLS_CHAIN_FILE`**: Path to TLS certificate chain file (optional)
+
+### Authentication Variables
+
+- **`PGEDGE_AUTH_ENABLED`**: Enable API token authentication ("true", "1", "yes" to enable)
+- **`PGEDGE_AUTH_TOKEN_FILE`**: Path to API token file
+
+### Other Settings
+
+- **`PGEDGE_PREFERENCES_FILE`**: Path to user preferences file (default: pgedge-postgres-mcp-prefs.yaml in binary directory)
 
 ### Examples
 
 **Anthropic (cloud):**
 
 ```bash
-export LLM_PROVIDER="anthropic"
-export ANTHROPIC_API_KEY="sk-ant-your-api-key-here"
-export ANTHROPIC_MODEL="claude-sonnet-4-5"
+export PGEDGE_LLM_PROVIDER="anthropic"
+export PGEDGE_ANTHROPIC_API_KEY="sk-ant-your-api-key-here"
+export PGEDGE_ANTHROPIC_MODEL="claude-sonnet-4-5"
 
 ./bin/pgedge-postgres-mcp
 # Then use set_database_connection tool to connect to your database
@@ -241,11 +277,33 @@ export ANTHROPIC_MODEL="claude-sonnet-4-5"
 **Ollama (local):**
 
 ```bash
-export LLM_PROVIDER="ollama"
-export OLLAMA_MODEL="qwen2.5-coder:32b"
+export PGEDGE_LLM_PROVIDER="ollama"
+export PGEDGE_OLLAMA_MODEL="qwen2.5-coder:32b"
 
 ./bin/pgedge-postgres-mcp
 # Then use set_database_connection tool to connect to your database
+```
+
+**HTTP server with authentication:**
+
+```bash
+export PGEDGE_HTTP_ENABLED="true"
+export PGEDGE_HTTP_ADDRESS=":8080"
+export PGEDGE_AUTH_ENABLED="true"
+export PGEDGE_AUTH_TOKEN_FILE="./api-tokens.yaml"
+
+./bin/pgedge-postgres-mcp
+```
+
+**HTTPS server:**
+
+```bash
+export PGEDGE_HTTP_ENABLED="true"
+export PGEDGE_TLS_ENABLED="true"
+export PGEDGE_TLS_CERT_FILE="./server.crt"
+export PGEDGE_TLS_KEY_FILE="./server.key"
+
+./bin/pgedge-postgres-mcp
 ```
 
 **For Tests:**
@@ -277,7 +335,7 @@ To use this MCP server with Claude Desktop, add it to your MCP configuration fil
     "pgedge": {
       "command": "/absolute/path/to/pgedge-postgres-mcp/bin/pgedge-postgres-mcp",
       "env": {
-        "ANTHROPIC_API_KEY": "sk-ant-your-api-key-here"
+        "PGEDGE_ANTHROPIC_API_KEY": "sk-ant-your-api-key-here"
       }
     }
   }

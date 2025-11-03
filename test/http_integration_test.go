@@ -83,7 +83,7 @@ func StartHTTPMCPServer(t *testing.T, connString, apiKey, addr string, useTLS bo
 	// Create command
 	cmd := exec.Command(binaryPath, args...)
 	cmd.Env = append(os.Environ(),
-		"ANTHROPIC_API_KEY="+apiKey,
+		"PGEDGE_ANTHROPIC_API_KEY="+apiKey,
 	)
 
 	// Capture stderr for logging
@@ -708,7 +708,7 @@ func TestHTTPCommandLineFlags(t *testing.T) {
 		cmd := exec.Command(binaryPath, "-tls")
 		cmd.Env = append(os.Environ(),
 			"POSTGRES_CONNECTION_STRING=postgres://localhost/postgres",
-			"ANTHROPIC_API_KEY=dummy",
+			"PGEDGE_ANTHROPIC_API_KEY=dummy",
 		)
 
 		output, err := cmd.CombinedOutput()
@@ -729,7 +729,7 @@ func TestHTTPCommandLineFlags(t *testing.T) {
 		cmd := exec.Command(binaryPath, "-cert", "/tmp/cert.pem")
 		cmd.Env = append(os.Environ(),
 			"POSTGRES_CONNECTION_STRING=postgres://localhost/postgres",
-			"ANTHROPIC_API_KEY=dummy",
+			"PGEDGE_ANTHROPIC_API_KEY=dummy",
 		)
 
 		output, err := cmd.CombinedOutput()

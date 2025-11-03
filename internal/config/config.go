@@ -267,28 +267,61 @@ func mergeConfig(dest, src *Config) {
 }
 
 // applyEnvironmentVariables overrides config with environment variables if they exist
+// All environment variables use the PGEDGE_ prefix to avoid collisions
 func applyEnvironmentVariables(cfg *Config) {
-	if val := os.Getenv("LLM_PROVIDER"); val != "" {
+	// LLM Provider
+	if val := os.Getenv("PGEDGE_LLM_PROVIDER"); val != "" {
 		cfg.LLM.Provider = val
 	}
 
-	if val := os.Getenv("ANTHROPIC_API_KEY"); val != "" {
+	// Anthropic
+	if val := os.Getenv("PGEDGE_ANTHROPIC_API_KEY"); val != "" {
 		cfg.Anthropic.APIKey = val
 	}
-
-	if val := os.Getenv("ANTHROPIC_MODEL"); val != "" {
+	if val := os.Getenv("PGEDGE_ANTHROPIC_MODEL"); val != "" {
 		cfg.Anthropic.Model = val
 	}
 
-	if val := os.Getenv("OLLAMA_BASE_URL"); val != "" {
+	// Ollama
+	if val := os.Getenv("PGEDGE_OLLAMA_BASE_URL"); val != "" {
 		cfg.Ollama.BaseURL = val
 	}
-
-	if val := os.Getenv("OLLAMA_MODEL"); val != "" {
+	if val := os.Getenv("PGEDGE_OLLAMA_MODEL"); val != "" {
 		cfg.Ollama.Model = val
 	}
 
-	if val := os.Getenv("PREFERENCES_FILE"); val != "" {
+	// HTTP
+	if val := os.Getenv("PGEDGE_HTTP_ENABLED"); val != "" {
+		cfg.HTTP.Enabled = val == "true" || val == "1" || val == "yes"
+	}
+	if val := os.Getenv("PGEDGE_HTTP_ADDRESS"); val != "" {
+		cfg.HTTP.Address = val
+	}
+
+	// TLS
+	if val := os.Getenv("PGEDGE_TLS_ENABLED"); val != "" {
+		cfg.HTTP.TLS.Enabled = val == "true" || val == "1" || val == "yes"
+	}
+	if val := os.Getenv("PGEDGE_TLS_CERT_FILE"); val != "" {
+		cfg.HTTP.TLS.CertFile = val
+	}
+	if val := os.Getenv("PGEDGE_TLS_KEY_FILE"); val != "" {
+		cfg.HTTP.TLS.KeyFile = val
+	}
+	if val := os.Getenv("PGEDGE_TLS_CHAIN_FILE"); val != "" {
+		cfg.HTTP.TLS.ChainFile = val
+	}
+
+	// Auth
+	if val := os.Getenv("PGEDGE_AUTH_ENABLED"); val != "" {
+		cfg.HTTP.Auth.Enabled = val == "true" || val == "1" || val == "yes"
+	}
+	if val := os.Getenv("PGEDGE_AUTH_TOKEN_FILE"); val != "" {
+		cfg.HTTP.Auth.TokenFile = val
+	}
+
+	// Preferences
+	if val := os.Getenv("PGEDGE_PREFERENCES_FILE"); val != "" {
 		cfg.PreferencesFile = val
 	}
 }
@@ -358,7 +391,7 @@ func validateConfig(cfg *Config) error {
 	switch cfg.LLM.Provider {
 	case "anthropic":
 		if cfg.Anthropic.APIKey == "" {
-			return fmt.Errorf("anthropic API key is required when using anthropic provider (set via -api-key, ANTHROPIC_API_KEY, or config file)")
+			return fmt.Errorf("anthropic API key is required when using anthropic provider (set via -api-key, PGEDGE_ANTHROPIC_API_KEY, or config file)")
 		}
 		if cfg.Anthropic.Model == "" {
 			cfg.Anthropic.Model = "claude-sonnet-4-5" // Set default
@@ -368,7 +401,7 @@ func validateConfig(cfg *Config) error {
 			cfg.Ollama.BaseURL = "http://localhost:11434" // Set default
 		}
 		if cfg.Ollama.Model == "" {
-			return fmt.Errorf("ollama model is required when using ollama provider (set via -ollama-model, OLLAMA_MODEL, or config file)")
+			return fmt.Errorf("ollama model is required when using ollama provider (set via -ollama-model, PGEDGE_OLLAMA_MODEL, or config file)")
 		}
 	default:
 		return fmt.Errorf("invalid LLM provider %q (must be 'anthropic' or 'ollama')", cfg.LLM.Provider)

@@ -76,7 +76,7 @@ func StartMCPServer(t *testing.T, connString, apiKey string) (*MCPServer, error)
 	// Force stdio mode even if there's a config file with HTTP enabled
 	cmd := exec.Command(binaryPath, "-http=false")
 	cmd.Env = append(os.Environ(),
-		"ANTHROPIC_API_KEY="+apiKey,
+		"PGEDGE_ANTHROPIC_API_KEY="+apiKey,
 	)
 
 	stdin, err := cmd.StdinPipe()
