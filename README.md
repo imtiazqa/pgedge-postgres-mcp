@@ -1,6 +1,7 @@
 # pgEdge MCP Server
 
 [![Build](https://github.com/pgEdge/pgedge-postgres-mcp/workflows/Build/badge.svg)](https://github.com/pgEdge/pgedge-postgres-mcp/actions/workflows/build.yml)
+[![Docs](https://github.com/pgEdge/pgedge-postgres-mcp/workflows/Docs/badge.svg)](https://github.com/pgEdge/pgedge-postgres-mcp/actions/workflows/docs.yml)
 [![Tests](https://github.com/pgEdge/pgedge-postgres-mcp/workflows/Tests/badge.svg)](https://github.com/pgEdge/pgedge-postgres-mcp/actions/workflows/test.yml)
 
 A Model Context Protocol (MCP) server that enables **SQL queries** against PostgreSQL databases through MCP-compatible clients like Claude Desktop.
