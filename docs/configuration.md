@@ -20,6 +20,7 @@ The pgEdge MCP Server supports multiple configuration methods with the following
 | `http.auth.enabled` | `-no-auth` | `PGEDGE_AUTH_ENABLED` | Enable API token authentication (default: true) |
 | `http.auth.token_file` | `-token-file` | `PGEDGE_AUTH_TOKEN_FILE` | Path to API tokens file |
 | `preferences_file` | `-preferences-file` | `PGEDGE_PREFERENCES_FILE` | Path to user preferences file |
+| `secret_file` | `-secret-file` | `PGEDGE_SECRET_FILE` | Path to encryption secret file (auto-generated if not present) |
 
 ## Configuration File
 
@@ -48,6 +49,9 @@ http:
 # User preferences file path (optional)
 preferences_file: ""  # defaults to pgedge-postgres-mcp-prefs.yaml
 
+# Encryption secret file path (optional)
+secret_file: ""  # defaults to pgedge-postgres-mcp.secret, auto-generated if not present
+
 ```
 
 A complete example configuration file with detailed comments is available at [pgedge-postgres-mcp.yaml.example](pgedge-postgres-mcp.yaml.example).
@@ -66,27 +70,40 @@ The server uses a separate preferences file for user-modifiable settings. This f
 
 ### Saved Database Connections
 
-When authentication is **disabled**, database connections are stored globally in the preferences file:
+When authentication is **disabled**, database connections are stored globally in the preferences file. Connection parameters are stored individually, and passwords are encrypted using AES-256-GCM encryption:
 
 ```yaml
 connections:
   connections:
     production:
       alias: production
-      connection_string: "postgres://user:pass@prod-host:5432/mydb"
-      maintenance_db: "postgres"
+      host: prod-host.example.com
+      port: 5432
+      user: dbuser
+      password: "encrypted_base64_password_here"  # AES-256-GCM encrypted
+      dbname: mydb
+      maintenance_db: postgres
+      sslmode: verify-full
+      sslrootcert: /path/to/ca.crt
       description: "Production database"
       created_at: 2025-01-15T10:00:00Z
       last_used_at: 2025-01-15T14:30:00Z
     staging:
       alias: staging
-      connection_string: "postgres://user:pass@staging-host:5432/mydb"
-      maintenance_db: "postgres"
+      host: staging-host.example.com
+      port: 5432
+      user: dbuser
+      password: "encrypted_base64_password_here"  # AES-256-GCM encrypted
+      dbname: mydb
+      maintenance_db: postgres
+      sslmode: require
       description: "Staging environment"
       created_at: 2025-01-15T10:00:00Z
 ```
 
-When authentication is **enabled**, connections are stored per-token in the API tokens file ([api-tokens.yaml](api-tokens.yaml)) instead.
+When authentication is **enabled**, connections are stored per-token in the API tokens file ([api-tokens.yaml](api-tokens.yaml)) instead using the same format.
+
+**Security**: Passwords are encrypted before storage using the encryption key from the secret file (`pgedge-postgres-mcp.secret`).
 
 ### Connection Management
 
@@ -124,6 +141,66 @@ list_database_connections()
 
 # Remove a connection
 remove_database_connection(alias="production")
+```
+
+## Encryption Secret File
+
+The server uses a separate encryption secret file to store the encryption key used for password encryption. This file contains a 256-bit AES encryption key used to encrypt and decrypt database passwords.
+
+**Default Location**: `pgedge-postgres-mcp.secret` in the same directory as the binary
+
+**Configuration Priority** (highest to lowest):
+1. Command line flag: `-secret-file /path/to/secret`
+2. Environment variable: `PGEDGE_SECRET_FILE=/path/to/secret`
+3. Configuration file: `secret_file: /path/to/secret`
+4. Default: `pgedge-postgres-mcp.secret` (same directory as binary)
+
+### Auto-Generation
+
+The secret file is automatically generated on first run if it doesn't exist:
+
+```bash
+# First run - secret file will be auto-generated
+./bin/pgedge-postgres-mcp
+
+# Output:
+# Generating new encryption key at /path/to/pgedge-postgres-mcp.secret
+# Encryption key saved successfully
+```
+
+### File Format
+
+The secret file contains a base64-encoded 256-bit encryption key:
+
+```
+base64_encoded_32_byte_key_here==
+```
+
+### Security Considerations
+
+- **File Permissions**:
+  - The secret file is created with `0600` permissions (owner read/write only)
+  - The server will **refuse to start** if the secret file has incorrect permissions
+  - This prevents accidentally exposing the encryption key to other users on the system
+- **Backup**: Back up the secret file securely - without it, encrypted passwords cannot be decrypted
+- **Storage**: Store the secret file separately from configuration and preferences files
+- **Never Commit**: Never commit the secret file to version control
+- **Rotation**: If the secret file is lost or compromised, you'll need to regenerate it and re-enter all passwords
+
+**Example - Verify Permissions**:
+```bash
+ls -la pgedge-postgres-mcp.secret
+# Should show: -rw------- (600)
+
+# Fix if needed:
+chmod 600 pgedge-postgres-mcp.secret
+```
+
+**Server will exit with an error if permissions are incorrect**:
+```
+ERROR: Failed to load encryption key from /path/to/pgedge-postgres-mcp.secret:
+insecure permissions on key file: 0644 (expected 0600).
+Please run: chmod 600 /path/to/pgedge-postgres-mcp.secret
 ```
 
 ### Creating a Configuration File

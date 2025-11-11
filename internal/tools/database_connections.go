@@ -18,24 +18,27 @@ import (
 
 	"pgedge-postgres-mcp/internal/auth"
 	"pgedge-postgres-mcp/internal/config"
+	"pgedge-postgres-mcp/internal/crypto"
 	"pgedge-postgres-mcp/internal/mcp"
 )
 
 // ConnectionManager provides access to saved connections
 type ConnectionManager struct {
-	tokenStore  *auth.TokenStore
-	config      *config.Config       // Used only for token file path when auth enabled
-	preferences *config.Preferences  // Used for connections when auth disabled
-	authEnabled bool
+	tokenStore     *auth.TokenStore
+	config         *config.Config       // Used only for token file path when auth enabled
+	preferences    *config.Preferences  // Used for connections when auth disabled
+	authEnabled    bool
+	encryptionKey  *crypto.EncryptionKey
 }
 
 // NewConnectionManager creates a new connection manager
-func NewConnectionManager(tokenStore *auth.TokenStore, cfg *config.Config, prefs *config.Preferences, authEnabled bool) *ConnectionManager {
+func NewConnectionManager(tokenStore *auth.TokenStore, cfg *config.Config, prefs *config.Preferences, authEnabled bool, encryptionKey *crypto.EncryptionKey) *ConnectionManager {
 	return &ConnectionManager{
-		tokenStore:  tokenStore,
-		config:      cfg,
-		preferences: prefs,
-		authEnabled: authEnabled,
+		tokenStore:    tokenStore,
+		config:        cfg,
+		preferences:   prefs,
+		authEnabled:   authEnabled,
+		encryptionKey: encryptionKey,
 	}
 }
 
@@ -73,7 +76,7 @@ func AddDatabaseConnectionTool(connMgr *ConnectionManager, configPath string) To
 	return Tool{
 		Definition: mcp.Tool{
 			Name:        "add_database_connection",
-			Description: "Save a database connection with an alias for later use. The connection will be persisted and available in future sessions. Each connection includes a maintenance database (default: 'postgres') used for initial connections, similar to pgAdmin.",
+			Description: "Save a database connection with an alias for later use. The connection will be persisted and available in future sessions. Passwords are encrypted before storage. All SSL/TLS parameters are supported for secure connections.",
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]interface{}{
@@ -81,52 +84,154 @@ func AddDatabaseConnectionTool(connMgr *ConnectionManager, configPath string) To
 						"type":        "string",
 						"description": "Friendly name for this connection (e.g., 'production', 'staging', 'local')",
 					},
-					"connection_string": map[string]interface{}{
+					"host": map[string]interface{}{
 						"type":        "string",
-						"description": "PostgreSQL connection string (e.g., 'postgres://user:pass@host:port/database')",
+						"description": "Database server hostname or IP address (required)",
+					},
+					"port": map[string]interface{}{
+						"type":        "number",
+						"description": "Database server port (default: 5432)",
+					},
+					"user": map[string]interface{}{
+						"type":        "string",
+						"description": "Database user (required)",
+					},
+					"password": map[string]interface{}{
+						"type":        "string",
+						"description": "Database password (will be encrypted before storage)",
+					},
+					"dbname": map[string]interface{}{
+						"type":        "string",
+						"description": "Database name (defaults to username if not specified)",
 					},
 					"maintenance_db": map[string]interface{}{
 						"type":        "string",
-						"description": "Maintenance/initial database to connect to (default: 'postgres'). This is the database used for establishing the initial connection.",
+						"description": "Maintenance/initial database for admin operations (default: 'postgres')",
+					},
+					"sslmode": map[string]interface{}{
+						"type":        "string",
+						"description": "SSL mode: disable, allow, prefer, require, verify-ca, verify-full (default: prefer)",
+					},
+					"sslcert": map[string]interface{}{
+						"type":        "string",
+						"description": "Path to client certificate file for SSL authentication",
+					},
+					"sslkey": map[string]interface{}{
+						"type":        "string",
+						"description": "Path to client private key file for SSL authentication",
+					},
+					"sslrootcert": map[string]interface{}{
+						"type":        "string",
+						"description": "Path to root CA certificate file for SSL verification",
+					},
+					"sslpassword": map[string]interface{}{
+						"type":        "string",
+						"description": "Password for client key file (will be encrypted before storage)",
+					},
+					"connect_timeout": map[string]interface{}{
+						"type":        "number",
+						"description": "Connection timeout in seconds",
+					},
+					"application_name": map[string]interface{}{
+						"type":        "string",
+						"description": "Application name to identify connections in pg_stat_activity",
 					},
 					"description": map[string]interface{}{
 						"type":        "string",
 						"description": "Optional description or notes about this connection",
 					},
 				},
-				Required: []string{"alias", "connection_string"},
+				Required: []string{"alias", "host", "user"},
 			},
 		},
 		Handler: func(args map[string]interface{}) (mcp.ToolResponse, error) {
+			// Parse required parameters
 			alias, ok := args["alias"].(string)
 			if !ok || alias == "" {
 				return mcp.NewToolError("Error: 'alias' parameter is required")
 			}
 
-			connString, ok := args["connection_string"].(string)
-			if !ok || connString == "" {
-				return mcp.NewToolError("Error: 'connection_string' parameter is required")
+			host, ok := args["host"].(string)
+			if !ok || host == "" {
+				return mcp.NewToolError("Error: 'host' parameter is required")
 			}
 
-			maintenanceDB := "postgres" // Default
-			if db, ok := args["maintenance_db"].(string); ok && db != "" {
-				maintenanceDB = db
+			user, ok := args["user"].(string)
+			if !ok || user == "" {
+				return mcp.NewToolError("Error: 'user' parameter is required")
 			}
 
-			description := ""
-			if desc, ok := args["description"].(string); ok {
-				description = desc
+			// Create connection struct
+			conn := &auth.SavedConnection{
+				Alias: alias,
+				Host:  host,
+				User:  user,
+			}
+
+			// Parse optional parameters
+			if port, ok := args["port"].(float64); ok {
+				conn.Port = int(port)
+			}
+
+			if dbname, ok := args["dbname"].(string); ok && dbname != "" {
+				conn.DBName = dbname
+			}
+
+			if maintenanceDB, ok := args["maintenance_db"].(string); ok && maintenanceDB != "" {
+				conn.MaintenanceDB = maintenanceDB
+			}
+
+			if desc, ok := args["description"].(string); ok && desc != "" {
+				conn.Description = desc
+			}
+
+			// Encrypt password if provided
+			if password, ok := args["password"].(string); ok && password != "" {
+				encrypted, err := connMgr.encryptionKey.Encrypt(password)
+				if err != nil {
+					return mcp.NewToolError(fmt.Sprintf("Error encrypting password: %v", err))
+				}
+				conn.Password = encrypted
+			}
+
+			// SSL parameters
+			if sslmode, ok := args["sslmode"].(string); ok && sslmode != "" {
+				conn.SSLMode = sslmode
+			}
+			if sslcert, ok := args["sslcert"].(string); ok && sslcert != "" {
+				conn.SSLCert = sslcert
+			}
+			if sslkey, ok := args["sslkey"].(string); ok && sslkey != "" {
+				conn.SSLKey = sslkey
+			}
+			if sslrootcert, ok := args["sslrootcert"].(string); ok && sslrootcert != "" {
+				conn.SSLRootCert = sslrootcert
+			}
+			if sslpassword, ok := args["sslpassword"].(string); ok && sslpassword != "" {
+				encrypted, err := connMgr.encryptionKey.Encrypt(sslpassword)
+				if err != nil {
+					return mcp.NewToolError(fmt.Sprintf("Error encrypting SSL password: %v", err))
+				}
+				conn.SSLPassword = encrypted
+			}
+
+			// Additional parameters
+			if timeout, ok := args["connect_timeout"].(float64); ok {
+				conn.ConnectTimeout = int(timeout)
+			}
+			if appName, ok := args["application_name"].(string); ok && appName != "" {
+				conn.ApplicationName = appName
 			}
 
 			// Get connection store
-			ctx := context.Background() // TODO: Pass context from handler
+			ctx := context.Background()
 			store, err := connMgr.GetConnectionStore(ctx)
 			if err != nil {
 				return mcp.NewToolError(fmt.Sprintf("Error: %v", err))
 			}
 
 			// Add connection
-			if err := store.Add(alias, connString, maintenanceDB, description); err != nil {
+			if err := store.Add(conn); err != nil {
 				return mcp.NewToolError(fmt.Sprintf("Error: %v", err))
 			}
 
@@ -135,11 +240,24 @@ func AddDatabaseConnectionTool(connMgr *ConnectionManager, configPath string) To
 				return mcp.NewToolError(fmt.Sprintf("Error saving changes: %v", err))
 			}
 
-			msg := fmt.Sprintf("Successfully saved connection '%s'", alias)
-			if description != "" {
-				msg += fmt.Sprintf("\nDescription: %s", description)
+			msg := fmt.Sprintf("Successfully saved connection '%s'\n", alias)
+			msg += fmt.Sprintf("Host: %s\n", conn.Host)
+			if conn.Port != 0 {
+				msg += fmt.Sprintf("Port: %d\n", conn.Port)
 			}
-			msg += fmt.Sprintf("\nMaintenance DB: %s", maintenanceDB)
+			msg += fmt.Sprintf("User: %s\n", conn.User)
+			if conn.DBName != "" {
+				msg += fmt.Sprintf("Database: %s\n", conn.DBName)
+			}
+			if conn.MaintenanceDB != "" {
+				msg += fmt.Sprintf("Maintenance DB: %s\n", conn.MaintenanceDB)
+			}
+			if conn.SSLMode != "" {
+				msg += fmt.Sprintf("SSL Mode: %s\n", conn.SSLMode)
+			}
+			if conn.Description != "" {
+				msg += fmt.Sprintf("Description: %s", conn.Description)
+			}
 
 			return mcp.NewToolSuccess(msg)
 		},
@@ -226,14 +344,30 @@ func ListDatabaseConnectionsTool(connMgr *ConnectionManager) Tool {
 
 			for _, conn := range connections {
 				result.WriteString(fmt.Sprintf("Alias: %s\n", conn.Alias))
-				result.WriteString(fmt.Sprintf("Connection: %s\n", conn.ConnectionString))
-				result.WriteString(fmt.Sprintf("Maintenance DB: %s\n", conn.MaintenanceDB))
-				if conn.Description != "" {
-					result.WriteString(fmt.Sprintf("Description: %s\n", conn.Description))
+				result.WriteString(fmt.Sprintf("  Host: %s", conn.Host))
+				if conn.Port != 0 && conn.Port != 5432 {
+					result.WriteString(fmt.Sprintf(":%d", conn.Port))
 				}
-				result.WriteString(fmt.Sprintf("Created: %s\n", conn.CreatedAt.Format("2006-01-02 15:04:05")))
+				result.WriteString("\n")
+				result.WriteString(fmt.Sprintf("  User: %s\n", conn.User))
+				if conn.DBName != "" {
+					result.WriteString(fmt.Sprintf("  Database: %s\n", conn.DBName))
+				}
+				if conn.MaintenanceDB != "" {
+					result.WriteString(fmt.Sprintf("  Maintenance DB: %s\n", conn.MaintenanceDB))
+				}
+				if conn.SSLMode != "" {
+					result.WriteString(fmt.Sprintf("  SSL Mode: %s\n", conn.SSLMode))
+				}
+				if conn.SSLCert != "" {
+					result.WriteString(fmt.Sprintf("  SSL Cert: %s\n", conn.SSLCert))
+				}
+				if conn.Description != "" {
+					result.WriteString(fmt.Sprintf("  Description: %s\n", conn.Description))
+				}
+				result.WriteString(fmt.Sprintf("  Created: %s\n", conn.CreatedAt.Format("2006-01-02 15:04:05")))
 				if !conn.LastUsedAt.IsZero() {
-					result.WriteString(fmt.Sprintf("Last Used: %s\n", conn.LastUsedAt.Format("2006-01-02 15:04:05")))
+					result.WriteString(fmt.Sprintf("  Last Used: %s\n", conn.LastUsedAt.Format("2006-01-02 15:04:05")))
 				}
 				result.WriteString("\n")
 			}
@@ -248,25 +382,69 @@ func EditDatabaseConnectionTool(connMgr *ConnectionManager, configPath string) T
 	return Tool{
 		Definition: mcp.Tool{
 			Name:        "edit_database_connection",
-			Description: "Edit an existing saved database connection. You can update the connection string, maintenance database, and/or description.",
+			Description: "Edit an existing saved database connection. Provide only the fields you want to update. Passwords will be encrypted before storage.",
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]interface{}{
 					"alias": map[string]interface{}{
 						"type":        "string",
-						"description": "Alias of the connection to edit",
+						"description": "Alias of the connection to edit (required)",
 					},
-					"connection_string": map[string]interface{}{
+					"host": map[string]interface{}{
 						"type":        "string",
-						"description": "New connection string (optional, leave empty to keep current)",
+						"description": "New database server hostname or IP address",
+					},
+					"port": map[string]interface{}{
+						"type":        "number",
+						"description": "New database server port",
+					},
+					"user": map[string]interface{}{
+						"type":        "string",
+						"description": "New database user",
+					},
+					"password": map[string]interface{}{
+						"type":        "string",
+						"description": "New database password (will be encrypted)",
+					},
+					"dbname": map[string]interface{}{
+						"type":        "string",
+						"description": "New database name",
 					},
 					"maintenance_db": map[string]interface{}{
 						"type":        "string",
-						"description": "New maintenance database (optional, leave empty to keep current)",
+						"description": "New maintenance database",
+					},
+					"sslmode": map[string]interface{}{
+						"type":        "string",
+						"description": "New SSL mode",
+					},
+					"sslcert": map[string]interface{}{
+						"type":        "string",
+						"description": "New path to client certificate file",
+					},
+					"sslkey": map[string]interface{}{
+						"type":        "string",
+						"description": "New path to client private key file",
+					},
+					"sslrootcert": map[string]interface{}{
+						"type":        "string",
+						"description": "New path to root CA certificate file",
+					},
+					"sslpassword": map[string]interface{}{
+						"type":        "string",
+						"description": "New password for client key file (will be encrypted)",
+					},
+					"connect_timeout": map[string]interface{}{
+						"type":        "number",
+						"description": "New connection timeout in seconds",
+					},
+					"application_name": map[string]interface{}{
+						"type":        "string",
+						"description": "New application name",
 					},
 					"description": map[string]interface{}{
 						"type":        "string",
-						"description": "New description (optional, leave empty to keep current)",
+						"description": "New description or notes",
 					},
 				},
 				Required: []string{"alias"},
@@ -278,24 +456,83 @@ func EditDatabaseConnectionTool(connMgr *ConnectionManager, configPath string) T
 				return mcp.NewToolError("Error: 'alias' parameter is required")
 			}
 
-			connString := ""
-			if cs, ok := args["connection_string"].(string); ok {
-				connString = cs
+			// Build updates struct with only provided fields
+			updates := &auth.SavedConnection{}
+			hasUpdates := false
+
+			if host, ok := args["host"].(string); ok && host != "" {
+				updates.Host = host
+				hasUpdates = true
+			}
+			if port, ok := args["port"].(float64); ok {
+				updates.Port = int(port)
+				hasUpdates = true
+			}
+			if user, ok := args["user"].(string); ok && user != "" {
+				updates.User = user
+				hasUpdates = true
+			}
+			if dbname, ok := args["dbname"].(string); ok && dbname != "" {
+				updates.DBName = dbname
+				hasUpdates = true
+			}
+			if maintenanceDB, ok := args["maintenance_db"].(string); ok && maintenanceDB != "" {
+				updates.MaintenanceDB = maintenanceDB
+				hasUpdates = true
+			}
+			if desc, ok := args["description"].(string); ok && desc != "" {
+				updates.Description = desc
+				hasUpdates = true
 			}
 
-			maintenanceDB := ""
-			if db, ok := args["maintenance_db"].(string); ok {
-				maintenanceDB = db
+			// Encrypt password if provided
+			if password, ok := args["password"].(string); ok && password != "" {
+				encrypted, err := connMgr.encryptionKey.Encrypt(password)
+				if err != nil {
+					return mcp.NewToolError(fmt.Sprintf("Error encrypting password: %v", err))
+				}
+				updates.Password = encrypted
+				hasUpdates = true
 			}
 
-			description := ""
-			if desc, ok := args["description"].(string); ok {
-				description = desc
+			// SSL parameters
+			if sslmode, ok := args["sslmode"].(string); ok && sslmode != "" {
+				updates.SSLMode = sslmode
+				hasUpdates = true
+			}
+			if sslcert, ok := args["sslcert"].(string); ok && sslcert != "" {
+				updates.SSLCert = sslcert
+				hasUpdates = true
+			}
+			if sslkey, ok := args["sslkey"].(string); ok && sslkey != "" {
+				updates.SSLKey = sslkey
+				hasUpdates = true
+			}
+			if sslrootcert, ok := args["sslrootcert"].(string); ok && sslrootcert != "" {
+				updates.SSLRootCert = sslrootcert
+				hasUpdates = true
+			}
+			if sslpassword, ok := args["sslpassword"].(string); ok && sslpassword != "" {
+				encrypted, err := connMgr.encryptionKey.Encrypt(sslpassword)
+				if err != nil {
+					return mcp.NewToolError(fmt.Sprintf("Error encrypting SSL password: %v", err))
+				}
+				updates.SSLPassword = encrypted
+				hasUpdates = true
 			}
 
-			// At least one field must be provided
-			if connString == "" && maintenanceDB == "" && description == "" {
-				return mcp.NewToolError("Error: At least one field (connection_string, maintenance_db, or description) must be provided")
+			// Additional parameters
+			if timeout, ok := args["connect_timeout"].(float64); ok {
+				updates.ConnectTimeout = int(timeout)
+				hasUpdates = true
+			}
+			if appName, ok := args["application_name"].(string); ok && appName != "" {
+				updates.ApplicationName = appName
+				hasUpdates = true
+			}
+
+			if !hasUpdates {
+				return mcp.NewToolError("Error: At least one field must be provided to update")
 			}
 
 			// Get connection store
@@ -306,7 +543,7 @@ func EditDatabaseConnectionTool(connMgr *ConnectionManager, configPath string) T
 			}
 
 			// Update connection
-			if err := store.Update(alias, connString, maintenanceDB, description); err != nil {
+			if err := store.Update(alias, updates); err != nil {
 				return mcp.NewToolError(fmt.Sprintf("Error: %v", err))
 			}
 

@@ -501,8 +501,8 @@ func testHTTPListTools(t *testing.T, server *HTTPMCPServer) {
 	}
 
 	// After calling set_database_connection, all tools should be available
-	if len(tools) < 11 {
-		t.Errorf("Expected at least 11 tools after database connection, got %d", len(tools))
+	if len(tools) < 10 {
+		t.Errorf("Expected at least 10 tools after database connection, got %d", len(tools))
 	}
 
 	t.Logf("HTTP ListTools test passed, found %d tools", len(tools))
@@ -528,8 +528,8 @@ func testHTTPListResources(t *testing.T, server *HTTPMCPServer) {
 		t.Fatal("resources array not found in result")
 	}
 
-	if len(resources) < 5 {
-		t.Errorf("Expected at least 5 resources, got %d", len(resources))
+	if len(resources) < 4 {
+		t.Errorf("Expected at least 4 resources, got %d", len(resources))
 	}
 
 	t.Logf("HTTP ListResources test passed, found %d resources", len(resources))

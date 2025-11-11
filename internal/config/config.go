@@ -25,6 +25,9 @@ type Config struct {
 
 	// Preferences file path
 	PreferencesFile string `yaml:"preferences_file"`
+
+	// Secret file path (for encryption key)
+	SecretFile string `yaml:"secret_file"`
 }
 
 // HTTPConfig holds HTTP/HTTPS server settings
@@ -117,6 +120,10 @@ type CLIFlags struct {
 	// Preferences flags
 	PreferencesFile    string
 	PreferencesFileSet bool
+
+	// Secret file flags
+	SecretFile    string
+	SecretFileSet bool
 }
 
 // defaultConfig returns configuration with hard-coded defaults
@@ -137,6 +144,7 @@ func defaultConfig() *Config {
 			},
 		},
 		PreferencesFile: "", // Will be set to default path if not specified
+		SecretFile:      "", // Will be set to default path if not specified
 	}
 }
 
@@ -190,6 +198,11 @@ func mergeConfig(dest, src *Config) {
 	if src.PreferencesFile != "" {
 		dest.PreferencesFile = src.PreferencesFile
 	}
+
+	// Secret file
+	if src.SecretFile != "" {
+		dest.SecretFile = src.SecretFile
+	}
 }
 
 // setStringFromEnv sets a string config value from an environment variable if it exists
@@ -226,6 +239,9 @@ func applyEnvironmentVariables(cfg *Config) {
 
 	// Preferences
 	setStringFromEnv(&cfg.PreferencesFile, "PGEDGE_PREFERENCES_FILE")
+
+	// Secret file
+	setStringFromEnv(&cfg.SecretFile, "PGEDGE_SECRET_FILE")
 }
 
 // applyCLIFlags overrides config with CLI flags if they were explicitly set
@@ -264,6 +280,11 @@ func applyCLIFlags(cfg *Config, flags CLIFlags) {
 	if flags.PreferencesFileSet {
 		cfg.PreferencesFile = flags.PreferencesFile
 	}
+
+	// Secret file
+	if flags.SecretFileSet {
+		cfg.SecretFile = flags.SecretFile
+	}
 }
 
 // validateConfig checks if the configuration is valid
@@ -297,6 +318,12 @@ func validateConfig(cfg *Config) error {
 func GetDefaultConfigPath(binaryPath string) string {
 	dir := filepath.Dir(binaryPath)
 	return filepath.Join(dir, "pgedge-postgres-mcp.yaml")
+}
+
+// GetDefaultSecretPath returns the default secret file path (same directory as binary)
+func GetDefaultSecretPath(binaryPath string) string {
+	dir := filepath.Dir(binaryPath)
+	return filepath.Join(dir, "pgedge-postgres-mcp.secret")
 }
 
 // ConfigFileExists checks if a config file exists at the given path

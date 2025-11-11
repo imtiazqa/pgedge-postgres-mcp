@@ -31,7 +31,7 @@ func TestNewContextAwareProvider(t *testing.T) {
 		Version: "1.0.0",
 	}
 
-	provider := NewContextAwareProvider(clientManager, nil, true, fallbackClient, serverInfo, nil, nil, nil, "")
+	provider := NewContextAwareProvider(clientManager, nil, true, fallbackClient, serverInfo, nil, nil, nil, "", nil)
 
 	if provider == nil {
 		t.Fatal("Expected non-nil provider")
@@ -71,7 +71,7 @@ func TestContextAwareProvider_List(t *testing.T) {
 		Version: "1.0.0",
 	}
 
-	provider := NewContextAwareProvider(clientManager, nil, true, fallbackClient, serverInfo, nil, nil, nil, "")
+	provider := NewContextAwareProvider(clientManager, nil, true, fallbackClient, serverInfo, nil, nil, nil, "", nil)
 
 	// Register tools
 	err := provider.RegisterTools(context.TODO())
@@ -133,7 +133,7 @@ func TestContextAwareProvider_Execute_NoAuth(t *testing.T) {
 	}
 
 	// Auth disabled - should use fallback client
-	provider := NewContextAwareProvider(clientManager, nil, false, fallbackClient, serverInfo, nil, nil, nil, "")
+	provider := NewContextAwareProvider(clientManager, nil, false, fallbackClient, serverInfo, nil, nil, nil, "", nil)
 
 	// Context without token hash
 	ctx := context.Background()
@@ -178,7 +178,7 @@ func TestContextAwareProvider_Execute_WithAuth(t *testing.T) {
 	}
 
 	// Auth enabled - should require token hash
-	provider := NewContextAwareProvider(clientManager, nil, true, fallbackClient, serverInfo, nil, nil, nil, "")
+	provider := NewContextAwareProvider(clientManager, nil, true, fallbackClient, serverInfo, nil, nil, nil, "", nil)
 
 	t.Run("missing token hash returns error", func(t *testing.T) {
 		// Context without token hash
@@ -261,7 +261,7 @@ func TestContextAwareProvider_Execute_InvalidTool(t *testing.T) {
 	}
 
 	// Auth disabled for simplicity
-	provider := NewContextAwareProvider(clientManager, nil, false, fallbackClient, serverInfo, nil, nil, nil, "")
+	provider := NewContextAwareProvider(clientManager, nil, false, fallbackClient, serverInfo, nil, nil, nil, "", nil)
 
 	ctx := context.Background()
 
@@ -305,7 +305,7 @@ func TestContextAwareProvider_RegisterTools_WithContext(t *testing.T) {
 		Version: "1.0.0",
 	}
 
-	provider := NewContextAwareProvider(clientManager, nil, true, fallbackClient, serverInfo, nil, nil, nil, "")
+	provider := NewContextAwareProvider(clientManager, nil, true, fallbackClient, serverInfo, nil, nil, nil, "", nil)
 
 	// Register with context containing token hash
 	ctx := context.WithValue(context.Background(), auth.TokenHashContextKey, "registration-token")

@@ -17,6 +17,7 @@ import (
 
 	"pgedge-postgres-mcp/internal/auth"
 	"pgedge-postgres-mcp/internal/config"
+	"pgedge-postgres-mcp/internal/crypto"
 	"pgedge-postgres-mcp/internal/database"
 	"pgedge-postgres-mcp/internal/mcp"
 	"pgedge-postgres-mcp/internal/resources"
@@ -62,9 +63,9 @@ func (p *ContextAwareProvider) registerDatabaseTools(registry *Registry, client 
 }
 
 // NewContextAwareProvider creates a new context-aware tool provider
-func NewContextAwareProvider(clientManager *database.ClientManager, resourceReg *resources.ContextAwareRegistry, authEnabled bool, fallbackClient *database.Client, serverInfo ServerInfo, tokenStore *auth.TokenStore, cfg *config.Config, prefs *config.Preferences, preferencesPath string) *ContextAwareProvider {
+func NewContextAwareProvider(clientManager *database.ClientManager, resourceReg *resources.ContextAwareRegistry, authEnabled bool, fallbackClient *database.Client, serverInfo ServerInfo, tokenStore *auth.TokenStore, cfg *config.Config, prefs *config.Preferences, preferencesPath string, encryptionKey *crypto.EncryptionKey) *ContextAwareProvider {
 	// Create connection manager
-	connMgr := NewConnectionManager(tokenStore, cfg, prefs, authEnabled)
+	connMgr := NewConnectionManager(tokenStore, cfg, prefs, authEnabled, encryptionKey)
 
 	provider := &ContextAwareProvider{
 		baseRegistry:     NewRegistry(),

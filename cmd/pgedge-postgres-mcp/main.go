@@ -19,6 +19,7 @@ import (
 
 	"pgedge-postgres-mcp/internal/auth"
 	"pgedge-postgres-mcp/internal/config"
+	"pgedge-postgres-mcp/internal/crypto"
 	"pgedge-postgres-mcp/internal/database"
 	"pgedge-postgres-mcp/internal/mcp"
 	"pgedge-postgres-mcp/internal/resources"
@@ -51,6 +52,7 @@ func main() {
 	noAuth := flag.Bool("no-auth", false, "Disable API token authentication in HTTP mode")
 	tokenFilePath := flag.String("token-file", "", "Path to API token file")
 	preferencesFilePath := flag.String("preferences-file", "", "Path to user preferences file (for saved connections when auth is disabled)")
+	secretFilePath := flag.String("secret-file", "", "Path to encryption secret file (auto-generated if not present)")
 
 	// Token management commands
 	addTokenCmd := flag.Bool("add-token", false, "Add a new API token")
@@ -143,6 +145,9 @@ func main() {
 		case "preferences-file":
 			cliFlags.PreferencesFileSet = true
 			cliFlags.PreferencesFile = *preferencesFilePath
+		case "secret-file":
+			cliFlags.SecretFileSet = true
+			cliFlags.SecretFile = *secretFilePath
 		}
 	})
 
@@ -181,6 +186,35 @@ func main() {
 	// Set default preferences file path if not specified
 	if cfg.PreferencesFile == "" {
 		cfg.PreferencesFile = config.GetDefaultPreferencesPath(execPath)
+	}
+
+	// Set default secret file path if not specified
+	if cfg.SecretFile == "" {
+		cfg.SecretFile = config.GetDefaultSecretPath(execPath)
+	}
+
+	// Load or generate encryption key
+	var encryptionKey *crypto.EncryptionKey
+	if _, err := os.Stat(cfg.SecretFile); os.IsNotExist(err) {
+		// Generate new encryption key
+		fmt.Fprintf(os.Stderr, "Generating new encryption key at %s\n", cfg.SecretFile)
+		encryptionKey, err = crypto.GenerateKey()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "ERROR: Failed to generate encryption key: %v\n", err)
+			os.Exit(1)
+		}
+		if err := encryptionKey.SaveToFile(cfg.SecretFile); err != nil {
+			fmt.Fprintf(os.Stderr, "ERROR: Failed to save encryption key: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Fprintf(os.Stderr, "Encryption key saved successfully\n")
+	} else {
+		// Load existing encryption key
+		encryptionKey, err = crypto.LoadKeyFromFile(cfg.SecretFile)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "ERROR: Failed to load encryption key from %s: %v\n", cfg.SecretFile, err)
+			os.Exit(1)
+		}
 	}
 
 	// Load user preferences (for saved connections when auth is disabled)
@@ -249,7 +283,7 @@ func main() {
 	contextAwareResourceProvider := resources.NewContextAwareRegistry(clientManager, authEnabled)
 
 	// Context-aware tool provider
-	contextAwareToolProvider := tools.NewContextAwareProvider(clientManager, contextAwareResourceProvider, authEnabled, nil, serverInfo, tokenStore, cfg, prefs, cfg.PreferencesFile)
+	contextAwareToolProvider := tools.NewContextAwareProvider(clientManager, contextAwareResourceProvider, authEnabled, nil, serverInfo, tokenStore, cfg, prefs, cfg.PreferencesFile, encryptionKey)
 	if err := contextAwareToolProvider.RegisterTools(ctx); err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: Failed to register tools: %v\n", err)
 		os.Exit(1)

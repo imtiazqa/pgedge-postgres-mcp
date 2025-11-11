@@ -10,207 +10,153 @@
 # By default, the server looks for config in the same directory as the binary.
 
 # ============================================================================
-# DATABASE CONFIGURATION (Required)
-# ============================================================================
-database:
-  # PostgreSQL connection string
-  # Format: postgres://[user[:password]@][host][:port][/dbname][?params]
-  # Example: postgres://myuser:mypass@localhost:5432/mydb?sslmode=disable
-  # Environment variable: POSTGRES_CONNECTION_STRING
-  # Command line flag: -db
-  connection_string: "postgres://localhost/postgres?sslmode=disable"
-
-# ============================================================================
-# LLM PROVIDER SELECTION (Required)
-# ============================================================================
-# Choose which LLM provider to use for natural language to SQL conversion
-llm:
-  # LLM provider: "anthropic" (cloud) or "ollama" (local)
-  # Default: anthropic
-  # Environment variable: LLM_PROVIDER
-  # Command line flag: -llm-provider
-  provider: anthropic  # Options: "anthropic" or "ollama"
-
-# ============================================================================
-# ANTHROPIC CONFIGURATION (Cloud-based, requires API key)
-# ============================================================================
-# Use this when llm.provider is "anthropic"
-anthropic:
-  # Anthropic API key for Claude AI
-  # Get yours at: https://console.anthropic.com/
-  # Environment variable: ANTHROPIC_API_KEY
-  # Command line flag: -api-key
-  api_key: "sk-ant-your-api-key-here"
-
-  # Claude model to use
-  # Options: claude-sonnet-4-5, claude-haiku-4-5, claude-opus-4-1
-  # Default: claude-sonnet-4-5 (best for SQL)
-  # Environment variable: ANTHROPIC_MODEL
-  # Command line flag: -model
-  model: "claude-sonnet-4-5"
-
-# ============================================================================
-# OLLAMA CONFIGURATION (Local, free and open source)
-# ============================================================================
-# Use this when llm.provider is "ollama"
-# Setup instructions:
-# 1. Install Ollama from https://ollama.ai/
-# 2. Start Ollama: ollama serve
-# 3. Download model: ollama pull qwen2.5-coder:32b
-ollama:
-  # Ollama API base URL
-  # Default: http://localhost:11434
-  # Environment variable: OLLAMA_BASE_URL
-  # Command line flag: -ollama-url
-  base_url: http://localhost:11434
-
-  # Ollama model name (required when using Ollama)
-  # Recommended: qwen2.5-coder:32b (best quality for SQL)
-  # Environment variable: OLLAMA_MODEL
-  # Command line flag: -ollama-model
-  model: qwen2.5-coder:32b
-
-  # Alternative models (download with `ollama pull <model>`):
-  # - qwen2.5-coder:7b    (faster, smaller, good for simple queries)
-  # - qwen2.5-coder:32b   (best quality for SQL, recommended)
-  # - codellama:13b       (good balance)
-  # - codellama:34b       (high quality, slower)
-
-# ============================================================================
 # HTTP/HTTPS SERVER CONFIGURATION (Optional - only needed for API access)
 # ============================================================================
 # By default, the server runs in stdio mode for Claude Desktop.
 # Enable HTTP mode for direct API access or web integrations.
 http:
-  # Enable HTTP transport mode
-  # If false, server runs in stdio mode (for Claude Desktop)
-  # Default: false
-  # Command line flag: -http
-  enabled: false
-
-  # HTTP server address
-  # Format: host:port or :port
-  # Default: :8080
-  # Command line flag: -addr
-  address: ":8080"
-
-  # -------------------------
-  # TLS/HTTPS Configuration
-  # -------------------------
-  tls:
-    # Enable HTTPS (requires http.enabled: true)
+    # Enable HTTP transport mode
+    # If false, server runs in stdio mode (for Claude Desktop)
     # Default: false
-    # Command line flag: -tls
+    # Environment variable: PGEDGE_HTTP_ENABLED
+    # Command line flag: -http
     enabled: false
 
-    # Path to TLS certificate file
-    # Default: ./server.crt
-    # Command line flag: -cert
-    cert_file: "./server.crt"
+    # HTTP server address
+    # Format: host:port or :port
+    # Default: :8080
+    # Environment variable: PGEDGE_HTTP_ADDRESS
+    # Command line flag: -addr
+    address: ":8080"
 
-    # Path to TLS private key file
-    # Default: ./server.key
-    # Command line flag: -key
-    key_file: "./server.key"
+    # -------------------------
+    # TLS/HTTPS Configuration
+    # -------------------------
+    tls:
+        # Enable HTTPS (requires http.enabled: true)
+        # Default: false
+        # Environment variable: PGEDGE_TLS_ENABLED
+        # Command line flag: -tls
+        enabled: false
 
-    # Path to TLS certificate chain file (optional)
-    # Default: "" (empty)
-    # Command line flag: -chain
-    chain_file: ""
+        # Path to TLS certificate file
+        # Default: ./server.crt
+        # Environment variable: PGEDGE_TLS_CERT_FILE
+        # Command line flag: -cert
+        cert_file: "./server.crt"
 
-  # -------------------------
-  # Authentication
-  # -------------------------
-  auth:
-    # Enable API token authentication (requires http.enabled: true)
-    # Default: true (authentication is enabled by default)
-    # Command line flag: -no-auth (to disable)
-    enabled: true
+        # Path to TLS private key file
+        # Default: ./server.key
+        # Environment variable: PGEDGE_TLS_KEY_FILE
+        # Command line flag: -key
+        key_file: "./server.key"
 
-    # Path to API token configuration file
-    # Default: Same directory as binary (api-tokens.yaml)
-    # Command line flag: -token-file
-    token_file: ""
+        # Path to TLS certificate chain file (optional)
+        # Default: "" (empty)
+        # Environment variable: PGEDGE_TLS_CHAIN_FILE
+        # Command line flag: -chain
+        chain_file: ""
 
-    # Token management commands (no database connection required):
-    # - Create token: ./pgedge-postgres-mcp -add-token
-    # - List tokens:  ./pgedge-postgres-mcp -list-tokens
-    # - Remove token: ./pgedge-postgres-mcp -remove-token <id>
+    # -------------------------
+    # Authentication
+    # -------------------------
+    auth:
+        # Enable API token authentication (requires http.enabled: true)
+        # Default: true (authentication is enabled by default)
+        # Environment variable: PGEDGE_AUTH_ENABLED
+        # Command line flag: -no-auth (to disable)
+        enabled: true
+
+        # Path to API token configuration file
+        # Default: Same directory as binary (api-tokens.yaml)
+        # Environment variable: PGEDGE_AUTH_TOKEN_FILE
+        # Command line flag: -token-file
+        token_file: ""
+
+        # Token management commands (no database connection required):
+        # - Create token: ./pgedge-postgres-mcp -add-token
+        # - List tokens:  ./pgedge-postgres-mcp -list-tokens
+        # - Remove token: ./pgedge-postgres-mcp -remove-token <id>
+
+# ============================================================================
+# USER PREFERENCES FILE (Optional)
+# ============================================================================
+# Path to user preferences file where saved database connections are stored
+# Default: pgedge-postgres-mcp-prefs.yaml in the same directory as the binary
+# Environment variable: PGEDGE_PREFERENCES_FILE
+# Command line flag: -preferences-file
+preferences_file: ""
+
+# ============================================================================
+# ENCRYPTION SECRET FILE (Optional)
+# ============================================================================
+# Path to encryption secret file used for encrypting database passwords
+# Default: pgedge-postgres-mcp.secret in the same directory as the binary
+# If the file does not exist, it will be automatically generated on first run
+# IMPORTANT: The secret file must have 0600 permissions (owner read/write only)
+#            The server will refuse to start if permissions are incorrect
+# Environment variable: PGEDGE_SECRET_FILE
+# Command line flag: -secret-file
+secret_file: ""
+
+# ============================================================================
+# DATABASE CONFIGURATION
+# ============================================================================
+# Database connections are configured at runtime using the MCP tools.
+# Use the set_database_connection tool to connect to a database by providing:
+#   - A PostgreSQL connection string, OR
+#   - An alias to a previously saved connection
+#
+# To save connections for later use, use the add_database_connection tool
+# which stores individual connection parameters (host, port, user, password,
+# database name, SSL settings, etc.) with encrypted passwords.
+#
+# Examples:
+#   - Connect via string: set_database_connection("postgres://user:pass@host/db")
+#   - Save connection:    add_database_connection(alias="prod", host="...", ...)
+#   - Connect via alias:  set_database_connection("prod")
+#   - List connections:   list_database_connections()
+#   - Edit connection:    edit_database_connection(alias="prod", host="...")
+#   - Remove connection:  remove_database_connection(alias="prod")
 
 # ============================================================================
 # EXAMPLE CONFIGURATIONS
 # ============================================================================
 
-# Example 1: Anthropic with stdio (Claude Desktop - default)
-# llm:
-#   provider: anthropic
-# anthropic:
-#   api_key: "sk-ant-your-key-here"
-#   model: claude-sonnet-4-5
+# Example 1: Default stdio mode (Claude Desktop)
 # http:
-#   enabled: false
-
-# Example 2: Ollama with stdio (Claude Desktop, local/free)
-# llm:
-#   provider: ollama
-# ollama:
-#   base_url: http://localhost:11434
-#   model: qwen2.5-coder:32b
-# http:
-#   enabled: false
-
-# Example 3: Local development with HTTP (no authentication - not recommended)
-# llm:
-#   provider: anthropic
-# anthropic:
-#   api_key: "sk-ant-your-key-here"
-# http:
-#   enabled: true
-#   address: "localhost:8080"
-#   tls:
-#     enabled: false
-#   auth:
 #     enabled: false
 
-# Example 4: Local development with HTTP and authentication
-# llm:
-#   provider: anthropic
-# anthropic:
-#   api_key: "sk-ant-your-key-here"
+# Example 2: Local development with HTTP (no authentication - not recommended)
 # http:
-#   enabled: true
-#   address: "localhost:8080"
-#   tls:
-#     enabled: false
-#   auth:
 #     enabled: true
-#     token_file: "./api-tokens.yaml"
+#     address: "localhost:8080"
+#     tls:
+#         enabled: false
+#     auth:
+#         enabled: false
 
-# Example 5: Production HTTPS deployment with authentication
-# llm:
-#   provider: anthropic
-# anthropic:
-#   api_key: "sk-ant-your-key-here"
+# Example 3: Local development with HTTP and authentication
 # http:
-#   enabled: true
-#   address: ":443"
-#   tls:
 #     enabled: true
-#     cert_file: "/etc/ssl/certs/server.crt"
-#     key_file: "/etc/ssl/private/server.key"
-#     chain_file: "/etc/ssl/certs/ca-chain.crt"
-#   auth:
-#     enabled: true
-#     token_file: "/etc/pgedge-mcp/tokens.yaml"
+#     address: "localhost:8080"
+#     tls:
+#         enabled: false
+#     auth:
+#         enabled: true
+#         token_file: "./api-tokens.yaml"
 
-# Example 6: Ollama with HTTP server (no auth for internal network)
-# llm:
-#   provider: ollama
-# ollama:
-#   base_url: http://localhost:11434
-#   model: qwen2.5-coder:32b
+# Example 4: Production HTTPS deployment with authentication
 # http:
-#   enabled: true
-#   address: ":8080"
-#   auth:
-#     enabled: false  # Only disable on trusted networks!
+#     enabled: true
+#     address: ":443"
+#     tls:
+#         enabled: true
+#         cert_file: "/etc/ssl/certs/server.crt"
+#         key_file: "/etc/ssl/private/server.key"
+#         chain_file: "/etc/ssl/certs/ca-chain.crt"
+#     auth:
+#         enabled: true
+#         token_file: "/etc/pgedge-mcp/tokens.yaml"
+# preferences_file: "/etc/pgedge-mcp/preferences.yaml"
+# secret_file: "/etc/pgedge-mcp/secret.key"

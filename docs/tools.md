@@ -183,35 +183,61 @@ See [resources.md](resources.md) for detailed information about each resource.
 
 ### add_database_connection
 
-Save a database connection with an alias for later use. Connections are persisted and available across sessions.
+Save a database connection with an alias for later use. Connections are persisted and available across sessions. Passwords are encrypted using AES-256-GCM encryption.
 
 **Input**:
 ```json
 {
   "alias": "production",
-  "connection_string": "postgres://user:pass@host:5432/database",
+  "host": "prod-host.example.com",
+  "port": 5432,
+  "user": "dbuser",
+  "password": "securepassword",
+  "dbname": "mydb",
   "maintenance_db": "postgres",
+  "sslmode": "verify-full",
+  "sslrootcert": "/path/to/ca.crt",
   "description": "Production database server"
 }
 ```
 
 **Parameters**:
 - `alias` (required): Friendly name for the connection (e.g., "production", "staging")
-- `connection_string` (required): PostgreSQL connection string
+- `host` (required): Database hostname or IP address
+- `port` (optional, default: 5432): Database port number
+- `user` (required): Database username
+- `password` (optional): Database password (will be encrypted before storage)
+- `dbname` (optional, default: same as user): Database name
 - `maintenance_db` (optional, default: "postgres"): Initial database for connections, like pgAdmin
+- `sslmode` (optional): SSL mode - disable, allow, prefer, require, verify-ca, verify-full
+- `sslcert` (optional): Path to client certificate file
+- `sslkey` (optional): Path to client key file
+- `sslrootcert` (optional): Path to root CA certificate file
+- `sslpassword` (optional): Password for client key (will be encrypted before storage)
+- `sslcrl` (optional): Path to certificate revocation list
+- `connect_timeout` (optional): Connection timeout in seconds
+- `application_name` (optional): Application name for connection tracking
 - `description` (optional): Notes about this connection
 
 **Output**:
 ```
 Successfully saved connection 'production'
-Connection string: postgres://user:****@host:5432/database
+Host: prod-host.example.com:5432
+User: dbuser
+Database: mydb
 Maintenance DB: postgres
+SSL Mode: verify-full
 Description: Production database server
 ```
 
+**Security**:
+- Passwords are encrypted using AES-256-GCM before storage
+- Encryption key is stored in a separate secret file (default: `pgedge-postgres-mcp.secret`)
+- Secret file is auto-generated on first run with restricted permissions (0600)
+
 **Storage**:
 - **With authentication enabled**: Stored per-token in `api-tokens.yaml`
-- **With authentication disabled**: Stored globally in config file under `database.connections`
+- **With authentication disabled**: Stored globally in preferences file `pgedge-postgres-mcp-prefs.yaml`
 
 ### remove_database_connection
 
@@ -241,49 +267,78 @@ Saved Database Connections:
 ============================
 
 Alias: production
-Connection: postgres://user:****@prod-host:5432/mydb
-Maintenance DB: postgres
-Description: Production database
-Created: 2025-01-15 10:00:00
-Last Used: 2025-01-15 14:30:00
+  Host: prod-host.example.com:5432
+  User: dbuser
+  Database: mydb
+  Maintenance DB: postgres
+  SSL Mode: verify-full
+  SSL Root Cert: /path/to/ca.crt
+  Description: Production database
+  Created: 2025-01-15 10:00:00
+  Last Used: 2025-01-15 14:30:00
 
 Alias: staging
-Connection: postgres://user:****@staging-host:5432/mydb
-Maintenance DB: postgres
-Description: Staging environment
-Created: 2025-01-15 10:05:00
-Last Used: Never
+  Host: staging-host.example.com:5432
+  User: dbuser
+  Database: mydb
+  Maintenance DB: postgres
+  SSL Mode: require
+  Description: Staging environment
+  Created: 2025-01-15 10:05:00
+  Last Used: Never
 
 Total: 2 saved connection(s)
 ```
 
-**Note**: Connection strings are masked for security (passwords shown as `****`)
+**Security**:
+- Passwords are never displayed in output
+- All passwords are stored encrypted using AES-256-GCM encryption
+- Connection details are displayed without sensitive credential information
 
 ### edit_database_connection
 
-Update an existing saved connection. You can update any or all fields.
+Update an existing saved connection. You can update any or all connection parameters. Only non-empty fields will be updated.
 
 **Input**:
 ```json
 {
   "alias": "production",
-  "new_connection_string": "postgres://newuser:newpass@newhost:5432/newdb",
-  "new_maintenance_db": "template1",
-  "new_description": "Updated production server"
+  "host": "new-prod-host.example.com",
+  "port": 5433,
+  "user": "newuser",
+  "password": "newpassword",
+  "dbname": "newdb",
+  "sslmode": "verify-full",
+  "sslrootcert": "/path/to/new-ca.crt",
+  "description": "Updated production server"
 }
 ```
 
 **Parameters**:
 - `alias` (required): The alias of the connection to update
-- `new_connection_string` (optional): New connection string
-- `new_maintenance_db` (optional): New maintenance database
-- `new_description` (optional): New description
+- `host` (optional): New database hostname or IP address
+- `port` (optional): New database port number
+- `user` (optional): New database username
+- `password` (optional): New database password (will be encrypted before storage)
+- `dbname` (optional): New database name
+- `maintenance_db` (optional): New maintenance database
+- `sslmode` (optional): New SSL mode
+- `sslcert` (optional): New path to client certificate file
+- `sslkey` (optional): New path to client key file
+- `sslrootcert` (optional): New path to root CA certificate file
+- `sslpassword` (optional): New password for client key (will be encrypted before storage)
+- `sslcrl` (optional): New path to certificate revocation list
+- `connect_timeout` (optional): New connection timeout in seconds
+- `application_name` (optional): New application name
+- `description` (optional): New description
 
 **Output**:
 ```
 Successfully updated connection 'production'
-Updated fields: connection_string, maintenance_db, description
+Updated: host, port, user, password, sslmode, description
 ```
+
+**Note**: Only provided parameters will be updated. Empty or omitted parameters will retain their current values.
 
 ### set_database_connection (Enhanced)
 
@@ -361,14 +416,21 @@ Here's a typical workflow for managing database connections:
   - Connections are stored in `api-tokens.yaml` with the token
 
 - **Authentication Disabled (global connections)**:
-  - All connections are stored in the config file
+  - All connections are stored in the preferences file (`pgedge-postgres-mcp-prefs.yaml`)
   - All users share the same set of saved connections
   - Suitable for single-user or trusted environments
 
-- **Connection String Security**:
-  - Connection strings are stored in plain text in YAML files
-  - Use appropriate file permissions (0600 for tokens, 0644 for config)
-  - Connection passwords are masked in tool outputs
-  - Never commit config files with real credentials to version control
-  - Consider using connection strings with IAM authentication instead of passwords
+- **Password Encryption**:
+  - All passwords are encrypted using AES-256-GCM encryption before storage
+  - Encryption key is stored in a separate secret file (default: `pgedge-postgres-mcp.secret`)
+  - Secret file is auto-generated on first run with restricted permissions (0600)
+  - Both database passwords and SSL key passwords are encrypted
+  - Passwords are never displayed in tool outputs or logs
+
+- **Connection Storage Security**:
+  - Use appropriate file permissions (0600 for tokens and preferences files)
+  - Connection parameters are stored in YAML files with encrypted passwords
+  - Never commit secret file or preferences files with real credentials to version control
+  - Secret file should be backed up securely and separately from configuration files
+  - Consider using SSL client certificates instead of passwords for authentication
 

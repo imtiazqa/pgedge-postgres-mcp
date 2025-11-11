@@ -19,18 +19,54 @@ This document outlines security considerations and best practices for deploying 
 
 ## Database Credentials
 
+### Password Encryption
+
+The pgEdge MCP Server encrypts all database passwords before storage using **AES-256-GCM encryption**:
+
+- **Encryption Algorithm**: AES-256-GCM (Galois/Counter Mode)
+- **Key Size**: 256 bits (32 bytes)
+- **Authentication**: Authenticated encryption with integrity verification
+- **Nonce**: Random nonce generated for each encryption operation
+- **Storage Format**: Base64-encoded ciphertext
+
+**How it works:**
+
+1. On first run, the server generates a random 256-bit encryption key
+2. The key is stored in a secret file (default: `pgedge-postgres-mcp.secret`) with `0600` permissions
+3. When you save a connection, passwords are encrypted using this key
+4. Encrypted passwords are stored as base64-encoded strings in YAML files
+5. When connecting to a database, passwords are decrypted on-the-fly
+
+**Security properties:**
+
+- Passwords are never stored in plaintext
+- Each encryption uses a unique random nonce (prevents pattern analysis)
+- GCM mode provides authentication (detects tampering)
+- Secret file is protected with strict file permissions (0600)
+- **Server will refuse to start** if the secret file has incorrect permissions (not 0600)
+
 ### Storage
 
 **Best Practices:**
 
-- Use environment variables for connection strings
-- Never commit credentials to version control
-- Use `.gitignore` for config files with credentials
-- Consider using secret management systems (Vault, AWS Secrets Manager, etc.)
+- Saved connections use AES-256-GCM encryption for passwords automatically
+- For runtime connections, use environment variables for connection strings
+- Never commit credentials or secret files to version control
+- Use `.gitignore` for config files with credentials and secret files
+- Back up secret files securely - without them, encrypted passwords cannot be decrypted
+- Consider using secret management systems (Vault, AWS Secrets Manager, etc.) for secret file storage
 
 **Example - Secure Storage:**
 ```bash
-# Use environment variables
+# Use saved connections (passwords encrypted automatically)
+add_database_connection(
+  alias="production",
+  host="prod.example.com",
+  user="dbuser",
+  password="securepassword"  # Will be encrypted before storage
+)
+
+# Or use environment variables for runtime connections
 export POSTGRES_CONNECTION_STRING="postgres://user:password@host/db"
 
 # Or use a secrets manager
@@ -43,10 +79,8 @@ export POSTGRES_CONNECTION_STRING=$(vault kv get -field=connection_string secret
 # Never hardcode in scripts
 ./pgedge-postgres-mcp -db "postgres://admin:SuperSecret123@prod.example.com/maindb"
 
-# Never commit in config files
-# configs/prod.yaml - DO NOT COMMIT THIS
-database:
-  connection_string: "postgres://admin:SuperSecret123@..."
+# Never commit secret files
+git add pgedge-postgres-mcp.secret  # DON'T DO THIS
 ```
 
 ### Connection Security
@@ -529,6 +563,10 @@ sudo systemctl list-timers | grep certbot
     # Config files: 600 (readable/writable by owner only)
     chmod 600 /etc/pgedge-mcp/config.yaml
     chmod 600 /etc/pgedge-mcp/api-tokens.yaml
+    chmod 600 /etc/pgedge-mcp/pgedge-postgres-mcp-prefs.yaml
+
+    # Secret file: 600 (CRITICAL - contains encryption key)
+    chmod 600 /etc/pgedge-mcp/pgedge-postgres-mcp.secret
 
     # Certificates: 600 for keys, 644 for certs
     chmod 600 /etc/pgedge-mcp/certs/server.key
@@ -704,6 +742,9 @@ SELECT pg_reload_conf();
 - [ ] Tokens have expiration dates
 - [ ] Private keys have 600 permissions
 - [ ] Token file has 600 permissions
+- [ ] Secret file has 600 permissions
+- [ ] Preferences file has 600 permissions
+- [ ] Secret file is backed up securely
 - [ ] Server running as non-root user
 - [ ] Firewall rules configured
 - [ ] Reverse proxy with rate limiting

@@ -74,8 +74,24 @@ func SetDatabaseConnectionTool(clientManager *database.ClientManager, connMgr *C
 				if err == nil {
 					savedConn, err := store.Get(connStrOrAlias)
 					if err == nil {
-						// Found saved connection
-						connStr = savedConn.ConnectionString
+						// Found saved connection - decrypt password and build connection string
+						decryptedPassword := ""
+						if savedConn.Password != "" {
+							decryptedPassword, err = connMgr.encryptionKey.Decrypt(savedConn.Password)
+							if err != nil {
+								return mcp.ToolResponse{
+									Content: []mcp.ContentItem{
+										{
+											Type: "text",
+											Text: fmt.Sprintf("Error: Failed to decrypt password: %v", err),
+										},
+									},
+									IsError: true,
+								}, nil
+							}
+						}
+
+						connStr = savedConn.ToConnectionString(decryptedPassword)
 						alias = savedConn.Alias
 
 						// Mark as used (ignore errors as this is non-critical metadata)
