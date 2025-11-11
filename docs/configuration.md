@@ -54,7 +54,7 @@ secret_file: ""  # defaults to pgedge-postgres-mcp.secret, auto-generated if not
 
 ```
 
-A complete example configuration file with detailed comments is available at [pgedge-postgres-mcp.yaml.example](pgedge-postgres-mcp.yaml.example).
+A complete example configuration file with detailed comments is available at [here](config-example.md).
 
 ## User Preferences File
 
@@ -63,6 +63,7 @@ The server uses a separate preferences file for user-modifiable settings. This f
 **Default Location**: `pgedge-postgres-mcp-prefs.yaml` in the same directory as the binary
 
 **Configuration Priority** (highest to lowest):
+
 1. Command line flag: `-preferences-file /path/to/prefs.yaml`
 2. Environment variable: `PGEDGE_PREFERENCES_FILE=/path/to/prefs.yaml`
 3. Configuration file: `preferences_file: /path/to/prefs.yaml`
@@ -99,7 +100,7 @@ connections:
       created_at: 2025-01-15T10:00:00Z
 ```
 
-When authentication is **enabled**, connections are stored per-token in the API tokens file ([api-tokens.yaml](api-tokens.yaml)) instead using the same format.
+When authentication is **enabled**, connections are stored per-token in the API tokens file ([example](api-tokens-example.md)) instead using the same format.
 
 **Security**: Passwords are encrypted before storage using the encryption key from the secret file (`pgedge-postgres-mcp.secret`).
 
@@ -114,10 +115,12 @@ The server provides tools to manage saved database connections:
 - **`set_database_connection`** - Connect using an alias or connection string
 
 **When authentication is enabled:**
-- Connections are stored per-token in the API tokens file ([api-tokens.yaml](api-tokens.yaml))
+
+- Connections are stored per-token in the API tokens file ([example](api-tokens-example.md))
 - Each user has their own isolated set of saved connections
 
 **When authentication is disabled:**
+
 - Connections are stored globally in the preferences file (`pgedge-postgres-mcp-prefs.yaml`)
 - All users share the same set of saved connections
 
@@ -150,6 +153,7 @@ The server uses a separate encryption secret file to store the encryption key us
 **Default Location**: `pgedge-postgres-mcp.secret` in the same directory as the binary
 
 **Configuration Priority** (highest to lowest):
+
 1. Command line flag: `-secret-file /path/to/secret`
 2. Environment variable: `PGEDGE_SECRET_FILE=/path/to/secret`
 3. Configuration file: `secret_file: /path/to/secret`
@@ -182,6 +186,7 @@ base64_encoded_32_byte_key_here==
   - The secret file is created with `0600` permissions (owner read/write only)
   - The server will **refuse to start** if the secret file has incorrect permissions
   - This prevents accidentally exposing the encryption key to other users on the system
+
 - **Backup**: Back up the secret file securely - without it, encrypted passwords cannot be decrypted
 - **Storage**: Store the secret file separately from configuration and preferences files
 - **Never Commit**: Never commit the secret file to version control
@@ -345,6 +350,7 @@ To use this MCP server with Claude Desktop, add it to your MCP configuration fil
 ```
 
 **Important Notes:**
+
 - Replace `/absolute/path/to/pgedge-postgres-mcp` with the full path to your project directory
 - Database connections are configured at runtime via the `set_database_connection` tool for security
 - Claude Desktop's LLM will handle natural language to SQL translation, then this server executes the SQL queries

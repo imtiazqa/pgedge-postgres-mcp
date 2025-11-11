@@ -26,6 +26,7 @@ Copyright:      © 2025, pgEdge, Inc.
 ```
 
 **Use Cases**:
+
 - Verify server version for compatibility and troubleshooting
 - Get quick reference to server information during support requests
 
@@ -142,6 +143,7 @@ SQL executed: ALTER SYSTEM SET max_connections = '200'
 ```
 
 **Security Considerations**:
+
 - Requires PostgreSQL superuser privileges
 - Changes persist across server restarts via `postgresql.auto.conf`
 - Test configuration changes in development before applying to production
@@ -178,7 +180,7 @@ Read a specific resource:
 - `pg://stat/activity` - Current connections and queries
 - `pg://stat/replication` - Replication status
 
-See [resources.md](resources.md) for detailed information about each resource.
+See [Resources](resources.md) for detailed information about each resource.
 ## Connection Management Tools
 
 ### add_database_connection
@@ -201,6 +203,7 @@ Save a database connection with an alias for later use. Connections are persiste
 ```
 
 **Parameters**:
+
 - `alias` (required): Friendly name for the connection (e.g., "production", "staging")
 - `host` (required): Database hostname or IP address
 - `port` (optional, default: 5432): Database port number
@@ -228,11 +231,13 @@ Description: Production database server
 ```
 
 **Security**:
+
 - Passwords are encrypted using AES-256-GCM before storage
 - Encryption key is stored in a separate secret file (default: `pgedge-postgres-mcp.secret`)
 - Secret file is auto-generated on first run with restricted permissions (0600)
 
 **Storage**:
+
 - **With authentication enabled**: Stored per-token in `api-tokens.yaml`
 - **With authentication disabled**: Stored globally in preferences file `pgedge-postgres-mcp-prefs.yaml`
 
@@ -288,6 +293,7 @@ Total: 2 saved connection(s)
 ```
 
 **Security**:
+
 - Passwords are never displayed in output
 - All passwords are stored encrypted using AES-256-GCM encryption
 - Connection details are displayed without sensitive credential information
@@ -312,6 +318,7 @@ Update an existing saved connection. You can update any or all connection parame
 ```
 
 **Parameters**:
+
 - `alias` (required): The alias of the connection to update
 - `host` (optional): New database hostname or IP address
 - `port` (optional): New database port number
@@ -355,6 +362,7 @@ Set the database connection for the current session. Now supports both connectio
 ```
 
 **Behavior**:
+
 - If the input looks like an alias (no `postgres://` or `postgresql://` prefix), it attempts to resolve it from saved connections
 - If the alias is found, it uses the saved connection string
 - If not found, it treats the input as a literal connection string

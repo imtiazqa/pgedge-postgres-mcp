@@ -62,6 +62,7 @@ d) **Check PostgreSQL is running:**
 #### 2. Missing Environment Variables
 
 **Required for LLM functionality:**
+
 - `ANTHROPIC_API_KEY` - Claude API key (if using Anthropic)
 - Or Ollama configuration (if using Ollama)
 
@@ -83,6 +84,7 @@ macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
 ```
 
 **Important:**
+
 - Use absolute paths (not `~` or relative paths)
 - Check for typos in environment variable names
 - Restart Claude Desktop after config changes

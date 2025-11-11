@@ -1,3 +1,4 @@
+```yaml
 # pgEdge PostgreSQL MCP Server Configuration File
 #
 # Configuration Priority (highest to lowest):
@@ -160,3 +161,4 @@ secret_file: ""
 #         token_file: "/etc/pgedge-mcp/tokens.yaml"
 # preferences_file: "/etc/pgedge-mcp/preferences.yaml"
 # secret_file: "/etc/pgedge-mcp/secret.key"
+```

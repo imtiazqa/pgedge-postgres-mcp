@@ -51,7 +51,7 @@ repo_url: https://github.com/pgEdge/pgedge-mcp
 nav:
   - Introduction: index.md
   - Configuration: configuration.md
-  - Tools: tools.md 
+  - Tools: tools.md
   - Resources: resources.md
   - Query Examples: examples.md
   - Deployment: deployment.md
@@ -62,3 +62,5 @@ nav:
   - Testing Guide: testing.md
   - CI/CD Guide: ci_cd.md
   - Troubleshooting Guide: troubleshooting.md
+  - Config File Example: config-example.md
+  - API Tokens Example: api-tokens-example.md

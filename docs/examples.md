@@ -9,9 +9,11 @@ This document provides example natural language queries you can use with the pgE
 - [Configuration Management](#configuration-management)
   - [Viewing Configuration](#viewing-configuration)
   - [Modifying Configuration](#modifying-configuration)
+
 - [Multi-Database Queries](#multi-database-queries)
   - [Temporary Connection (Single Query)](#temporary-connection-single-query)
   - [Setting Default Database](#setting-default-database)
+
 - [Advanced Queries](#advanced-queries)
 - [Connection String Format](#connection-string-format)
 
@@ -73,11 +75,13 @@ The pgEdge MCP server provides access to PostgreSQL configuration parameters thr
 Access the `pg://settings` resource to view all PostgreSQL configuration parameters:
 
 **Resource Access:**
+
 - "Show me the pg://settings resource"
 - "Read the PostgreSQL settings resource"
 - "Display server configuration from pg://settings"
 
 **Example Questions About Configuration:**
+
 - "What is the current value of max_connections?"
 - "Show me all memory-related configuration parameters"
 - "Which settings require a restart to take effect?"
@@ -85,6 +89,7 @@ Access the `pg://settings` resource to view all PostgreSQL configuration paramet
 - "Show me all configuration parameters that have been changed from defaults"
 
 **The resource returns:**
+
 - Current value
 - Default value
 - Reset value (value after next reload)
@@ -216,6 +221,7 @@ Query a different database for a single query while keeping your default connect
 ```
 
 **How it works:**
+
 1. Server connects to the specified database
 2. Loads metadata (if not already cached)
 3. Executes your query against that database
@@ -252,6 +258,7 @@ Permanently switch to a different database for all subsequent queries:
 ```
 
 **How it works:**
+
 1. Server connects to the new database
 2. Loads metadata
 3. Sets it as the default for all future queries
@@ -429,6 +436,7 @@ Try asking Claude to show the generated SQL:
 ### Connection Errors
 
 If a connection fails, verify:
+
 1. Database is accessible from your machine
 2. Credentials are correct
 3. Firewall rules allow connections
@@ -437,6 +445,7 @@ If a connection fails, verify:
 ### Slow Queries
 
 For queries taking too long:
+
 1. Check database indexes
 2. Use read replicas for analytics
 3. Limit result sets: "Show me top 100 users"
