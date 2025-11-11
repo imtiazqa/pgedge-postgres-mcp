@@ -1,4 +1,4 @@
-site_name: The Spock Extension
+site_name: pgEdge Postgres MCP Server
 
 extra_css:
   - stylesheets/extra.css
@@ -46,7 +46,7 @@ extra:
   generator: false
 
 copyright: Copyright &copy; 2025 pgEdge, Inc
-repo_url: https://github.com/pgEdge/spock
+repo_url: https://github.com/pgEdge/pgedge-mcp
 
 nav:
   - Introduction: index.md
