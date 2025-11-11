@@ -7,8 +7,8 @@ A Model Context Protocol (MCP) server written in Go that enables natural languag
 ## Quick Links
 
 - **[Configuration Guide](configuration.md)** - Setup and configuration
-- **[Tools Reference](tools.md)** - All 11 MCP tools
-- **[Resources Reference](resources.md)** - All 12 MCP resources
+- **[Tools Reference](tools.md)** - All 10 MCP tools
+- **[Resources Reference](resources.md)** - All 4 MCP resources
 - **[Query Examples](examples.md)** - Usage examples
 - **[Deployment Guide](deployment.md)** - HTTP/HTTPS deployment
 - **[Troubleshooting](troubleshooting.md)** - Common issues and solutions
@@ -18,8 +18,8 @@ A Model Context Protocol (MCP) server written in Go that enables natural languag
 - ✨ **Natural Language to SQL** - Convert plain English questions into SQL queries
 - 🔒 **Read-Only Protection** - All queries execute in read-only transactions
 - 🤖 **Dual LLM Support** - Anthropic Claude (cloud) or Ollama (local/free)
-- 📊 **12 Resources** - PostgreSQL statistics (pg_stat_*, pg_statio_*)
-- 🛠️ **11 Tools** - Query execution, schema analysis, config management, bloat analysis
+- 📊 **4 Resources** - PostgreSQL statistics (pg_stat_*, pg://system_info, pg://settings)
+- 🛠️ **10 Tools** - Query execution, schema analysis, config management, connection management
 - 🌐 **HTTP/HTTPS Mode** - Direct API access with token authentication
 - 🔐 **Secure** - TLS support, token authentication, read-only enforcement
 
@@ -73,10 +73,10 @@ For detailed setup instructions, see **[Configuration Guide](configuration.md)**
 Complete configuration reference covering config files, environment variables, command-line flags, and Claude Desktop setup for both Anthropic and Ollama providers.
 
 #### [Tools Documentation](tools.md)
-Reference for all 11 MCP tools including `query_database`, `execute_sql`, `get_schema`, `modify_config`, `analyze_bloat`, and more.
+Reference for all 10 MCP tools including `query_database`, `get_schema_info`, `set_pg_configuration`, connection management, and more.
 
 #### [Resources Documentation](resources.md)
-Reference for all 12 MCP resources providing access to PostgreSQL statistics, system information, and I/O metrics.
+Reference for all 4 MCP resources providing access to PostgreSQL statistics, system information, and configuration.
 
 #### [Query Examples](examples.md)
 Comprehensive collection of example queries covering schema discovery, data analysis, system monitoring, and multi-database operations.

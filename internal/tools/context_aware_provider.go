@@ -43,7 +43,6 @@ type ContextAwareProvider struct {
 
 // registerStatelessTools registers all stateless tools (those that don't require a database client)
 func (p *ContextAwareProvider) registerStatelessTools(registry *Registry) {
-	registry.Register("recommend_pg_configuration", RecommendPGConfigurationTool())
 	registry.Register("server_info", ServerInfoTool(p.serverInfo))
 	registry.Register("set_database_connection", SetDatabaseConnectionTool(p.clientManager, p.connMgr, p.preferencesPath))
 	// Note: read_resource tool provides backward compatibility for resource access
@@ -62,11 +61,6 @@ func (p *ContextAwareProvider) registerDatabaseTools(registry *Registry, client 
 	registry.Register("query_database", QueryDatabaseTool(client, p.llmClient))
 	registry.Register("get_schema_info", GetSchemaInfoTool(client))
 	registry.Register("set_pg_configuration", SetPGConfigurationTool(client))
-	registry.Register("analyze_bloat", AnalyzeBloatTool(client))
-	registry.Register("read_server_log", ReadServerLogTool(client))
-	registry.Register("read_postgresql_conf", ReadPostgresqlConfTool(client))
-	registry.Register("read_pg_hba_conf", ReadPgHbaConfTool(client))
-	registry.Register("read_pg_ident_conf", ReadPgIdentConfTool(client))
 }
 
 // NewContextAwareProvider creates a new context-aware tool provider

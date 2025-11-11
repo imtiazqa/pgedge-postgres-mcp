@@ -89,19 +89,18 @@ func TestContextAwareProvider_List(t *testing.T) {
 	// List tools
 	tools := provider.List()
 
-	// Should have 11 tools registered
+	// Should have 10 tools registered
 	expectedTools := []string{
 		"query_database",
 		"get_schema_info",
 		"set_pg_configuration",
-		"recommend_pg_configuration",
-		"analyze_bloat",
-		"read_server_log",
-		"read_postgresql_conf",
-		"read_pg_hba_conf",
-		"read_pg_ident_conf",
-		"read_resource",
 		"server_info",
+		"set_database_connection",
+		"read_resource",
+		"add_database_connection",
+		"remove_database_connection",
+		"list_database_connections",
+		"edit_database_connection",
 	}
 
 	if len(tools) != len(expectedTools) {

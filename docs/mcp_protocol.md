@@ -70,32 +70,27 @@ The server advertises these capabilities during initialization:
 
 Ten callable functions for database interaction and management:
 
-1. **query_database** - Execute natural language queries against PostgreSQL
-2. **get_schema_info** - Get detailed database schema information
-3. **set_pg_configuration** - Modify PostgreSQL configuration parameters
-4. **recommend_pg_configuration** - Get baseline configuration recommendations
-5. **analyze_bloat** - Analyze tables and indexes for bloat
-6. **read_server_log** - Read PostgreSQL server log files
-7. **read_postgresql_conf** - Read postgresql.conf configuration
-8. **read_pg_hba_conf** - Read pg_hba.conf authentication config
-9. **read_pg_ident_conf** - Read pg_ident.conf user mapping config
-10. **read_resource** - Read MCP resources by URI
+1. **server_info** - Get MCP server information
+2. **query_database** - Execute natural language queries against PostgreSQL
+3. **get_schema_info** - Get detailed database schema information
+4. **set_pg_configuration** - Modify PostgreSQL configuration parameters
+5. **read_resource** - Read MCP resources by URI
+6. **add_database_connection** - Save database connection with alias
+7. **remove_database_connection** - Remove saved database connection
+8. **list_database_connections** - List all saved database connections
+9. **edit_database_connection** - Edit existing database connection
+10. **set_database_connection** - Set connection string for current session
 
 For detailed tool documentation, see [Tools Documentation](tools.md).
 
 ### Resources
 
-Nine read-only resources for system information and statistics:
+Four read-only resources for system information and statistics:
 
 1. **pg://system_info** - PostgreSQL version and system information
 2. **pg://settings** - Server configuration parameters
 3. **pg://stat/activity** - Current activity and connections
-4. **pg://stat/database** - Database-level statistics
-5. **pg://stat/user_tables** - Table-level statistics
-6. **pg://stat/user_indexes** - Index-level statistics
-7. **pg://stat/replication** - Replication status
-8. **pg://stat/bgwriter** - Background writer statistics
-9. **pg://stat/wal** - WAL statistics (PostgreSQL 14+)
+4. **pg://stat/replication** - Replication status
 
 For detailed resource documentation, see [Resources Documentation](resources.md).
 

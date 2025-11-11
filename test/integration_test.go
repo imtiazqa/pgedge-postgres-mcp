@@ -364,8 +364,8 @@ func testListTools(t *testing.T, server *MCPServer) {
 	}
 
 	// After calling set_database_connection, all tools should be available
-	if len(tools) < 16 {
-		t.Errorf("Expected at least 16 tools after database connection, got %d", len(tools))
+	if len(tools) < 10 {
+		t.Errorf("Expected at least 10 tools after database connection, got %d", len(tools))
 	}
 
 	// Verify expected tools exist
@@ -373,12 +373,6 @@ func testListTools(t *testing.T, server *MCPServer) {
 		"query_database":             false,
 		"get_schema_info":            false,
 		"set_pg_configuration":       false,
-		"recommend_pg_configuration": false,
-		"analyze_bloat":              false,
-		"read_server_log":            false,
-		"read_postgresql_conf":       false,
-		"read_pg_hba_conf":           false,
-		"read_pg_ident_conf":         false,
 		"server_info":                false,
 		"set_database_connection":    false,
 		"read_resource":              false,
@@ -430,21 +424,16 @@ func testListResources(t *testing.T, server *MCPServer) {
 		t.Fatal("resources array not found in result")
 	}
 
-	if len(resources) < 9 {
-		t.Errorf("Expected at least 9 resources, got %d", len(resources))
+	if len(resources) < 4 {
+		t.Errorf("Expected at least 4 resources, got %d", len(resources))
 	}
 
 	// Verify expected resources exist
 	expectedResources := map[string]bool{
-		"pg://settings":            false,
-		"pg://system_info":         false,
-		"pg://stat/activity":       false,
-		"pg://stat/database":       false,
-		"pg://stat/user_tables":    false,
-		"pg://stat/user_indexes":   false,
-		"pg://stat/replication":    false,
-		"pg://stat/bgwriter":       false,
-		"pg://stat/wal":            false,
+		"pg://settings":       false,
+		"pg://system_info":    false,
+		"pg://stat/activity":  false,
+		"pg://stat/replication": false,
 	}
 
 	for _, resource := range resources {

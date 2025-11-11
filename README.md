@@ -18,8 +18,8 @@ A Model Context Protocol (MCP) server that enables **natural language queries** 
 - ✨ **Natural Language to SQL** - Ask questions in plain English, get SQL results
 - 🔒 **Read-Only Protection** - All queries run in read-only transactions
 - 🤖 **Dual LLM Support** - Use Anthropic Claude (cloud) or Ollama (local/free)
-- 📊 **12 Resources** - Access PostgreSQL statistics (pg_stat_*, pg_statio_*)
-- 🛠️ **11 Tools** - Query execution, schema analysis, config management, bloat analysis
+- 📊 **4 Resources** - Access PostgreSQL statistics and settings
+- 🛠️ **10 Tools** - Query execution, schema analysis, config management, connection management
 - 🌐 **HTTP/HTTPS Mode** - Direct API access with token authentication
 - 🔐 **Secure** - TLS support, token auth, read-only enforcement
 
@@ -158,8 +158,8 @@ curl -X POST http://localhost:8080/mcp/v1 \
 
 ### Essential Guides
 - **[Configuration Guide](docs/configuration.md)** - Config file, environment variables, CLI flags
-- **[Tools Documentation](docs/tools.md)** - All 11 MCP tools reference
-- **[Resources Documentation](docs/resources.md)** - All 12 MCP resources reference
+- **[Tools Documentation](docs/tools.md)** - All 10 MCP tools reference
+- **[Resources Documentation](docs/resources.md)** - All 4 MCP resources reference
 - **[Query Examples](docs/examples.md)** - Comprehensive usage examples
 - **[Deployment Guide](docs/deployment.md)** - HTTP/HTTPS production deployment
 - **[Authentication Guide](docs/authentication.md)** - API token management

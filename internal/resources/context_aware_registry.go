@@ -57,57 +57,9 @@ func (r *ContextAwareRegistry) List() []mcp.Resource {
 			MimeType:    "application/json",
 		},
 		{
-			URI:         URIStatDatabase,
-			Name:        "PostgreSQL Database Statistics",
-			Description: "Provides cumulative statistics for each database including transaction counts, block reads/writes, tuple operations, conflicts, and deadlocks. Essential for understanding database-level performance patterns and identifying I/O bottlenecks.",
-			MimeType:    "application/json",
-		},
-		{
-			URI:         URIStatUserTables,
-			Name:        "PostgreSQL Table Statistics",
-			Description: "Shows statistics for user tables including sequential and index scans, tuple operations (inserts/updates/deletes), and vacuum/analyze activity. Critical for identifying tables that need optimization or indexing improvements.",
-			MimeType:    "application/json",
-		},
-		{
-			URI:         URIStatUserIndexes,
-			Name:        "PostgreSQL Index Statistics",
-			Description: "Provides statistics about index usage including scan counts and tuple operations. Essential for identifying unused indexes that can be dropped and finding tables that might benefit from additional indexes. Helps optimize query performance and reduce storage overhead.",
-			MimeType:    "application/json",
-		},
-		{
 			URI:         URIStatReplication,
 			Name:        "PostgreSQL Replication Status",
 			Description: "Shows the status of replication connections from this primary server including WAL sender processes, replication lag, and sync state. Empty if the server is not a replication primary or has no active replicas. Critical for monitoring replication health and identifying lag issues.",
-			MimeType:    "application/json",
-		},
-		{
-			URI:         URIStatBgwriter,
-			Name:        "PostgreSQL Background Writer Statistics",
-			Description: "Provides statistics about the background writer process including checkpoints, buffer writes, and backend fsync operations. Useful for tuning checkpoint and background writer settings for optimal I/O performance. High values of checkpoints_req or buffers_backend may indicate configuration issues.",
-			MimeType:    "application/json",
-		},
-		{
-			URI:         URIStatWAL,
-			Name:        "PostgreSQL WAL Statistics",
-			Description: "Provides Write-Ahead Log (WAL) statistics including WAL records, FPI, bytes, buffers, and sync operations. Available in PostgreSQL 14 and later. Useful for understanding WAL generation patterns, archive performance, and transaction log activity. Returns version error for PostgreSQL 13 and earlier.",
-			MimeType:    "application/json",
-		},
-		{
-			URI:         URIStatIOUserTables,
-			Name:        "PostgreSQL Table I/O Statistics",
-			Description: "Shows disk block I/O statistics for user tables including heap, index, TOAST, and TOAST index blocks. Tracks blocks read from disk vs. cache hits. Essential for identifying I/O bottlenecks and cache efficiency. High read counts indicate potential need for more memory or query optimization.",
-			MimeType:    "application/json",
-		},
-		{
-			URI:         URIStatIOUserIndexes,
-			Name:        "PostgreSQL Index I/O Statistics",
-			Description: "Shows disk block I/O statistics for user indexes. Tracks blocks read from disk vs. cache hits for each index. Essential for identifying indexes causing high I/O load and evaluating cache effectiveness. Helps determine if shared_buffers should be increased or if indexes need optimization.",
-			MimeType:    "application/json",
-		},
-		{
-			URI:         URIStatIOUserSequences,
-			Name:        "PostgreSQL Sequence I/O Statistics",
-			Description: "Shows disk block I/O statistics for user sequences. Tracks blocks read from disk vs. cache hits for sequence objects. Sequences should typically have very high cache hit ratios since they're frequently accessed. Low hit ratios may indicate cache pressure or excessive sequence usage patterns.",
 			MimeType:    "application/json",
 		},
 	}
@@ -138,24 +90,8 @@ func (r *ContextAwareRegistry) Read(ctx context.Context, uri string) (mcp.Resour
 		resource = PGSystemInfoResource(dbClient)
 	case URIStatActivity:
 		resource = PGStatActivityResource(dbClient)
-	case URIStatDatabase:
-		resource = PGStatDatabaseResource(dbClient)
-	case URIStatUserTables:
-		resource = PGStatUserTablesResource(dbClient)
-	case URIStatUserIndexes:
-		resource = PGStatUserIndexesResource(dbClient)
 	case URIStatReplication:
 		resource = PGStatReplicationResource(dbClient)
-	case URIStatBgwriter:
-		resource = PGStatBgwriterResource(dbClient)
-	case URIStatWAL:
-		resource = PGStatWALResource(dbClient)
-	case URIStatIOUserTables:
-		resource = PGStatIOUserTablesResource(dbClient)
-	case URIStatIOUserIndexes:
-		resource = PGStatIOUserIndexesResource(dbClient)
-	case URIStatIOUserSequences:
-		resource = PGStatIOUserSequencesResource(dbClient)
 	default:
 		return mcp.ResourceContent{
 			URI: uri,

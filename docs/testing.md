@@ -178,30 +178,15 @@ go test ./internal/resources -v -run "Integration"
 
 The integration test suite covers:
 
-1. **All 12 Resources**:
+1. **All 4 Resources**:
 
     - pg://settings
     - pg://system_info
     - pg://stat/activity
-    - pg://stat/database
-    - pg://stat/user_tables
-    - pg://stat/user_indexes
     - pg://stat/replication
-    - pg://stat/bgwriter (with PG17 compatibility)
-    - pg://stat/wal (PG14+ only)
-    - pg://statio/user_tables (with NULL handling)
-    - pg://statio/user_indexes
-    - pg://statio/user_sequences
 
-2. **Version-Specific Behavior**:
+2. **Edge Cases**:
 
-    - PostgreSQL 17: pg_stat_checkpointer split from pg_stat_bgwriter
-    - PostgreSQL 14+: pg_stat_wal availability
-    - Older versions: Graceful degradation
-
-3. **Edge Cases**:
-
-    - Tables without TOAST (NULL values)
     - Empty result sets
     - Missing or unavailable views
 
@@ -212,8 +197,8 @@ The integration test suite covers:
 Testing against PostgreSQL version 17
 === RUN   TestAllResources_Integration/pg://settings
     integration_test.go:XX: ✓ pg://settings: Successfully executed and returned valid JSON
-=== RUN   TestAllResources_Integration/pg://stat/bgwriter
-    integration_test.go:XX: ✓ pg://stat/bgwriter: Successfully executed and returned valid JSON
+=== RUN   TestAllResources_Integration/pg://stat/activity
+    integration_test.go:XX: ✓ pg://stat/activity: Successfully executed and returned valid JSON
 ...
 PASS
 ```
