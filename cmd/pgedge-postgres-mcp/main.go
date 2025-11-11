@@ -20,7 +20,6 @@ import (
 	"pgedge-postgres-mcp/internal/auth"
 	"pgedge-postgres-mcp/internal/config"
 	"pgedge-postgres-mcp/internal/database"
-	"pgedge-postgres-mcp/internal/llm"
 	"pgedge-postgres-mcp/internal/mcp"
 	"pgedge-postgres-mcp/internal/resources"
 	"pgedge-postgres-mcp/internal/tools"
@@ -43,11 +42,6 @@ func main() {
 
 	// Command line flags
 	configFile := flag.String("config", defaultConfigPath, "Path to configuration file")
-	llmProvider := flag.String("llm-provider", "", "LLM provider: 'anthropic' or 'ollama' (overrides config file)")
-	apiKey := flag.String("api-key", "", "Anthropic API key (overrides config file)")
-	model := flag.String("model", "", "Anthropic model to use (overrides config file)")
-	ollamaURL := flag.String("ollama-url", "", "Ollama API base URL (overrides config file)")
-	ollamaModel := flag.String("ollama-model", "", "Ollama model name (overrides config file)")
 	httpMode := flag.Bool("http", false, "Enable HTTP transport mode (default: stdio)")
 	httpAddr := flag.String("addr", "", "HTTP server address")
 	tlsMode := flag.Bool("tls", false, "Enable TLS/HTTPS (requires -http)")
@@ -122,21 +116,6 @@ func main() {
 		case "config":
 			cliFlags.ConfigFileSet = true
 			cliFlags.ConfigFile = *configFile
-		case "llm-provider":
-			cliFlags.LLMProviderSet = true
-			cliFlags.LLMProvider = *llmProvider
-		case "api-key":
-			cliFlags.APIKeySet = true
-			cliFlags.APIKey = *apiKey
-		case "model":
-			cliFlags.ModelSet = true
-			cliFlags.Model = *model
-		case "ollama-url":
-			cliFlags.OllamaBaseURLSet = true
-			cliFlags.OllamaBaseURL = *ollamaURL
-		case "ollama-model":
-			cliFlags.OllamaModelSet = true
-			cliFlags.OllamaModel = *ollamaModel
 		case "http":
 			cliFlags.HTTPEnabledSet = true
 			cliFlags.HTTPEnabled = *httpMode
@@ -248,18 +227,6 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Loaded %d API token(s) from %s\n", len(tokenStore.Tokens), cfg.HTTP.Auth.TokenFile)
 	}
 
-	// Create LLM client with provider configuration
-	var llmClient *llm.Client
-	switch cfg.LLM.Provider {
-	case "anthropic":
-		llmClient = llm.NewClient("anthropic", cfg.Anthropic.APIKey, "https://api.anthropic.com/v1", cfg.Anthropic.Model)
-	case "ollama":
-		llmClient = llm.NewClient("ollama", "", cfg.Ollama.BaseURL, cfg.Ollama.Model)
-	default:
-		fmt.Fprintf(os.Stderr, "ERROR: Invalid LLM provider: %s\n", cfg.LLM.Provider)
-		os.Exit(1)
-	}
-
 	// Create a cancellable context for graceful shutdown of background goroutines
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel() // Ensure background goroutines are stopped on exit
@@ -269,11 +236,9 @@ func main() {
 
 	// Prepare server info
 	serverInfo := tools.ServerInfo{
-		Name:     serverName,
-		Company:  serverCompany,
-		Version:  serverVersion,
-		Provider: cfg.LLM.Provider,
-		Model:    getModelName(cfg),
+		Name:    serverName,
+		Company: serverCompany,
+		Version: serverVersion,
 	}
 
 	// Use context-aware providers for runtime database connections
@@ -284,7 +249,7 @@ func main() {
 	contextAwareResourceProvider := resources.NewContextAwareRegistry(clientManager, authEnabled)
 
 	// Context-aware tool provider
-	contextAwareToolProvider := tools.NewContextAwareProvider(clientManager, llmClient, contextAwareResourceProvider, authEnabled, nil, serverInfo, tokenStore, cfg, prefs, cfg.PreferencesFile)
+	contextAwareToolProvider := tools.NewContextAwareProvider(clientManager, contextAwareResourceProvider, authEnabled, nil, serverInfo, tokenStore, cfg, prefs, cfg.PreferencesFile)
 	if err := contextAwareToolProvider.RegisterTools(ctx); err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: Failed to register tools: %v\n", err)
 		os.Exit(1)
@@ -384,18 +349,6 @@ func main() {
 		if err := clientManager.CloseAll(); err != nil {
 			fmt.Fprintf(os.Stderr, "WARNING: Error closing database connections: %v\n", err)
 		}
-	}
-}
-
-// getModelName returns the model name based on the LLM provider
-func getModelName(cfg *config.Config) string {
-	switch cfg.LLM.Provider {
-	case "anthropic":
-		return cfg.Anthropic.Model
-	case "ollama":
-		return cfg.Ollama.Model
-	default:
-		return "unknown"
 	}
 }
 

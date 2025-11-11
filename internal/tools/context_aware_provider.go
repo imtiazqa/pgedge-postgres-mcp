@@ -18,7 +18,6 @@ import (
 	"pgedge-postgres-mcp/internal/auth"
 	"pgedge-postgres-mcp/internal/config"
 	"pgedge-postgres-mcp/internal/database"
-	"pgedge-postgres-mcp/internal/llm"
 	"pgedge-postgres-mcp/internal/mcp"
 	"pgedge-postgres-mcp/internal/resources"
 )
@@ -28,7 +27,6 @@ import (
 type ContextAwareProvider struct {
 	baseRegistry   *Registry                    // Registry for tool definitions (List operation)
 	clientManager  *database.ClientManager
-	llmClient      *llm.Client
 	resourceReg    *resources.ContextAwareRegistry
 	authEnabled    bool
 	fallbackClient *database.Client             // Used when auth is disabled
@@ -58,20 +56,19 @@ func (p *ContextAwareProvider) registerStatelessTools(registry *Registry) {
 
 // registerDatabaseTools registers all database-dependent tools
 func (p *ContextAwareProvider) registerDatabaseTools(registry *Registry, client *database.Client) {
-	registry.Register("query_database", QueryDatabaseTool(client, p.llmClient))
+	registry.Register("query_database", QueryDatabaseTool(client))
 	registry.Register("get_schema_info", GetSchemaInfoTool(client))
 	registry.Register("set_pg_configuration", SetPGConfigurationTool(client))
 }
 
 // NewContextAwareProvider creates a new context-aware tool provider
-func NewContextAwareProvider(clientManager *database.ClientManager, llmClient *llm.Client, resourceReg *resources.ContextAwareRegistry, authEnabled bool, fallbackClient *database.Client, serverInfo ServerInfo, tokenStore *auth.TokenStore, cfg *config.Config, prefs *config.Preferences, preferencesPath string) *ContextAwareProvider {
+func NewContextAwareProvider(clientManager *database.ClientManager, resourceReg *resources.ContextAwareRegistry, authEnabled bool, fallbackClient *database.Client, serverInfo ServerInfo, tokenStore *auth.TokenStore, cfg *config.Config, prefs *config.Preferences, preferencesPath string) *ContextAwareProvider {
 	// Create connection manager
 	connMgr := NewConnectionManager(tokenStore, cfg, prefs, authEnabled)
 
 	provider := &ContextAwareProvider{
 		baseRegistry:     NewRegistry(),
 		clientManager:    clientManager,
-		llmClient:        llmClient,
 		resourceReg:      resourceReg,
 		authEnabled:      authEnabled,
 		fallbackClient:   fallbackClient,

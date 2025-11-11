@@ -18,22 +18,21 @@ import (
 	"strings"
 
 	"pgedge-postgres-mcp/internal/database"
-	"pgedge-postgres-mcp/internal/llm"
 	"pgedge-postgres-mcp/internal/mcp"
 )
 
 // QueryDatabaseTool creates the query_database tool
-func QueryDatabaseTool(dbClient *database.Client, llmClient *llm.Client) Tool {
+func QueryDatabaseTool(dbClient *database.Client) Tool {
 	return Tool{
 		Definition: mcp.Tool{
 			Name:        "query_database",
-			Description: "Execute a natural language query against the PostgreSQL database. The system will analyze the database schema (including table names, column names, data types, and comments from pg_description) to understand the structure and convert your natural language query into SQL. You can also specify an alternative database connection by including 'at postgres://...' in your query, or set a new default connection with 'set default database to postgres://...'.",
+			Description: "Execute a SQL query against the PostgreSQL database in a read-only transaction. All queries run in read-only mode to prevent data modifications. You can specify an alternative database connection by including 'at postgres://...' in your query, or set a new default connection with 'set default database to postgres://...'.",
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]interface{}{
 					"query": map[string]interface{}{
 						"type":        "string",
-						"description": "Natural language question about the data in the database. Can include connection strings like 'Show users at postgres://host/db' or 'set default database to postgres://host/db'.",
+						"description": "SQL query to execute against the database. All queries run in read-only transactions. Can include connection strings like 'SELECT * FROM users at postgres://host/db' or 'set default database to postgres://host/db'.",
 					},
 				},
 				Required: []string{"query"},
@@ -94,20 +93,8 @@ func QueryDatabaseTool(dbClient *database.Client, llmClient *llm.Client) Tool {
 				return mcp.NewToolError(mcp.DatabaseNotReadyError)
 			}
 
-			// Generate schema context for the target connection
-			schemaContext := generateSchemaContext(dbClient.GetMetadataFor(connStr))
-
-			// Check if LLM is configured
-			if !llmClient.IsConfigured() {
-				return mcp.NewToolError(fmt.Sprintf("%sNatural language query: %s\n\nDatabase Schema Context:\n%s\n\nERROR: ANTHROPIC_API_KEY environment variable is not set.\n\nTo enable natural language to SQL conversion, please set the ANTHROPIC_API_KEY environment variable.\nYou can optionally set ANTHROPIC_MODEL to specify a different model (default: claude-sonnet-4-5).",
-					connectionMessage, queryCtx.CleanedQuery, schemaContext))
-			}
-
-			// Convert natural language to SQL using the cleaned query
-			sqlQuery, err := llmClient.ConvertNLToSQL(queryCtx.CleanedQuery, schemaContext)
-			if err != nil {
-				return mcp.NewToolError(fmt.Sprintf("%sFailed to convert natural language to SQL: %v", connectionMessage, err))
-			}
+			// Use the cleaned query as SQL
+			sqlQuery := strings.TrimSpace(queryCtx.CleanedQuery)
 
 			// Execute the SQL query on the appropriate connection in a read-only transaction
 			ctx := context.Background()
@@ -137,7 +124,7 @@ func QueryDatabaseTool(dbClient *database.Client, llmClient *llm.Client) Tool {
 
 			rows, err := tx.Query(ctx, sqlQuery)
 			if err != nil {
-				return mcp.NewToolError(fmt.Sprintf("%sGenerated SQL:\n%s\n\nError executing query: %v", connectionMessage, sqlQuery, err))
+				return mcp.NewToolError(fmt.Sprintf("%sSQL Query:\n%s\n\nError executing query: %v", connectionMessage, sqlQuery, err))
 			}
 			defer rows.Close()
 
@@ -182,36 +169,10 @@ func QueryDatabaseTool(dbClient *database.Client, llmClient *llm.Client) Tool {
 			if connectionMessage != "" {
 				sb.WriteString(connectionMessage)
 			}
-			sb.WriteString(fmt.Sprintf("Natural Language Query: %s\n\n", queryCtx.CleanedQuery))
-			sb.WriteString(fmt.Sprintf("Generated SQL:\n%s\n\n", sqlQuery))
+			sb.WriteString(fmt.Sprintf("SQL Query:\n%s\n\n", sqlQuery))
 			sb.WriteString(fmt.Sprintf("Results (%d rows):\n%s", len(results), string(resultsJSON)))
 
 			return mcp.NewToolSuccess(sb.String())
 		},
 	}
-}
-
-func generateSchemaContext(metadata map[string]database.TableInfo) string {
-	var sb strings.Builder
-
-	for key, table := range metadata {
-		sb.WriteString(fmt.Sprintf("\n%s (%s)\n", key, table.TableType))
-		if table.Description != "" {
-			sb.WriteString(fmt.Sprintf("  Description: %s\n", table.Description))
-		}
-		sb.WriteString("  Columns:\n")
-
-		for _, col := range table.Columns {
-			sb.WriteString(fmt.Sprintf("    - %s (%s)", col.ColumnName, col.DataType))
-			if col.IsNullable == "YES" {
-				sb.WriteString(" NULL")
-			}
-			if col.Description != "" {
-				sb.WriteString(fmt.Sprintf(" - %s", col.Description))
-			}
-			sb.WriteString("\n")
-		}
-	}
-
-	return sb.String()
 }

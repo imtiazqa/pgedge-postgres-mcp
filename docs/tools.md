@@ -1,12 +1,12 @@
 # MCP Tools
 
-The pgEdge MCP Server provides ten tools that enable natural language database interaction, configuration management, connection management, and server information.
+The pgEdge MCP Server provides ten tools that enable SQL database interaction, configuration management, connection management, and server information.
 
 ## Available Tools
 
 ### server_info
 
-Get information about the MCP server itself, including server name, company, version, LLM provider, and model being used.
+Get information about the MCP server itself, including server name, company, and version.
 
 **Input**: None (no parameters required)
 
@@ -19,53 +19,46 @@ Server Name:    pgEdge PostgreSQL MCP Server
 Company:        pgEdge, Inc.
 Version:        1.0.0
 
-LLM Provider:   anthropic
-LLM Model:      claude-sonnet-4-5
-
-Description:    An MCP (Model Context Protocol) server that enables AI assistants to interact with PostgreSQL databases through natural language queries and schema exploration.
+Description:    An MCP (Model Context Protocol) server that enables AI assistants to interact with PostgreSQL databases through SQL queries and schema exploration.
 
 License:        PostgreSQL License
 Copyright:      © 2025, pgEdge, Inc.
 ```
 
 **Use Cases**:
-- Check which LLM provider and model the server is configured to use
 - Verify server version for compatibility and troubleshooting
 - Get quick reference to server information during support requests
 
 ### query_database
 
-Executes a natural language query against the PostgreSQL database. Supports dynamic connection strings to query different databases.
+Executes a SQL query against the PostgreSQL database. Supports dynamic connection strings to query different databases.
 
 **Input Examples**:
 
 Basic query:
 ```json
 {
-  "query": "Show me all users created in the last week"
+  "query": "SELECT * FROM users WHERE created_at >= NOW() - INTERVAL '7 days' ORDER BY created_at DESC"
 }
 ```
 
 Query with temporary connection:
 ```json
 {
-  "query": "Show me table list at postgres://localhost:5433/other_db"
+  "query": "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AT postgres://localhost:5433/other_db"
 }
 ```
 
 Set new default connection:
 ```json
 {
-  "query": "Set default database to postgres://localhost/analytics"
+  "query": "SET DEFAULT DATABASE postgres://localhost/analytics"
 }
 ```
 
 **Output**:
 ```
-Natural Language Query: Show me all users created in the last week
-
-Generated SQL:
-SELECT * FROM users WHERE created_at >= NOW() - INTERVAL '7 days' ORDER BY created_at DESC
+SQL Query: SELECT * FROM users WHERE created_at >= NOW() - INTERVAL '7 days' ORDER BY created_at DESC
 
 Results (15 rows):
 [
@@ -78,6 +71,8 @@ Results (15 rows):
   ...
 ]
 ```
+
+**Note**: When using MCP clients like Claude Desktop, the client's LLM can translate natural language into SQL queries that are then executed by this server.
 
 **Security**: All queries are executed in read-only transactions using `SET TRANSACTION READ ONLY`, preventing INSERT, UPDATE, DELETE, and other data modifications. Write operations will fail with "cannot execute ... in a read-only transaction".
 

@@ -20,37 +20,11 @@ import (
 
 // Config represents the complete server configuration
 type Config struct {
-	// LLM provider configuration
-	LLM LLMConfig `yaml:"llm"`
-
-	// Anthropic API configuration (deprecated, use LLM.Provider)
-	Anthropic AnthropicConfig `yaml:"anthropic"`
-
-	// Ollama configuration
-	Ollama OllamaConfig `yaml:"ollama"`
-
 	// HTTP server configuration
 	HTTP HTTPConfig `yaml:"http"`
 
 	// Preferences file path
 	PreferencesFile string `yaml:"preferences_file"`
-}
-
-// LLMConfig holds LLM provider selection
-type LLMConfig struct {
-	Provider string `yaml:"provider"` // "anthropic" or "ollama"
-}
-
-// AnthropicConfig holds Anthropic API settings
-type AnthropicConfig struct {
-	APIKey string `yaml:"api_key"`
-	Model  string `yaml:"model"`
-}
-
-// OllamaConfig holds Ollama settings
-type OllamaConfig struct {
-	BaseURL string `yaml:"base_url"` // Ollama API URL (e.g., http://localhost:11434)
-	Model   string `yaml:"model"`    // Model name (e.g., qwen2.5-coder:32b)
 }
 
 // HTTPConfig holds HTTP/HTTPS server settings
@@ -118,22 +92,6 @@ type CLIFlags struct {
 	ConfigFileSet bool
 	ConfigFile    string
 
-	// LLM provider flags
-	LLMProvider    string
-	LLMProviderSet bool
-
-	// Anthropic flags
-	APIKey    string
-	APIKeySet bool
-	Model     string
-	ModelSet  bool
-
-	// Ollama flags
-	OllamaBaseURL    string
-	OllamaBaseURLSet bool
-	OllamaModel      string
-	OllamaModelSet   bool
-
 	// HTTP flags
 	HTTPEnabled    bool
 	HTTPEnabledSet bool
@@ -164,17 +122,6 @@ type CLIFlags struct {
 // defaultConfig returns configuration with hard-coded defaults
 func defaultConfig() *Config {
 	return &Config{
-		LLM: LLMConfig{
-			Provider: "anthropic", // Default to Anthropic
-		},
-		Anthropic: AnthropicConfig{
-			APIKey: "",
-			Model:  "claude-sonnet-4-5",
-		},
-		Ollama: OllamaConfig{
-			BaseURL: "http://localhost:11434",
-			Model:   "",
-		},
 		HTTP: HTTPConfig{
 			Enabled: false,
 			Address: ":8080",
@@ -210,27 +157,6 @@ func loadConfigFile(path string) (*Config, error) {
 
 // mergeConfig merges source config into dest, only overriding non-zero values
 func mergeConfig(dest, src *Config) {
-	// LLM
-	if src.LLM.Provider != "" {
-		dest.LLM.Provider = src.LLM.Provider
-	}
-
-	// Anthropic
-	if src.Anthropic.APIKey != "" {
-		dest.Anthropic.APIKey = src.Anthropic.APIKey
-	}
-	if src.Anthropic.Model != "" {
-		dest.Anthropic.Model = src.Anthropic.Model
-	}
-
-	// Ollama
-	if src.Ollama.BaseURL != "" {
-		dest.Ollama.BaseURL = src.Ollama.BaseURL
-	}
-	if src.Ollama.Model != "" {
-		dest.Ollama.Model = src.Ollama.Model
-	}
-
 	// HTTP
 	if src.HTTP.Enabled {
 		dest.HTTP.Enabled = src.HTTP.Enabled
@@ -284,17 +210,6 @@ func setBoolFromEnv(dest *bool, key string) {
 // applyEnvironmentVariables overrides config with environment variables if they exist
 // All environment variables use the PGEDGE_ prefix to avoid collisions
 func applyEnvironmentVariables(cfg *Config) {
-	// LLM Provider
-	setStringFromEnv(&cfg.LLM.Provider, "PGEDGE_LLM_PROVIDER")
-
-	// Anthropic
-	setStringFromEnv(&cfg.Anthropic.APIKey, "PGEDGE_ANTHROPIC_API_KEY")
-	setStringFromEnv(&cfg.Anthropic.Model, "PGEDGE_ANTHROPIC_MODEL")
-
-	// Ollama
-	setStringFromEnv(&cfg.Ollama.BaseURL, "PGEDGE_OLLAMA_BASE_URL")
-	setStringFromEnv(&cfg.Ollama.Model, "PGEDGE_OLLAMA_MODEL")
-
 	// HTTP
 	setBoolFromEnv(&cfg.HTTP.Enabled, "PGEDGE_HTTP_ENABLED")
 	setStringFromEnv(&cfg.HTTP.Address, "PGEDGE_HTTP_ADDRESS")
@@ -315,27 +230,6 @@ func applyEnvironmentVariables(cfg *Config) {
 
 // applyCLIFlags overrides config with CLI flags if they were explicitly set
 func applyCLIFlags(cfg *Config, flags CLIFlags) {
-	// LLM Provider
-	if flags.LLMProviderSet {
-		cfg.LLM.Provider = flags.LLMProvider
-	}
-
-	// Anthropic
-	if flags.APIKeySet {
-		cfg.Anthropic.APIKey = flags.APIKey
-	}
-	if flags.ModelSet {
-		cfg.Anthropic.Model = flags.Model
-	}
-
-	// Ollama
-	if flags.OllamaBaseURLSet {
-		cfg.Ollama.BaseURL = flags.OllamaBaseURL
-	}
-	if flags.OllamaModelSet {
-		cfg.Ollama.Model = flags.OllamaModel
-	}
-
 	// HTTP
 	if flags.HTTPEnabledSet {
 		cfg.HTTP.Enabled = flags.HTTPEnabled
@@ -374,26 +268,6 @@ func applyCLIFlags(cfg *Config, flags CLIFlags) {
 
 // validateConfig checks if the configuration is valid
 func validateConfig(cfg *Config) error {
-	// Validate LLM provider configuration
-	switch cfg.LLM.Provider {
-	case "anthropic":
-		if cfg.Anthropic.APIKey == "" {
-			return fmt.Errorf("anthropic API key is required when using anthropic provider (set via -api-key, PGEDGE_ANTHROPIC_API_KEY, or config file)")
-		}
-		if cfg.Anthropic.Model == "" {
-			cfg.Anthropic.Model = "claude-sonnet-4-5" // Set default
-		}
-	case "ollama":
-		if cfg.Ollama.BaseURL == "" {
-			cfg.Ollama.BaseURL = "http://localhost:11434" // Set default
-		}
-		if cfg.Ollama.Model == "" {
-			return fmt.Errorf("ollama model is required when using ollama provider (set via -ollama-model, PGEDGE_OLLAMA_MODEL, or config file)")
-		}
-	default:
-		return fmt.Errorf("invalid LLM provider %q (must be 'anthropic' or 'ollama')", cfg.LLM.Provider)
-	}
-
 	// TLS requires HTTP to be enabled
 	if cfg.HTTP.TLS.Enabled && !cfg.HTTP.Enabled {
 		return fmt.Errorf("TLS requires HTTP mode to be enabled")

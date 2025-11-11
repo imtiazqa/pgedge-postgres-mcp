@@ -18,11 +18,9 @@ import (
 func TestServerInfoTool(t *testing.T) {
 	t.Run("basic server info", func(t *testing.T) {
 		info := ServerInfo{
-			Name:     "Test MCP Server",
-			Company:  "Test Company",
-			Version:  "1.0.0",
-			Provider: "anthropic",
-			Model:    "claude-sonnet-4-5",
+			Name:    "Test MCP Server",
+			Company: "Test Company",
+			Version: "1.0.0",
 		}
 
 		tool := ServerInfoTool(info)
@@ -57,8 +55,6 @@ func TestServerInfoTool(t *testing.T) {
 			"Test MCP Server",
 			"Test Company",
 			"1.0.0",
-			"anthropic",
-			"claude-sonnet-4-5",
 		}
 
 		for _, expected := range expectedStrings {
@@ -68,39 +64,11 @@ func TestServerInfoTool(t *testing.T) {
 		}
 	})
 
-	t.Run("ollama provider", func(t *testing.T) {
-		info := ServerInfo{
-			Name:     "pgEdge PostgreSQL MCP Server",
-			Company:  "pgEdge, Inc.",
-			Version:  "1.0.0",
-			Provider: "ollama",
-			Model:    "qwen2.5-coder:32b",
-		}
-
-		tool := ServerInfoTool(info)
-		response, err := tool.Handler(map[string]interface{}{})
-		if err != nil {
-			t.Fatalf("Handler returned unexpected error: %v", err)
-		}
-
-		output := response.Content[0].Text
-
-		// Verify Ollama-specific info
-		if !strings.Contains(output, "ollama") {
-			t.Error("Expected output to contain provider 'ollama'")
-		}
-		if !strings.Contains(output, "qwen2.5-coder:32b") {
-			t.Error("Expected output to contain model 'qwen2.5-coder:32b'")
-		}
-	})
-
 	t.Run("tool accepts no arguments", func(t *testing.T) {
 		info := ServerInfo{
-			Name:     "Test Server",
-			Company:  "Test Co",
-			Version:  "1.0",
-			Provider: "test",
-			Model:    "test-model",
+			Name:    "Test Server",
+			Company: "Test Co",
+			Version: "1.0",
 		}
 
 		tool := ServerInfoTool(info)
@@ -125,11 +93,9 @@ func TestServerInfoTool(t *testing.T) {
 
 	t.Run("output format consistency", func(t *testing.T) {
 		info := ServerInfo{
-			Name:     "Server",
-			Company:  "Company",
-			Version:  "2.0.0",
-			Provider: "provider",
-			Model:    "model",
+			Name:    "Server",
+			Company: "Company",
+			Version: "2.0.0",
 		}
 
 		tool := ServerInfoTool(info)
@@ -146,8 +112,6 @@ func TestServerInfoTool(t *testing.T) {
 			"Server Name:",
 			"Company:",
 			"Version:",
-			"LLM Provider:",
-			"LLM Model:",
 		}
 
 		for _, header := range expectedHeaders {
@@ -160,11 +124,9 @@ func TestServerInfoTool(t *testing.T) {
 	t.Run("empty string fields", func(t *testing.T) {
 		// Test with empty fields (edge case)
 		info := ServerInfo{
-			Name:     "",
-			Company:  "",
-			Version:  "",
-			Provider: "",
-			Model:    "",
+			Name:    "",
+			Company: "",
+			Version: "",
 		}
 
 		tool := ServerInfoTool(info)

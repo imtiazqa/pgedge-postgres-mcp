@@ -11,11 +11,6 @@ The pgEdge MCP Server supports multiple configuration methods with the following
 
 | Configuration File Option | CLI Flag | Environment Variable | Description |
 |--------------------------|----------|---------------------|-------------|
-| `llm.provider` | `-llm-provider` | `PGEDGE_LLM_PROVIDER` | LLM provider to use: "anthropic" or "ollama" |
-| `anthropic.api_key` | `-api-key` | `PGEDGE_ANTHROPIC_API_KEY` | Anthropic API key (required for Anthropic provider) |
-| `anthropic.model` | `-model` | `PGEDGE_ANTHROPIC_MODEL` | Claude model to use (default: "claude-sonnet-4-5") |
-| `ollama.base_url` | `-ollama-url` | `PGEDGE_OLLAMA_BASE_URL` | Ollama API base URL (default: "http://localhost:11434") |
-| `ollama.model` | `-ollama-model` | `PGEDGE_OLLAMA_MODEL` | Ollama model name (required for Ollama provider) |
 | `http.enabled` | `-http` | `PGEDGE_HTTP_ENABLED` | Enable HTTP/HTTPS transport mode |
 | `http.address` | `-addr` | `PGEDGE_HTTP_ADDRESS` | HTTP server bind address (default: ":8080") |
 | `http.tls.enabled` | `-tls` | `PGEDGE_TLS_ENABLED` | Enable TLS/HTTPS (requires HTTP mode) |
@@ -37,20 +32,6 @@ The server can read configuration from a YAML file, making it easier to manage s
 ### Example Configuration
 
 ```yaml
-# LLM Provider selection (required)
-llm:
-  provider: anthropic  # or "ollama"
-
-# Anthropic configuration (when provider is "anthropic")
-anthropic:
-  api_key: "sk-ant-your-api-key-here"
-  model: "claude-sonnet-4-5"
-
-# Ollama configuration (when provider is "ollama")
-ollama:
-  base_url: http://localhost:11434
-  model: qwen2.5-coder:32b
-
 # HTTP/HTTPS server (optional)
 http:
   enabled: false
@@ -167,14 +148,6 @@ All configuration options can be overridden via command line flags:
 - `-config` - Path to configuration file (default: same directory as binary)
 - `-preferences-file` - Path to user preferences file (default: same directory as binary)
 
-### LLM Provider Options
-
-- `-llm-provider` - LLM provider to use: "anthropic" or "ollama"
-- `-api-key` - Anthropic API key (when using Anthropic)
-- `-model` - Anthropic model to use (default: "claude-sonnet-4-5")
-- `-ollama-url` - Ollama API base URL (default: "http://localhost:11434")
-- `-ollama-model` - Ollama model name (required when using Ollama)
-
 ### HTTP/HTTPS Options
 
 - `-http` - Enable HTTP transport mode
@@ -200,45 +173,23 @@ See [Authentication Guide](authentication.md) for details on API token managemen
 
 ### Examples
 
-**Using Anthropic (cloud):**
+**Running in stdio mode:**
 ```bash
-./bin/pgedge-postgres-mcp \
-  -llm-provider anthropic \
-  -api-key "sk-ant-..." \
-  -http \
-  -addr ":9090"
+./bin/pgedge-postgres-mcp
 # Then use set_database_connection tool to connect
 ```
 
-**Using Ollama (local, free):**
+**Running in HTTP mode:**
 ```bash
-# First, download the model (one-time setup)
-ollama pull qwen2.5-coder:32b
-
-# Then run the server
 ./bin/pgedge-postgres-mcp \
-  -llm-provider ollama \
-  -ollama-model qwen2.5-coder:32b
+  -http \
+  -addr ":9090"
 # Then use set_database_connection tool to connect
 ```
 
 ## Environment Variables
 
 The server supports environment variables for all configuration options. All environment variables use the **`PGEDGE_`** prefix to avoid collisions with other software.
-
-### LLM Provider Variables
-
-**For Anthropic:**
-
-- **`PGEDGE_LLM_PROVIDER`**: Set to "anthropic" (default)
-- **`PGEDGE_ANTHROPIC_API_KEY`**: Your Anthropic API key (get from https://console.anthropic.com/)
-- **`PGEDGE_ANTHROPIC_MODEL`**: Claude model to use (default: "claude-sonnet-4-5")
-
-**For Ollama:**
-
-- **`PGEDGE_LLM_PROVIDER`**: Set to "ollama"
-- **`PGEDGE_OLLAMA_BASE_URL`**: Ollama API URL (default: "http://localhost:11434")
-- **`PGEDGE_OLLAMA_MODEL`**: Ollama model name (e.g., "qwen2.5-coder:32b")
 
 ### HTTP/HTTPS Server Variables
 
@@ -262,27 +213,6 @@ The server supports environment variables for all configuration options. All env
 - **`PGEDGE_PREFERENCES_FILE`**: Path to user preferences file (default: pgedge-postgres-mcp-prefs.yaml in binary directory)
 
 ### Examples
-
-**Anthropic (cloud):**
-
-```bash
-export PGEDGE_LLM_PROVIDER="anthropic"
-export PGEDGE_ANTHROPIC_API_KEY="sk-ant-your-api-key-here"
-export PGEDGE_ANTHROPIC_MODEL="claude-sonnet-4-5"
-
-./bin/pgedge-postgres-mcp
-# Then use set_database_connection tool to connect to your database
-```
-
-**Ollama (local):**
-
-```bash
-export PGEDGE_LLM_PROVIDER="ollama"
-export PGEDGE_OLLAMA_MODEL="qwen2.5-coder:32b"
-
-./bin/pgedge-postgres-mcp
-# Then use set_database_connection tool to connect to your database
-```
 
 **HTTP server with authentication:**
 
@@ -327,29 +257,11 @@ To use this MCP server with Claude Desktop, add it to your MCP configuration fil
 
 ### Configuration Format
 
-**Option 1: Using Anthropic (cloud, default):**
-
 ```json
 {
   "mcpServers": {
     "pgedge": {
-      "command": "/absolute/path/to/pgedge-postgres-mcp/bin/pgedge-postgres-mcp",
-      "env": {
-        "PGEDGE_ANTHROPIC_API_KEY": "sk-ant-your-api-key-here"
-      }
-    }
-  }
-}
-```
-
-**Option 2: Using Ollama (local, free):**
-
-```json
-{
-  "mcpServers": {
-    "pgedge": {
-      "command": "/absolute/path/to/pgedge-postgres-mcp/bin/pgedge-postgres-mcp",
-      "args": ["-llm-provider", "ollama", "-ollama-model", "qwen2.5-coder:32b"]
+      "command": "/absolute/path/to/pgedge-postgres-mcp/bin/pgedge-postgres-mcp"
     }
   }
 }
@@ -358,12 +270,7 @@ To use this MCP server with Claude Desktop, add it to your MCP configuration fil
 **Important Notes:**
 - Replace `/absolute/path/to/pgedge-postgres-mcp` with the full path to your project directory
 - Database connections are configured at runtime via the `set_database_connection` tool for security
-- For Ollama: Make sure to install Ollama and download the model first:
-    ```bash
-    # Install from https://ollama.ai/
-    ollama serve
-    ollama pull qwen2.5-coder:32b
-    ```
+- Claude Desktop's LLM will handle natural language to SQL translation, then this server executes the SQL queries
 
 ### Using a Configuration File with Claude Desktop
 
@@ -388,28 +295,27 @@ Understanding how configuration priority works:
 
 ```bash
 # Config file has: address: ":8080"
-# Environment has: ANTHROPIC_API_KEY="key-from-env"
+# Environment has: PGEDGE_HTTP_ENABLED="true"
 
 ./bin/pgedge-postgres-mcp \
   -http \
-  -addr ":3000" \
-  -api-key "key-from-cli"
+  -addr ":3000"
 
 # Result:
+# - HTTP enabled: true (from command line, highest priority)
 # - Address: :3000 (from command line, highest priority)
-# - API Key: key-from-cli (from command line)
 ```
 
 ### Example 2: Environment Override
 
 ```bash
-# Config file has: api_key: "key-from-file"
-export ANTHROPIC_API_KEY="key-from-env"
+# Config file has: http.address: ":8080"
+export PGEDGE_HTTP_ADDRESS=":9090"
 
 ./bin/pgedge-postgres-mcp
 
 # Result:
-# - API Key: key-from-env (environment overrides config file)
+# - Address: :9090 (environment overrides config file)
 ```
 
 ### Example 3: Config File with Defaults
@@ -452,13 +358,11 @@ chmod 600 bin/pgedge-postgres-mcp.yaml  # Should be readable
 
 ```bash
 # Verify environment variables are set
-env | grep ANTHROPIC
-env | grep OLLAMA
+env | grep PGEDGE
 
 # Export them if running in a new shell
-export ANTHROPIC_API_KEY="..."
-# Or for Ollama:
-export OLLAMA_MODEL="qwen2.5-coder:32b"
+export PGEDGE_HTTP_ENABLED="true"
+export PGEDGE_HTTP_ADDRESS=":8080"
 ```
 
 ### Claude Desktop Configuration Issues
