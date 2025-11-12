@@ -26,17 +26,17 @@ import (
 // ContextAwareProvider wraps a tool registry and provides per-token database clients
 // This ensures connection isolation in HTTP/HTTPS mode with authentication
 type ContextAwareProvider struct {
-	baseRegistry   *Registry                    // Registry for tool definitions (List operation)
-	clientManager  *database.ClientManager
-	resourceReg    *resources.ContextAwareRegistry
-	authEnabled    bool
-	fallbackClient *database.Client             // Used when auth is disabled
-	serverInfo     ServerInfo                   // Server metadata for server_info tool
-	connMgr        *ConnectionManager           // Manages saved database connections
-	preferencesPath string                      // Path to preferences file for persistence
+	baseRegistry    *Registry // Registry for tool definitions (List operation)
+	clientManager   *database.ClientManager
+	resourceReg     *resources.ContextAwareRegistry
+	authEnabled     bool
+	fallbackClient  *database.Client   // Used when auth is disabled
+	serverInfo      ServerInfo         // Server metadata for server_info tool
+	connMgr         *ConnectionManager // Manages saved database connections
+	preferencesPath string             // Path to preferences file for persistence
 
 	// Cache of registries per client to avoid re-creating tools on every Execute()
-	mu             sync.RWMutex
+	mu               sync.RWMutex
 	clientRegistries map[*database.Client]*Registry
 }
 

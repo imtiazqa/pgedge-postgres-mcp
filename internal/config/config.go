@@ -32,9 +32,9 @@ type Config struct {
 
 // HTTPConfig holds HTTP/HTTPS server settings
 type HTTPConfig struct {
-	Enabled bool      `yaml:"enabled"`
-	Address string    `yaml:"address"`
-	TLS     TLSConfig `yaml:"tls"`
+	Enabled bool       `yaml:"enabled"`
+	Address string     `yaml:"address"`
+	TLS     TLSConfig  `yaml:"tls"`
 	Auth    AuthConfig `yaml:"auth"`
 }
 

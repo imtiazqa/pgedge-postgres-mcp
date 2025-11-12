@@ -18,9 +18,9 @@ import (
 
 // ServerInfo contains information about the MCP server
 type ServerInfo struct {
-	Name     string
-	Company  string
-	Version  string
+	Name    string
+	Company string
+	Version string
 }
 
 // ServerInfoTool creates the server_info tool

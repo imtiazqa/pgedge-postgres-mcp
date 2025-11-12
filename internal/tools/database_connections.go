@@ -24,11 +24,11 @@ import (
 
 // ConnectionManager provides access to saved connections
 type ConnectionManager struct {
-	tokenStore     *auth.TokenStore
-	config         *config.Config       // Used only for token file path when auth enabled
-	preferences    *config.Preferences  // Used for connections when auth disabled
-	authEnabled    bool
-	encryptionKey  *crypto.EncryptionKey
+	tokenStore    *auth.TokenStore
+	config        *config.Config      // Used only for token file path when auth enabled
+	preferences   *config.Preferences // Used for connections when auth disabled
+	authEnabled   bool
+	encryptionKey *crypto.EncryptionKey
 }
 
 // NewConnectionManager creates a new connection manager

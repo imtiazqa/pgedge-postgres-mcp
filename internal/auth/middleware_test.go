@@ -103,10 +103,10 @@ func TestAuthMiddleware_MissingAuthHeader(t *testing.T) {
 // TestAuthMiddleware_MalformedAuthHeader tests rejection of malformed Authorization headers
 func TestAuthMiddleware_MalformedAuthHeader(t *testing.T) {
 	testCases := []struct {
-		name           string
-		header         string
-		expectFormat   bool // true if expecting "Invalid Authorization header format"
-		expectInvalid  bool // true if expecting "Invalid or unknown token"
+		name          string
+		header        string
+		expectFormat  bool // true if expecting "Invalid Authorization header format"
+		expectInvalid bool // true if expecting "Invalid or unknown token"
 	}{
 		{"no bearer prefix", "sometoken123", true, false},
 		{"wrong prefix", "Basic sometoken123", true, false},

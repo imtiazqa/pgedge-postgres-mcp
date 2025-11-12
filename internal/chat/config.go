@@ -36,11 +36,11 @@ type MCPConfig struct {
 
 // LLMConfig holds LLM provider configuration
 type LLMConfig struct {
-	Provider   string `yaml:"provider"`    // anthropic or ollama
-	Model      string `yaml:"model"`       // Model to use
-	APIKey     string `yaml:"api_key"`     // API key (for Anthropic)
-	OllamaURL  string `yaml:"ollama_url"`  // Ollama server URL
-	MaxTokens  int    `yaml:"max_tokens"`  // Max tokens for response
+	Provider    string  `yaml:"provider"`    // anthropic or ollama
+	Model       string  `yaml:"model"`       // Model to use
+	APIKey      string  `yaml:"api_key"`     // API key (for Anthropic)
+	OllamaURL   string  `yaml:"ollama_url"`  // Ollama server URL
+	MaxTokens   int     `yaml:"max_tokens"`  // Max tokens for response
 	Temperature float64 `yaml:"temperature"` // Temperature for sampling
 }
 

@@ -17,14 +17,14 @@ import (
 
 func TestParseVersionString(t *testing.T) {
 	tests := []struct {
-		name              string
-		fullVersion       string
-		version           string
-		versionNumber     string
-		expectedOS        string
-		expectedArch      string
-		expectedCompiler  string
-		expectedBitVer    string
+		name             string
+		fullVersion      string
+		version          string
+		versionNumber    string
+		expectedOS       string
+		expectedArch     string
+		expectedCompiler string
+		expectedBitVer   string
 	}{
 		{
 			name:             "Linux x86_64 with GCC",

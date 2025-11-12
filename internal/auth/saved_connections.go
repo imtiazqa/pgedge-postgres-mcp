@@ -33,16 +33,16 @@ type SavedConnection struct {
 	DBName   string `yaml:"dbname,omitempty" json:"dbname,omitempty"`     // database name
 
 	// SSL/TLS parameters
-	SSLMode       string `yaml:"sslmode,omitempty" json:"sslmode,omitempty"`             // disable, allow, prefer, require, verify-ca, verify-full
-	SSLCert       string `yaml:"sslcert,omitempty" json:"sslcert,omitempty"`             // path to client certificate
-	SSLKey        string `yaml:"sslkey,omitempty" json:"sslkey,omitempty"`               // path to client key
-	SSLRootCert   string `yaml:"sslrootcert,omitempty" json:"sslrootcert,omitempty"`     // path to root CA certificate
-	SSLPassword   string `yaml:"sslpassword,omitempty" json:"sslpassword,omitempty"`     // encrypted password for client key
-	SSLCRL        string `yaml:"sslcrl,omitempty" json:"sslcrl,omitempty"`               // path to certificate revocation list
+	SSLMode     string `yaml:"sslmode,omitempty" json:"sslmode,omitempty"`         // disable, allow, prefer, require, verify-ca, verify-full
+	SSLCert     string `yaml:"sslcert,omitempty" json:"sslcert,omitempty"`         // path to client certificate
+	SSLKey      string `yaml:"sslkey,omitempty" json:"sslkey,omitempty"`           // path to client key
+	SSLRootCert string `yaml:"sslrootcert,omitempty" json:"sslrootcert,omitempty"` // path to root CA certificate
+	SSLPassword string `yaml:"sslpassword,omitempty" json:"sslpassword,omitempty"` // encrypted password for client key
+	SSLCRL      string `yaml:"sslcrl,omitempty" json:"sslcrl,omitempty"`           // path to certificate revocation list
 
 	// Additional connection parameters
-	ConnectTimeout   int    `yaml:"connect_timeout,omitempty" json:"connect_timeout,omitempty"`     // connection timeout in seconds
-	ApplicationName  string `yaml:"application_name,omitempty" json:"application_name,omitempty"`   // application name
+	ConnectTimeout  int    `yaml:"connect_timeout,omitempty" json:"connect_timeout,omitempty"`   // connection timeout in seconds
+	ApplicationName string `yaml:"application_name,omitempty" json:"application_name,omitempty"` // application name
 }
 
 // ToConnectionString builds a PostgreSQL connection string from the parameters
