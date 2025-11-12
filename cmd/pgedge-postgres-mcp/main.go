@@ -50,6 +50,7 @@ func main() {
 	keyFile := flag.String("key", "", "Path to TLS key file")
 	chainFile := flag.String("chain", "", "Path to TLS certificate chain file (optional)")
 	noAuth := flag.Bool("no-auth", false, "Disable API token authentication in HTTP mode")
+	debug := flag.Bool("debug", false, "Enable debug logging (logs HTTP requests/responses)")
 	tokenFilePath := flag.String("token-file", "", "Path to API token file")
 	preferencesFilePath := flag.String("preferences-file", "", "Path to user preferences file (for saved connections when auth is disabled)")
 	secretFilePath := flag.String("secret-file", "", "Path to encryption secret file (auto-generated if not present)")
@@ -347,6 +348,7 @@ func main() {
 			ChainFile:   cfg.HTTP.TLS.ChainFile,
 			AuthEnabled: cfg.HTTP.Auth.Enabled,
 			TokenStore:  tokenStore,
+			Debug:       *debug,
 		}
 
 		if cfg.HTTP.TLS.Enabled {
@@ -364,6 +366,10 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Authentication: ENABLED\n")
 		} else {
 			fmt.Fprintf(os.Stderr, "Authentication: DISABLED (warning: server is not secured)\n")
+		}
+
+		if *debug {
+			fmt.Fprintf(os.Stderr, "Debug logging: ENABLED\n")
 		}
 
 		err = server.RunHTTP(httpConfig)

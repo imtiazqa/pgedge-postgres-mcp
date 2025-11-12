@@ -31,6 +31,7 @@ type HTTPConfig struct {
 	ChainFile   string           // Optional path to certificate chain file
 	AuthEnabled bool             // Enable API token authentication
 	TokenStore  *auth.TokenStore // Token store for authentication
+	Debug       bool             // Enable debug logging
 }
 
 // RunHTTP starts the MCP server in HTTP/HTTPS mode
@@ -38,6 +39,9 @@ func (s *Server) RunHTTP(config *HTTPConfig) error {
 	if config == nil {
 		return fmt.Errorf("HTTP config is required")
 	}
+
+	// Store debug flag for use in handlers
+	s.debug = config.Debug
 
 	// Create HTTP handler
 	mux := http.NewServeMux()
@@ -126,8 +130,23 @@ func (s *Server) handleHTTPRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Debug logging: log incoming request
+	if s.debug {
+		fmt.Fprintf(os.Stderr, "[DEBUG] Incoming request: method=%s id=%v\n", req.Method, req.ID)
+		if req.Params != nil {
+			paramsJSON, _ := json.Marshal(req.Params)
+			fmt.Fprintf(os.Stderr, "[DEBUG] Request params: %s\n", string(paramsJSON))
+		}
+	}
+
 	// Handle the request and capture the response (pass request context)
 	response := s.handleRequestHTTP(r.Context(), req)
+
+	// Debug logging: log outgoing response
+	if s.debug {
+		responseJSON, _ := json.Marshal(response)
+		fmt.Fprintf(os.Stderr, "[DEBUG] Outgoing response: %s\n", string(responseJSON))
+	}
 
 	// Send response
 	w.Header().Set("Content-Type", "application/json")

@@ -40,6 +40,7 @@ type ResourceProvider interface {
 type Server struct {
 	tools     ToolProvider
 	resources ResourceProvider
+	debug     bool // Enable debug logging for HTTP mode
 }
 
 // NewServer creates a new MCP server
