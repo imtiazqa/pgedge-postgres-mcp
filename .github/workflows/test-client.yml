@@ -1,4 +1,4 @@
-name: Build
+name: Test Client
 
 on:
   push:
@@ -7,8 +7,8 @@ on:
     branches: [ main, develop ]
 
 jobs:
-  build:
-    name: Build
+  unit-tests:
+    name: Client Unit Tests
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -34,27 +34,24 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-go-${{ matrix.go-version }}-
 
-    - name: Verify dependencies
-      run: go mod verify
-
     - name: Download dependencies
       run: go mod download
 
-    - name: Create bin directory
-      run: mkdir -p bin
+    - name: Run client unit tests
+      run: go test -v -race -coverprofile=coverage.out -covermode=atomic ./internal/chat/... ./cmd/pgedge-postgres-mcp-chat/...
 
-    - name: Build
-      run: go build -v -o bin/pgedge-postgres-mcp ./cmd/pgedge-postgres-mcp
-
-    - name: Verify binary
+    - name: Generate coverage report
+      if: matrix.go-version == '1.23'
       run: |
-        ls -lh bin/pgedge-postgres-mcp
-        file bin/pgedge-postgres-mcp
+        go tool cover -html=coverage.out -o coverage-client.html
+        go tool cover -func=coverage.out
 
-    - name: Upload build artifact
+    - name: Upload coverage artifact
       if: matrix.go-version == '1.23'
       uses: actions/upload-artifact@v4
       with:
-        name: pgedge-postgres-mcp-linux-amd64
-        path: bin/pgedge-postgres-mcp
+        name: coverage-client
+        path: |
+          coverage-client.html
+          coverage.out
         retention-days: 7

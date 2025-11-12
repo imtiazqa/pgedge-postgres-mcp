@@ -1,8 +1,12 @@
 # pgEdge MCP Server
 
-[![Build](https://github.com/pgEdge/pgedge-postgres-mcp/workflows/Build/badge.svg)](https://github.com/pgEdge/pgedge-postgres-mcp/actions/workflows/build.yml)
+[![Build Server](https://github.com/pgEdge/pgedge-postgres-mcp/workflows/Build%20Server/badge.svg)](https://github.com/pgEdge/pgedge-postgres-mcp/actions/workflows/build-server.yml)
+[![Build Client](https://github.com/pgEdge/pgedge-postgres-mcp/workflows/Build%20Client/badge.svg)](https://github.com/pgEdge/pgedge-postgres-mcp/actions/workflows/build-client.yml)
+[![Test Server](https://github.com/pgEdge/pgedge-postgres-mcp/workflows/Test%20Server/badge.svg)](https://github.com/pgEdge/pgedge-postgres-mcp/actions/workflows/test-server.yml)
+[![Test Client](https://github.com/pgEdge/pgedge-postgres-mcp/workflows/Test%20Client/badge.svg)](https://github.com/pgEdge/pgedge-postgres-mcp/actions/workflows/test-client.yml)
+[![Lint Server](https://github.com/pgEdge/pgedge-postgres-mcp/workflows/Lint%20Server/badge.svg)](https://github.com/pgEdge/pgedge-postgres-mcp/actions/workflows/lint-server.yml)
+[![Lint Client](https://github.com/pgEdge/pgedge-postgres-mcp/workflows/Lint%20Client/badge.svg)](https://github.com/pgEdge/pgedge-postgres-mcp/actions/workflows/lint-client.yml)
 [![Docs](https://github.com/pgEdge/pgedge-postgres-mcp/workflows/Docs/badge.svg)](https://github.com/pgEdge/pgedge-postgres-mcp/actions/workflows/docs.yml)
-[![Tests](https://github.com/pgEdge/pgedge-postgres-mcp/workflows/Tests/badge.svg)](https://github.com/pgEdge/pgedge-postgres-mcp/actions/workflows/test.yml)
 
 A Model Context Protocol (MCP) server that enables **SQL queries** against PostgreSQL databases through MCP-compatible clients like Claude Desktop.
 

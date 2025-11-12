@@ -1,4 +1,4 @@
-name: Tests
+name: Test Server
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
 
 jobs:
   unit-tests:
-    name: Unit Tests
+    name: Server Unit Tests
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -37,36 +37,27 @@ jobs:
     - name: Download dependencies
       run: go mod download
 
-    - name: Install golangci-lint
-      run: |
-        # Install latest v1.x version (config is NOT compatible with v2)
-        go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-        echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
-
-    - name: Run lint tests
-      run: go test -v .
-
-    - name: Run unit tests
-      run: go test -v -race -coverprofile=coverage.out -covermode=atomic ./internal/...
+    - name: Run server unit tests
+      run: go test -v -race -coverprofile=coverage.out -covermode=atomic ./internal/mcp/... ./internal/auth/... ./internal/config/... ./internal/crypto/... ./internal/database/... ./internal/resources/... ./internal/tools/... ./cmd/pgedge-postgres-mcp/...
 
     - name: Generate coverage report
       if: matrix.go-version == '1.23'
       run: |
-        go tool cover -html=coverage.out -o coverage.html
+        go tool cover -html=coverage.out -o coverage-server.html
         go tool cover -func=coverage.out
 
     - name: Upload coverage artifact
       if: matrix.go-version == '1.23'
       uses: actions/upload-artifact@v4
       with:
-        name: coverage-report
+        name: coverage-server
         path: |
-          coverage.html
+          coverage-server.html
           coverage.out
         retention-days: 7
 
   integration-tests:
-    name: Integration Tests
+    name: Server Integration Tests
     runs-on: ubuntu-latest
     strategy:
       matrix:
