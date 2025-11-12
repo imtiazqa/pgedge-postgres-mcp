@@ -371,8 +371,28 @@ Set the database connection for the current session. Now supports both connectio
 
 - If the input looks like an alias (no `postgres://` or `postgresql://` prefix), it attempts to resolve it from saved connections
 - If the alias is found, it uses the saved connection string
+- **Smart hostname matching**: If a connection string is provided and the hostname matches a saved connection (by hostname or alias), it automatically uses the saved connection's credentials while allowing you to override the database name
 - If not found, it treats the input as a literal connection string
 - Successfully used aliases are marked with a "last used" timestamp
+
+**Examples of smart hostname matching**:
+
+```json
+// You have a saved connection "kielbasa" with host "kielbasa.example.com"
+// and credentials user:password, connected to database "tenaciousdd"
+
+// Connect to a different database on the same server:
+{
+  "connection_string": "postgres://user@kielbasa/postgres"
+}
+// This will automatically use the saved password from "kielbasa" connection
+
+// Or using the full hostname:
+{
+  "connection_string": "postgres://user@kielbasa.example.com/newdb"
+}
+// Also uses saved credentials, connects to "newdb" instead
+```
 
 **Output with alias**:
 ```
