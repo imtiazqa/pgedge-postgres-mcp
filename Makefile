@@ -63,14 +63,18 @@ clean: clean-server clean-client
 clean-server:
 	@echo "Cleaning server artifacts..."
 	rm -f $(BIN_DIR)/$(SERVER_BINARY)
-	rm -f $(BIN_DIR)/$(SERVER_BINARY)-*
+	rm -f $(BIN_DIR)/$(SERVER_BINARY)-linux-*
+	rm -f $(BIN_DIR)/$(SERVER_BINARY)-darwin-*
+	rm -f $(BIN_DIR)/$(SERVER_BINARY)-windows-*
 	@echo "Server clean complete"
 
 # Clean client artifacts
 clean-client:
 	@echo "Cleaning client artifacts..."
 	rm -f $(BIN_DIR)/$(CLIENT_BINARY)
-	rm -f $(BIN_DIR)/$(CLIENT_BINARY)-*
+	rm -f $(BIN_DIR)/$(CLIENT_BINARY)-linux-*
+	rm -f $(BIN_DIR)/$(CLIENT_BINARY)-darwin-*
+	rm -f $(BIN_DIR)/$(CLIENT_BINARY)-windows-*
 	@echo "Client clean complete"
 
 # Run all tests
