@@ -32,7 +32,7 @@ func main() {
 	mcpMode := flag.String("mcp-mode", "", "MCP connection mode: stdio or http (default: stdio)")
 	mcpURL := flag.String("mcp-url", "", "MCP server URL (for HTTP mode)")
 	mcpServerPath := flag.String("mcp-server-path", "", "Path to MCP server binary (for stdio mode)")
-	llmProvider := flag.String("llm-provider", "", "LLM provider: anthropic or ollama (default: anthropic)")
+	llmProvider := flag.String("llm-provider", "", "LLM provider: anthropic, openai, or ollama (default: anthropic)")
 	llmModel := flag.String("llm-model", "", "LLM model to use")
 	apiKey := flag.String("api-key", "", "API key for LLM provider")
 	ollamaURL := flag.String("ollama-url", "", "Ollama server URL (default: http://localhost:11434)")

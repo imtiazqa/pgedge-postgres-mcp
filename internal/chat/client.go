@@ -129,6 +129,13 @@ func (c *Client) initializeLLM() error {
 			c.config.LLM.MaxTokens,
 			c.config.LLM.Temperature,
 		)
+	} else if c.config.LLM.Provider == "openai" {
+		c.llm = NewOpenAIClient(
+			c.config.LLM.APIKey,
+			c.config.LLM.Model,
+			c.config.LLM.MaxTokens,
+			c.config.LLM.Temperature,
+		)
 	} else if c.config.LLM.Provider == "ollama" {
 		c.llm = NewOllamaClient(
 			c.config.LLM.OllamaURL,

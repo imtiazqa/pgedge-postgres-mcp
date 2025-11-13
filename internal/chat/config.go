@@ -36,9 +36,9 @@ type MCPConfig struct {
 
 // LLMConfig holds LLM provider configuration
 type LLMConfig struct {
-	Provider    string  `yaml:"provider"`    // anthropic or ollama
+	Provider    string  `yaml:"provider"`    // anthropic, openai, or ollama
 	Model       string  `yaml:"model"`       // Model to use
-	APIKey      string  `yaml:"api_key"`     // API key (for Anthropic)
+	APIKey      string  `yaml:"api_key"`     // API key (for Anthropic/OpenAI)
 	OllamaURL   string  `yaml:"ollama_url"`  // Ollama server URL
 	MaxTokens   int     `yaml:"max_tokens"`  // Max tokens for response
 	Temperature float64 `yaml:"temperature"` // Temperature for sampling
@@ -62,7 +62,7 @@ func LoadConfig(configPath string) (*Config, error) {
 		LLM: LLMConfig{
 			Provider:    getEnvOrDefault("PGEDGE_LLM_PROVIDER", "anthropic"),
 			Model:       getEnvOrDefault("PGEDGE_LLM_MODEL", "claude-sonnet-4-20250514"),
-			APIKey:      os.Getenv("ANTHROPIC_API_KEY"),
+			APIKey:      "", // Will be loaded based on provider in Validate()
 			OllamaURL:   getEnvOrDefault("OLLAMA_BASE_URL", "http://localhost:11434"),
 			MaxTokens:   4096,
 			Temperature: 0.7,
@@ -148,17 +148,32 @@ func (c *Config) Validate() error {
 	}
 
 	// Validate LLM provider
-	if c.LLM.Provider != "anthropic" && c.LLM.Provider != "ollama" {
-		return fmt.Errorf("invalid llm-provider: %s (must be anthropic or ollama)", c.LLM.Provider)
+	if c.LLM.Provider != "anthropic" && c.LLM.Provider != "openai" && c.LLM.Provider != "ollama" {
+		return fmt.Errorf("invalid llm-provider: %s (must be anthropic, openai, or ollama)", c.LLM.Provider)
 	}
 
 	// Validate LLM configuration based on provider
 	if c.LLM.Provider == "anthropic" {
+		// Load API key from environment if not set in config
+		if c.LLM.APIKey == "" {
+			c.LLM.APIKey = os.Getenv("ANTHROPIC_API_KEY")
+		}
 		if c.LLM.APIKey == "" {
 			return fmt.Errorf("ANTHROPIC_API_KEY environment variable or api-key config is required for Anthropic")
 		}
 		if c.LLM.Model == "" {
 			c.LLM.Model = "claude-sonnet-4-20250514"
+		}
+	} else if c.LLM.Provider == "openai" {
+		// Load API key from environment if not set in config
+		if c.LLM.APIKey == "" {
+			c.LLM.APIKey = os.Getenv("OPENAI_API_KEY")
+		}
+		if c.LLM.APIKey == "" {
+			return fmt.Errorf("OPENAI_API_KEY environment variable or api-key config is required for OpenAI")
+		}
+		if c.LLM.Model == "" {
+			c.LLM.Model = "gpt-5"
 		}
 	} else {
 		if c.LLM.OllamaURL == "" {

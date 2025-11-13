@@ -60,8 +60,9 @@ mcp:
 # LLM PROVIDER CONFIGURATION
 # ============================================================================
 llm:
-    # Provider: "anthropic" or "ollama"
+    # Provider: "anthropic", "openai", or "ollama"
     # anthropic: Uses Anthropic's Claude API (requires API key)
+    # openai: Uses OpenAI's GPT API (requires API key)
     # ollama: Uses locally running Ollama server (no API key needed)
     # Default: anthropic
     # Environment variable: PGEDGE_LLM_PROVIDER
@@ -70,8 +71,9 @@ llm:
 
     # Model to use
     # Anthropic models: claude-sonnet-4-20250514, claude-opus-4-20250514, etc.
+    # OpenAI models: gpt-5, gpt-4o, gpt-4-turbo, gpt-3.5-turbo, etc.
     # Ollama models: llama3, llama3.1, mistral, gpt-oss:20b, etc.
-    # Default: claude-sonnet-4-20250514 (anthropic) or llama3 (ollama)
+    # Default: claude-sonnet-4-20250514 (anthropic), gpt-5 (openai), or llama3 (ollama)
     # Environment variable: PGEDGE_LLM_MODEL
     # Command line flag: -llm-model
     model: claude-sonnet-4-20250514
@@ -85,13 +87,25 @@ llm:
     # Command line flag: -api-key
     # api_key: your-anthropic-api-key-here
 
+    # -------------------------
+    # OpenAI Configuration
+    # -------------------------
+    # API key for OpenAI
+    # Get your API key from: https://platform.openai.com/
+    # Environment variable: OPENAI_API_KEY (preferred)
+    # Command line flag: -api-key
+    # api_key: your-openai-api-key-here
+
     # Maximum tokens for LLM response
+    # For GPT-5 and o-series models, automatically uses max_completion_tokens
+    # For older models, uses max_tokens
     # Default: 4096
     # Command line flag: (not available)
     max_tokens: 4096
 
     # Temperature for sampling (0.0-1.0)
     # Lower = more focused/deterministic, Higher = more creative/random
+    # Note: GPT-5 and o-series models only support default temperature (1)
     # Default: 0.7
     # Command line flag: (not available)
     temperature: 0.7
@@ -135,6 +149,26 @@ Then run:
 
 ```bash
 export ANTHROPIC_API_KEY="your-key-here"
+./bin/pgedge-postgres-mcp-chat
+```
+
+### Stdio Mode with OpenAI
+
+```yaml
+mcp:
+    mode: stdio
+    server_path: ./bin/pgedge-postgres-mcp
+
+llm:
+    provider: openai
+    model: gpt-5
+    # Set OPENAI_API_KEY environment variable
+```
+
+Then run:
+
+```bash
+export OPENAI_API_KEY="your-key-here"
 ./bin/pgedge-postgres-mcp-chat
 ```
 
@@ -206,9 +240,10 @@ The chat client supports the following environment variables (in order of preced
 
 ### LLM Configuration
 
-- `PGEDGE_LLM_PROVIDER`: LLM provider (`anthropic` or `ollama`)
+- `PGEDGE_LLM_PROVIDER`: LLM provider (`anthropic`, `openai`, or `ollama`)
 - `PGEDGE_LLM_MODEL`: Model to use
 - `ANTHROPIC_API_KEY` or `PGEDGE_ANTHROPIC_API_KEY`: Anthropic API key
+- `OPENAI_API_KEY`: OpenAI API key
 - `OLLAMA_BASE_URL`: Ollama server URL
 
 ## Command Line Flags

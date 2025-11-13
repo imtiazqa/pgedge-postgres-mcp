@@ -7,7 +7,7 @@ This is the recommended client for production use and provides significantly mor
 ## Features
 
 - **Dual Mode Support**: Connect via stdio (subprocess) or HTTP
-- **Multiple LLM Providers**: Support for Anthropic Claude and Ollama
+- **Multiple LLM Providers**: Support for Anthropic Claude, OpenAI, and Ollama
 - **Agentic Tool Execution**: Automatically executes database tools based on LLM decisions
 - **PostgreSQL-Themed UI**: Colorful output with elephant-themed animations
 - **Flexible Configuration**: Configure via YAML file, environment variables, or command-line flags
@@ -58,9 +58,9 @@ mcp:
     # token: your-token-here
 
 llm:
-    provider: anthropic
+    provider: anthropic  # Options: anthropic, openai, or ollama
     model: claude-sonnet-4-20250514
-    # api_key: your-api-key-here  # Or use ANTHROPIC_API_KEY env var
+    # api_key: your-api-key-here  # Or use ANTHROPIC_API_KEY/OPENAI_API_KEY env var
     max_tokens: 4096
     temperature: 0.7
 
@@ -76,9 +76,10 @@ For a complete configuration file example with all available options and detaile
 - `PGEDGE_MCP_URL`: MCP server URL (for HTTP mode)
 - `PGEDGE_MCP_SERVER_PATH`: Path to MCP server binary (for stdio mode)
 - `PGEDGE_POSTGRES_MCP_SERVER_TOKEN`: Authentication token (for HTTP mode)
-- `PGEDGE_LLM_PROVIDER`: LLM provider (anthropic or ollama)
+- `PGEDGE_LLM_PROVIDER`: LLM provider (anthropic, openai, or ollama)
 - `PGEDGE_LLM_MODEL`: LLM model name
 - `ANTHROPIC_API_KEY`: Anthropic API key
+- `OPENAI_API_KEY`: OpenAI API key
 - `OLLAMA_BASE_URL`: Ollama server URL (default: http://localhost:11434)
 - `NO_COLOR`: Disable colored output
 
@@ -93,7 +94,7 @@ Flags:
   -mcp-mode string          MCP connection mode: stdio or http
   -mcp-url string           MCP server URL (for HTTP mode)
   -mcp-server-path string   Path to MCP server binary (for stdio mode)
-  -llm-provider string      LLM provider: anthropic or ollama
+  -llm-provider string      LLM provider: anthropic, openai, or ollama
   -llm-model string         LLM model to use
   -api-key string           API key for LLM provider
   -ollama-url string        Ollama server URL
@@ -120,7 +121,35 @@ The client will:
 2. Connect via stdin/stdout
 3. Use Anthropic Claude for natural language processing
 
-### Example 2: HTTP Mode with Authentication
+### Example 2: Stdio Mode with OpenAI
+
+Use OpenAI's GPT models for natural language processing.
+
+```bash
+# Set your OpenAI API key
+export OPENAI_API_KEY="your-api-key-here"
+
+# Run the chat client with OpenAI
+./bin/pgedge-postgres-mcp-chat \
+  -llm-provider openai \
+  -llm-model gpt-4o
+```
+
+Supported OpenAI models:
+
+- `gpt-5` - Latest GPT-5 model (recommended)
+- `gpt-4o` - GPT-4 Omni
+- `gpt-4-turbo` - GPT-4 Turbo
+- `gpt-3.5-turbo` - GPT-3.5 Turbo
+
+Note: GPT-5 and o-series models (o1, o3) have specific API constraints:
+
+- Use `max_completion_tokens` instead of `max_tokens`
+- Only support default temperature (1)
+
+The client automatically handles these differences.
+
+### Example 3: HTTP Mode with Authentication
 
 Connect to a remote MCP server with authentication.
 
@@ -135,7 +164,7 @@ export PGEDGE_POSTGRES_MCP_SERVER_TOKEN="your-token-here"
 
 Or, if you don't set the token, the client will prompt you for it.
 
-### Example 3: Ollama for Local LLM
+### Example 4: Ollama for Local LLM
 
 Use Ollama for privacy-sensitive applications or offline usage.
 
@@ -152,7 +181,7 @@ ollama pull llama3
   -llm-model llama3
 ```
 
-### Example 4: With Configuration File
+### Example 5: With Configuration File
 
 Create a configuration file and use it:
 

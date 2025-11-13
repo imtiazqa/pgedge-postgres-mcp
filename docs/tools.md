@@ -575,9 +575,9 @@ Unified tool for all database connection management operations. This consolidate
 
 #### Operation: connect
 
-Set the active database connection for the current session. Supports aliases, connection strings, and smart hostname matching.
+Set the active database connection for the current session. You can use a **saved connection alias** (e.g., "production") or provide a **full PostgreSQL connection string**. Also supports smart hostname matching.
 
-**Input**:
+**Connect using saved alias** (recommended):
 ```json
 {
   "operation": "connect",
@@ -585,7 +585,7 @@ Set the active database connection for the current session. Supports aliases, co
 }
 ```
 
-Or with full connection string:
+**Connect with full connection string**:
 ```json
 {
   "operation": "connect",

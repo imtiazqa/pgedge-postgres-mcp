@@ -17,7 +17,7 @@ A Model Context Protocol (MCP) server written in Go that enables natural languag
 
 - ✨ **Natural Language to SQL** - Convert plain English questions into SQL queries
 - 🔒 **Read-Only Protection** - All queries execute in read-only transactions
-- 🤖 **Dual LLM Support** - Anthropic Claude (cloud) or Ollama (local/free)
+- 🤖 **Multiple LLM Support** - Anthropic Claude, OpenAI (GPT-4o, GPT-5), or Ollama (local/free)
 - 📊 **4 Resources** - PostgreSQL statistics (pg_stat_*, pg://system_info, pg://settings)
 - 🛠️ **9 Tools** - Query execution, schema analysis, semantic search, embedding generation, connection management
 - 🌐 **HTTP/HTTPS Mode** - Direct API access with token authentication
@@ -29,7 +29,7 @@ A Model Context Protocol (MCP) server written in Go that enables natural languag
 
 - Go 1.21 or higher
 - PostgreSQL database (any version with pg_description support)
-- LLM Provider: Anthropic Claude API key OR Ollama installation
+- LLM Provider: Anthropic Claude API key, OpenAI API key, OR Ollama installation
 
 ### Quick Setup
 
@@ -42,6 +42,7 @@ A Model Context Protocol (MCP) server written in Go that enables natural languag
 2. **Choose your LLM provider:**
 
     - **Anthropic Claude**: Get API key at https://console.anthropic.com/
+    - **OpenAI**: Get API key at https://platform.openai.com/
     - **Ollama**: Install from https://ollama.ai/ and download a model
 
 3. **Configure for Claude Desktop:**
@@ -70,7 +71,7 @@ For detailed setup instructions, see **[Configuration Guide](configuration.md)**
 ### Essential Guides
 
 #### [Configuration Guide](configuration.md)
-Complete configuration reference covering config files, environment variables, command-line flags, and Claude Desktop setup for both Anthropic and Ollama providers.
+Complete configuration reference covering config files, environment variables, command-line flags, and Claude Desktop setup for Anthropic, OpenAI, and Ollama providers.
 
 #### [Tools Documentation](tools.md)
 Reference for all 9 MCP tools including `query_database`, `get_schema_info`, `set_pg_configuration`, `semantic_search`, `search_similar`, `generate_embedding`, connection management, and more.

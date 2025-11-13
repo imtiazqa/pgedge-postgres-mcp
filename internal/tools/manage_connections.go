@@ -26,24 +26,24 @@ func ManageConnectionsTool(clientManager *database.ClientManager, connMgr *Conne
 	return Tool{
 		Definition: mcp.Tool{
 			Name:        "manage_connections",
-			Description: "Manage database connections. Operations: connect (set active), add (save new), edit (update), remove (delete), list (show all).",
+			Description: "Manage database connections. Operations: connect (activate saved connection by alias OR connect with new connection string), add (save new connection), edit (update existing), remove (delete saved), list (show all saved connections).",
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]interface{}{
 					"operation": map[string]interface{}{
 						"type":        "string",
 						"enum":        []string{"connect", "add", "edit", "remove", "list"},
-						"description": "Operation type",
+						"description": "Operation to perform: connect, add, edit, remove, or list",
 					},
 					// For "connect" operation
 					"connection_string": map[string]interface{}{
 						"type":        "string",
-						"description": "Connection string/alias (for connect)",
+						"description": "ONLY for 'connect' operation: The saved connection alias (e.g., 'wikipedia') OR full connection string (e.g., 'postgres://user:pass@host:port/dbname'). Do NOT use the 'alias' parameter for connecting - always use this parameter.",
 					},
 					// For "add"/"edit"/"remove" operations
 					"alias": map[string]interface{}{
 						"type":        "string",
-						"description": "Connection alias",
+						"description": "ONLY for 'add', 'edit', or 'remove' operations: The connection alias/name. Do NOT use this for 'connect' - use 'connection_string' instead.",
 					},
 					// Connection parameters for add/edit
 					"host": map[string]interface{}{
@@ -189,15 +189,15 @@ func handleAdd(args map[string]interface{}, connMgr *ConnectionManager, configPa
 	}
 
 	// Parse optional parameters
-	password, _ := args["password"].(string)      //nolint:errcheck // Optional
-	dbname, _ := args["dbname"].(string)          //nolint:errcheck // Optional
-	sslmode, _ := args["sslmode"].(string)        //nolint:errcheck // Optional
-	sslcert, _ := args["sslcert"].(string)        //nolint:errcheck // Optional
-	sslkey, _ := args["sslkey"].(string)          //nolint:errcheck // Optional
-	sslrootcert, _ := args["sslrootcert"].(string) //nolint:errcheck // Optional
-	sslpassword, _ := args["sslpassword"].(string) //nolint:errcheck // Optional
+	password, _ := args["password"].(string)        //nolint:errcheck // Optional
+	dbname, _ := args["dbname"].(string)            //nolint:errcheck // Optional
+	sslmode, _ := args["sslmode"].(string)          //nolint:errcheck // Optional
+	sslcert, _ := args["sslcert"].(string)          //nolint:errcheck // Optional
+	sslkey, _ := args["sslkey"].(string)            //nolint:errcheck // Optional
+	sslrootcert, _ := args["sslrootcert"].(string)  //nolint:errcheck // Optional
+	sslpassword, _ := args["sslpassword"].(string)  //nolint:errcheck // Optional
 	appname, _ := args["application_name"].(string) //nolint:errcheck // Optional
-	desc, _ := args["description"].(string)        //nolint:errcheck // Optional
+	desc, _ := args["description"].(string)         //nolint:errcheck // Optional
 
 	port := 5432
 	if portRaw, ok := args["port"]; ok {
@@ -233,18 +233,18 @@ func handleAdd(args map[string]interface{}, connMgr *ConnectionManager, configPa
 
 	// Create connection
 	conn := &auth.SavedConnection{
-		Alias:          alias,
-		Host:           host,
-		Port:           port,
-		User:           user,
-		DBName:         dbname,
-		SSLMode:        sslmode,
-		SSLCert:        sslcert,
-		SSLKey:         sslkey,
-		SSLRootCert:    sslrootcert,
-		ConnectTimeout: connectTimeout,
+		Alias:           alias,
+		Host:            host,
+		Port:            port,
+		User:            user,
+		DBName:          dbname,
+		SSLMode:         sslmode,
+		SSLCert:         sslcert,
+		SSLKey:          sslkey,
+		SSLRootCert:     sslrootcert,
+		ConnectTimeout:  connectTimeout,
 		ApplicationName: appname,
-		Description:    desc,
+		Description:     desc,
 	}
 
 	// Encrypt passwords

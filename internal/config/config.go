@@ -157,11 +157,11 @@ func defaultConfig() *Config {
 			},
 		},
 		Embedding: EmbeddingConfig{
-			Enabled:         false,                      // Disabled by default (opt-in)
-			Provider:        "ollama",                   // Default provider
-			Model:           "nomic-embed-text",         // Default Ollama model
-			AnthropicAPIKey: "",                         // Must be provided if using Anthropic
-			OllamaURL:       "http://localhost:11434",   // Default Ollama URL
+			Enabled:         false,                    // Disabled by default (opt-in)
+			Provider:        "ollama",                 // Default provider
+			Model:           "nomic-embed-text",       // Default Ollama model
+			AnthropicAPIKey: "",                       // Must be provided if using Anthropic
+			OllamaURL:       "http://localhost:11434", // Default Ollama URL
 		},
 		PreferencesFile: "", // Will be set to default path if not specified
 		SecretFile:      "", // Will be set to default path if not specified
