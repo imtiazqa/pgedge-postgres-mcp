@@ -891,11 +891,11 @@ func TestClient_ProcessQuery_ToolListRefreshAfterManageConnections(t *testing.T)
 			{
 				Content: []interface{}{
 					ToolUse{
-						Type:  "tool_use",
-						ID:    "tool_1",
-						Name:  "manage_connections",
+						Type: "tool_use",
+						ID:   "tool_1",
+						Name: "manage_connections",
 						Input: map[string]interface{}{
-							"operation":        "connect",
+							"operation":         "connect",
 							"connection_string": "postgres://test",
 						},
 					},

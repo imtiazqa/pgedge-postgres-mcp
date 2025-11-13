@@ -304,27 +304,27 @@ func TestExtractAnthropicErrorMessage(t *testing.T) {
 
 func TestExtractOllamaErrorMessage(t *testing.T) {
 	tests := []struct {
-		name       string
-		statusCode int
-		body       string
+		name         string
+		statusCode   int
+		body         string
 		wantContains string
 	}{
 		{
-			name:       "Model not found error",
-			statusCode: 404,
-			body:       `{"error":"model not found"}`,
+			name:         "Model not found error",
+			statusCode:   404,
+			body:         `{"error":"model not found"}`,
 			wantContains: "model not found",
 		},
 		{
-			name:       "Generic error",
-			statusCode: 500,
-			body:       `{"error":"internal server error"}`,
+			name:         "Generic error",
+			statusCode:   500,
+			body:         `{"error":"internal server error"}`,
 			wantContains: "internal server error",
 		},
 		{
-			name:       "Non-JSON error",
-			statusCode: 503,
-			body:       `Service Unavailable`,
+			name:         "Non-JSON error",
+			statusCode:   503,
+			body:         `Service Unavailable`,
 			wantContains: "Service Unavailable",
 		},
 	}
