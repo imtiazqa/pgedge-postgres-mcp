@@ -54,13 +54,8 @@ func TestNewContextAwareProvider(t *testing.T) {
 	}
 }
 
-// TestContextAwareProvider_List tests tool listing
+// TestContextAwareProvider_List tests tool listing with smart filtering
 func TestContextAwareProvider_List(t *testing.T) {
-	// Skip if no database connection available
-	if os.Getenv("TEST_PGEDGE_POSTGRES_CONNECTION_STRING") == "" {
-		t.Skip("TEST_PGEDGE_POSTGRES_CONNECTION_STRING not set, skipping database test")
-	}
-
 	clientManager := database.NewClientManager()
 	defer clientManager.CloseAll()
 
@@ -71,7 +66,7 @@ func TestContextAwareProvider_List(t *testing.T) {
 		Version: "1.0.0",
 	}
 
-	provider := NewContextAwareProvider(clientManager, nil, true, fallbackClient, serverInfo, nil, nil, nil, "", nil)
+	provider := NewContextAwareProvider(clientManager, nil, false, fallbackClient, serverInfo, nil, nil, nil, "", nil)
 
 	// Register tools
 	err := provider.RegisterTools(context.TODO())
@@ -79,43 +74,86 @@ func TestContextAwareProvider_List(t *testing.T) {
 		t.Fatalf("RegisterTools failed: %v", err)
 	}
 
-	// List tools
-	tools := provider.List()
+	t.Run("without database connection shows only stateless tools", func(t *testing.T) {
+		// List tools without connection
+		tools := provider.List()
 
-	// Should have 10 tools registered
-	expectedTools := []string{
-		"query_database",
-		"get_schema_info",
-		"set_pg_configuration",
-		"server_info",
-		"set_database_connection",
-		"read_resource",
-		"add_database_connection",
-		"remove_database_connection",
-		"list_database_connections",
-		"edit_database_connection",
-	}
-
-	if len(tools) != len(expectedTools) {
-		t.Errorf("Expected %d tools, got %d", len(expectedTools), len(tools))
-	}
-
-	// Check that all expected tools are present
-	toolNames := make(map[string]bool)
-	for _, tool := range tools {
-		toolNames[tool.Name] = true
-	}
-
-	for _, expectedName := range expectedTools {
-		if !toolNames[expectedName] {
-			t.Errorf("Expected tool %q not found in list", expectedName)
+		// Should have only 4 stateless tools
+		expectedTools := []string{
+			"server_info",
+			"manage_connections",
+			"read_resource",
+			"generate_embedding",
 		}
-	}
 
-	// Verify server_info is included
-	if !toolNames["server_info"] {
-		t.Error("server_info tool should be registered")
-	}
+		if len(tools) != len(expectedTools) {
+			t.Errorf("Expected %d stateless tools, got %d", len(expectedTools), len(tools))
+		}
+
+		// Check that all expected stateless tools are present
+		toolNames := make(map[string]bool)
+		for _, tool := range tools {
+			toolNames[tool.Name] = true
+		}
+
+		for _, expectedName := range expectedTools {
+			if !toolNames[expectedName] {
+				t.Errorf("Expected tool %q not found in list", expectedName)
+			}
+		}
+	})
+
+	t.Run("with database connection shows all tools", func(t *testing.T) {
+		// Skip if no database connection available
+		if os.Getenv("TEST_PGEDGE_POSTGRES_CONNECTION_STRING") == "" {
+			t.Skip("TEST_PGEDGE_POSTGRES_CONNECTION_STRING not set, skipping database test")
+		}
+
+		// Create and set up a database client
+		connStr := os.Getenv("TEST_PGEDGE_POSTGRES_CONNECTION_STRING")
+		client := database.NewClientWithConnectionString(connStr)
+		if err := client.Connect(); err != nil {
+			t.Fatalf("Failed to connect to database: %v", err)
+		}
+		if err := client.LoadMetadata(); err != nil {
+			t.Fatalf("Failed to load metadata: %v", err)
+		}
+		if err := clientManager.SetClient("default", client); err != nil {
+			t.Fatalf("Failed to set client: %v", err)
+		}
+
+		// List tools with connection
+		tools := provider.List()
+
+		// Should have all 9 tools
+		expectedTools := []string{
+			"query_database",
+			"get_schema_info",
+			"set_pg_configuration",
+			"server_info",
+			"manage_connections",
+			"read_resource",
+			"generate_embedding",
+			"semantic_search",
+			"search_similar",
+		}
+
+		if len(tools) != len(expectedTools) {
+			t.Errorf("Expected %d tools with connection, got %d", len(expectedTools), len(tools))
+		}
+
+		// Check that all expected tools are present
+		toolNames := make(map[string]bool)
+		for _, tool := range tools {
+			toolNames[tool.Name] = true
+		}
+
+		for _, expectedName := range expectedTools {
+			if !toolNames[expectedName] {
+				t.Errorf("Expected tool %q not found in list", expectedName)
+			}
+		}
+	})
 }
 
 // TestContextAwareProvider_Execute_NoAuth tests execution without authentication

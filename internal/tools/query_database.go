@@ -14,7 +14,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 	"strings"
 
 	"pgedge-postgres-mcp/internal/database"
@@ -108,11 +107,13 @@ func QueryDatabaseTool(dbClient *database.Client) Tool {
 			if err != nil {
 				return mcp.NewToolError(fmt.Sprintf("Failed to begin transaction: %v", err))
 			}
+
+			// Track whether transaction was committed
+			committed := false
 			defer func() {
-				if err := tx.Rollback(ctx); err != nil {
-					// Rollback errors are expected if transaction was already committed/closed
-					// Log for debugging but don't treat as fatal
-					fmt.Fprintf(os.Stderr, "WARNING: Transaction rollback returned error (may be expected): %v\n", err)
+				if !committed {
+					// Only rollback if not committed - prevents idle transactions
+					_ = tx.Rollback(ctx) //nolint:errcheck // rollback in defer after commit is expected to fail
 				}
 			}()
 
@@ -164,6 +165,7 @@ func QueryDatabaseTool(dbClient *database.Client) Tool {
 			if err := tx.Commit(ctx); err != nil {
 				return mcp.NewToolError(fmt.Sprintf("Failed to commit transaction: %v", err))
 			}
+			committed = true
 
 			var sb strings.Builder
 			if connectionMessage != "" {

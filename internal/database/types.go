@@ -21,8 +21,10 @@ type TableInfo struct {
 
 // ColumnInfo contains information about a database column
 type ColumnInfo struct {
-	ColumnName  string
-	DataType    string
-	IsNullable  string
-	Description string
+	ColumnName       string
+	DataType         string
+	IsNullable       string
+	Description      string
+	IsVectorColumn   bool // True if this is a pgvector column
+	VectorDimensions int  // Number of dimensions for vector columns (0 if not a vector)
 }

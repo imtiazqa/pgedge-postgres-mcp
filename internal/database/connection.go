@@ -12,8 +12,11 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"os"
+	"regexp"
+	"strconv"
 	"sync"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -191,10 +194,13 @@ func (c *Client) LoadMetadataFor(connStr string) error {
 				a.attname AS column_name,
 				pg_catalog.format_type(a.atttypid, a.atttypmod) AS data_type,
 				CASE WHEN a.attnotnull THEN 'NO' ELSE 'YES' END AS is_nullable,
-				col_description(c.oid, a.attnum) AS column_description
+				col_description(c.oid, a.attnum) AS column_description,
+				t.typname AS type_name,
+				a.atttypmod AS type_modifier
 			FROM pg_class c
 			JOIN pg_namespace n ON n.oid = c.relnamespace
 			JOIN pg_attribute a ON a.attrelid = c.oid
+			JOIN pg_type t ON t.oid = a.atttypid
 			WHERE c.relkind IN ('r', 'v', 'm')
 				AND n.nspname NOT IN ('pg_catalog', 'information_schema', 'pg_toast')
 				AND a.attnum > 0
@@ -209,7 +215,9 @@ func (c *Client) LoadMetadataFor(connStr string) error {
 			ci.column_name,
 			ci.data_type,
 			ci.is_nullable,
-			COALESCE(ci.column_description, '') AS column_description
+			COALESCE(ci.column_description, '') AS column_description,
+			ci.type_name,
+			ci.type_modifier
 		FROM table_comments tc
 		LEFT JOIN column_info ci ON tc.schema_name = ci.schema_name AND tc.table_name = ci.table_name
 		ORDER BY tc.schema_name, tc.table_name, ci.column_name
@@ -224,8 +232,10 @@ func (c *Client) LoadMetadataFor(connStr string) error {
 	newMetadata := make(map[string]TableInfo)
 	for rows.Next() {
 		var schemaName, tableName, tableType, tableDesc, columnName, dataType, isNullable, columnDesc string
+		var typeName sql.NullString
+		var typeModifier sql.NullInt32
 
-		err := rows.Scan(&schemaName, &tableName, &tableType, &tableDesc, &columnName, &dataType, &isNullable, &columnDesc)
+		err := rows.Scan(&schemaName, &tableName, &tableType, &tableDesc, &columnName, &dataType, &isNullable, &columnDesc, &typeName, &typeModifier)
 		if err != nil {
 			return fmt.Errorf("failed to scan row: %w", err)
 		}
@@ -244,11 +254,27 @@ func (c *Client) LoadMetadataFor(connStr string) error {
 		}
 
 		if columnName != "" {
+			// Detect vector columns and extract dimensions
+			isVector := false
+			dimensions := 0
+			if typeName.Valid && typeName.String == "vector" {
+				isVector = true
+				// Parse dimensions from data_type (e.g., "vector(1536)")
+				re := regexp.MustCompile(`vector\((\d+)\)`)
+				if matches := re.FindStringSubmatch(dataType); len(matches) > 1 {
+					if dim, err := strconv.Atoi(matches[1]); err == nil {
+						dimensions = dim
+					}
+				}
+			}
+
 			table.Columns = append(table.Columns, ColumnInfo{
-				ColumnName:  columnName,
-				DataType:    dataType,
-				IsNullable:  isNullable,
-				Description: columnDesc,
+				ColumnName:       columnName,
+				DataType:         dataType,
+				IsNullable:       isNullable,
+				Description:      columnDesc,
+				IsVectorColumn:   isVector,
+				VectorDimensions: dimensions,
 			})
 		}
 

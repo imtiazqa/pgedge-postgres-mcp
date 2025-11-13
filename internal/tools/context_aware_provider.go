@@ -34,6 +34,7 @@ type ContextAwareProvider struct {
 	serverInfo      ServerInfo         // Server metadata for server_info tool
 	connMgr         *ConnectionManager // Manages saved database connections
 	preferencesPath string             // Path to preferences file for persistence
+	cfg             *config.Config     // Server configuration (for embedding settings)
 
 	// Cache of registries per client to avoid re-creating tools on every Execute()
 	mu               sync.RWMutex
@@ -43,16 +44,16 @@ type ContextAwareProvider struct {
 // registerStatelessTools registers all stateless tools (those that don't require a database client)
 func (p *ContextAwareProvider) registerStatelessTools(registry *Registry) {
 	registry.Register("server_info", ServerInfoTool(p.serverInfo))
-	registry.Register("set_database_connection", SetDatabaseConnectionTool(p.clientManager, p.connMgr, p.preferencesPath))
+
+	// Consolidated connection management tool (connect, add, edit, remove, list)
+	registry.Register("manage_connections", ManageConnectionsTool(p.clientManager, p.connMgr, p.preferencesPath))
+
 	// Note: read_resource tool provides backward compatibility for resource access
 	// Resources are also accessible via the native MCP resources/read endpoint
 	registry.Register("read_resource", ReadResourceTool(p.createResourceAdapter()))
 
-	// Connection management tools
-	registry.Register("add_database_connection", AddDatabaseConnectionTool(p.connMgr, p.preferencesPath))
-	registry.Register("remove_database_connection", RemoveDatabaseConnectionTool(p.connMgr, p.preferencesPath))
-	registry.Register("list_database_connections", ListDatabaseConnectionsTool(p.connMgr))
-	registry.Register("edit_database_connection", EditDatabaseConnectionTool(p.connMgr, p.preferencesPath))
+	// Embedding generation tool (stateless, only requires config)
+	registry.Register("generate_embedding", GenerateEmbeddingTool(p.cfg))
 }
 
 // registerDatabaseTools registers all database-dependent tools
@@ -60,6 +61,8 @@ func (p *ContextAwareProvider) registerDatabaseTools(registry *Registry, client 
 	registry.Register("query_database", QueryDatabaseTool(client))
 	registry.Register("get_schema_info", GetSchemaInfoTool(client))
 	registry.Register("set_pg_configuration", SetPGConfigurationTool(client))
+	registry.Register("semantic_search", SemanticSearchTool(client, p.cfg))
+	registry.Register("search_similar", SearchSimilarTool(client, p.cfg))
 }
 
 // NewContextAwareProvider creates a new context-aware tool provider
@@ -76,6 +79,7 @@ func NewContextAwareProvider(clientManager *database.ClientManager, resourceReg 
 		serverInfo:       serverInfo,
 		connMgr:          connMgr,
 		preferencesPath:  preferencesPath,
+		cfg:              cfg,
 		clientRegistries: make(map[*database.Client]*Registry),
 	}
 
@@ -127,11 +131,54 @@ func (p *ContextAwareProvider) RegisterTools(ctx context.Context) error {
 	return nil
 }
 
-// List returns all registered tool definitions
-// All tools are registered in the base registry for discovery
-// Database-dependent tools will fail gracefully if no connection exists
+// List returns registered tool definitions based on connection state
+// Smart filtering: only returns database-dependent tools when a connection exists
+// This reduces token usage by not advertising unusable tools
 func (p *ContextAwareProvider) List() []mcp.Tool {
-	return p.baseRegistry.List()
+	// Check if we have an active database connection
+	hasConnection := p.hasActiveConnection()
+
+	allTools := p.baseRegistry.List()
+
+	// If we have a connection, return all tools
+	if hasConnection {
+		return allTools
+	}
+
+	// No connection - filter to only stateless tools
+	statelessTools := map[string]bool{
+		"server_info":        true,
+		"manage_connections": true,
+		"read_resource":      true,
+		"generate_embedding": true,
+	}
+
+	filtered := make([]mcp.Tool, 0, len(statelessTools))
+	for _, tool := range allTools {
+		if statelessTools[tool.Name] {
+			filtered = append(filtered, tool)
+		}
+	}
+
+	return filtered
+}
+
+// hasActiveConnection checks if there's an active database connection
+func (p *ContextAwareProvider) hasActiveConnection() bool {
+	if !p.authEnabled {
+		// Auth disabled - check if default client exists and has a connection
+		client, err := p.clientManager.GetOrCreateClient("default", false)
+		if err != nil || client == nil {
+			return false
+		}
+		// Check if client has metadata loaded (indicates successful connection)
+		return client.IsMetadataLoadedFor(client.GetDefaultConnection())
+	}
+
+	// Auth enabled - check if any clients exist
+	// In auth mode, we can't know which token is requesting without context
+	// So we return all tools if any client exists, or only stateless if none
+	return p.clientManager.GetClientCount() > 0
 }
 
 // getOrCreateRegistryForClient returns a cached registry for the given client
@@ -188,11 +235,8 @@ func (p *ContextAwareProvider) Execute(ctx context.Context, name string, args ma
 		"recommend_pg_configuration": true,
 		"read_resource":              true,
 		"server_info":                true,
-		"set_database_connection":    true,
-		"add_database_connection":    true,
-		"remove_database_connection": true,
-		"list_database_connections":  true,
-		"edit_database_connection":   true,
+		"manage_connections":         true, // Consolidated connection management (connect, add, edit, remove, list)
+		"generate_embedding":         true, // Embedding generation doesn't need database
 	}
 
 	if statelessTools[name] {

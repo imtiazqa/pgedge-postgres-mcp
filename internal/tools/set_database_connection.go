@@ -138,13 +138,13 @@ func SetDatabaseConnectionTool(clientManager *database.ClientManager, connMgr *C
 	return Tool{
 		Definition: mcp.Tool{
 			Name:        "set_database_connection",
-			Description: "Set the PostgreSQL database connection for this session. This tool intelligently matches connection names (case-insensitive) and reuses saved credentials. IMPORTANT: This tool does NOT modify saved connections. **Smart Matching**: When a user mentions a server or connection by name (e.g., 'connect to server1', 'use production database'), look for a matching saved connection. If found, ALL saved parameters are automatically used (host, port, user, password, SSL settings). The database name can be overridden. **Usage**: 1) Use saved connection as-is: 'production' 2) Use saved credentials with different database: 'postgres://user@server1/different_db' (uses saved 'server1' credentials) 3) New connection: 'postgres://user:pass@newhost/db'. This must be called before using any database-dependent tools.",
+			Description: "Set PostgreSQL connection for this session. Accepts: saved connection alias, connection string, or hostname (matches saved credentials). Required before database operations.",
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]interface{}{
 					"connection_string": map[string]interface{}{
 						"type":        "string",
-						"description": "PostgreSQL connection string OR alias to a saved connection. The tool automatically matches aliases/hostnames (case-insensitive) and merges with saved credentials. When a hostname matches a saved connection (e.g., 'server1' matches saved 'server1'), all saved credentials are used (host, port, user, password, SSL). Only the database name can be overridden. Format: 'alias' (e.g., 'production'), 'postgres://user@alias/database' (uses saved credentials), or 'postgres://user:pass@host:port/database' (new connection)",
+						"description": "Connection alias, postgres://user:pass@host:port/db, or hostname to match saved connection",
 					},
 				},
 				Required: []string{"connection_string"},

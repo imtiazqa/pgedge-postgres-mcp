@@ -76,65 +76,65 @@ func AddDatabaseConnectionTool(connMgr *ConnectionManager, configPath string) To
 	return Tool{
 		Definition: mcp.Tool{
 			Name:        "add_database_connection",
-			Description: "Save a database connection with an alias for later use. The connection will be persisted and available in future sessions. Passwords are encrypted before storage. All SSL/TLS parameters are supported for secure connections.",
+			Description: "Save connection with alias. Passwords encrypted. Persisted across sessions.",
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]interface{}{
 					"alias": map[string]interface{}{
 						"type":        "string",
-						"description": "Friendly name for this connection (e.g., 'production', 'staging', 'local')",
+						"description": "Connection name",
 					},
 					"host": map[string]interface{}{
 						"type":        "string",
-						"description": "Database server hostname or IP address (required)",
+						"description": "Hostname/IP",
 					},
 					"port": map[string]interface{}{
 						"type":        "number",
-						"description": "Database server port (default: 5432)",
+						"description": "Port (default: 5432)",
 					},
 					"user": map[string]interface{}{
 						"type":        "string",
-						"description": "Database user (required)",
+						"description": "Username",
 					},
 					"password": map[string]interface{}{
 						"type":        "string",
-						"description": "Database password (will be encrypted before storage)",
+						"description": "Password (encrypted)",
 					},
 					"dbname": map[string]interface{}{
 						"type":        "string",
-						"description": "Database name (defaults to username if not specified)",
+						"description": "Database name",
 					},
 					"sslmode": map[string]interface{}{
 						"type":        "string",
-						"description": "SSL mode: disable, allow, prefer, require, verify-ca, verify-full (default: prefer)",
+						"description": "SSL mode",
 					},
 					"sslcert": map[string]interface{}{
 						"type":        "string",
-						"description": "Path to client certificate file for SSL authentication",
+						"description": "Client cert path",
 					},
 					"sslkey": map[string]interface{}{
 						"type":        "string",
-						"description": "Path to client private key file for SSL authentication",
+						"description": "Client key path",
 					},
 					"sslrootcert": map[string]interface{}{
 						"type":        "string",
-						"description": "Path to root CA certificate file for SSL verification",
+						"description": "Root CA path",
 					},
 					"sslpassword": map[string]interface{}{
 						"type":        "string",
-						"description": "Password for client key file (will be encrypted before storage)",
+						"description": "Key password",
 					},
 					"connect_timeout": map[string]interface{}{
 						"type":        "number",
-						"description": "Connection timeout in seconds",
+						"description": "Timeout (seconds)",
 					},
 					"application_name": map[string]interface{}{
 						"type":        "string",
-						"description": "Application name to identify connections in pg_stat_activity",
+						"description": "App name",
 					},
 					"description": map[string]interface{}{
 						"type":        "string",
-						"description": "Optional description or notes about this connection",
+						"description": "Notes",
 					},
 				},
 				Required: []string{"alias", "host", "user"},
@@ -368,33 +368,33 @@ func EditDatabaseConnectionTool(connMgr *ConnectionManager, configPath string) T
 	return Tool{
 		Definition: mcp.Tool{
 			Name:        "edit_database_connection",
-			Description: "Permanently modify a saved database connection's configuration. IMPORTANT: Only use this tool when the user explicitly asks to update, change, or edit a saved connection. DO NOT use this tool to temporarily connect to a different database - use set_database_connection with a full connection string instead. Provide only the fields you want to update. Passwords will be encrypted before storage.",
+			Description: "Update saved connection. Only modify when explicitly requested. Partial updates allowed.",
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]interface{}{
 					"alias": map[string]interface{}{
 						"type":        "string",
-						"description": "Alias of the connection to edit (required)",
+						"description": "Connection to edit",
 					},
 					"host": map[string]interface{}{
 						"type":        "string",
-						"description": "New database server hostname or IP address",
+						"description": "New hostname/IP",
 					},
 					"port": map[string]interface{}{
 						"type":        "number",
-						"description": "New database server port",
+						"description": "New port",
 					},
 					"user": map[string]interface{}{
 						"type":        "string",
-						"description": "New database user",
+						"description": "New username",
 					},
 					"password": map[string]interface{}{
 						"type":        "string",
-						"description": "New database password (will be encrypted)",
+						"description": "New password",
 					},
 					"dbname": map[string]interface{}{
 						"type":        "string",
-						"description": "New database name",
+						"description": "New database",
 					},
 					"sslmode": map[string]interface{}{
 						"type":        "string",
@@ -402,31 +402,31 @@ func EditDatabaseConnectionTool(connMgr *ConnectionManager, configPath string) T
 					},
 					"sslcert": map[string]interface{}{
 						"type":        "string",
-						"description": "New path to client certificate file",
+						"description": "New cert path",
 					},
 					"sslkey": map[string]interface{}{
 						"type":        "string",
-						"description": "New path to client private key file",
+						"description": "New key path",
 					},
 					"sslrootcert": map[string]interface{}{
 						"type":        "string",
-						"description": "New path to root CA certificate file",
+						"description": "New CA path",
 					},
 					"sslpassword": map[string]interface{}{
 						"type":        "string",
-						"description": "New password for client key file (will be encrypted)",
+						"description": "New key password",
 					},
 					"connect_timeout": map[string]interface{}{
 						"type":        "number",
-						"description": "New connection timeout in seconds",
+						"description": "New timeout",
 					},
 					"application_name": map[string]interface{}{
 						"type":        "string",
-						"description": "New application name",
+						"description": "New app name",
 					},
 					"description": map[string]interface{}{
 						"type":        "string",
-						"description": "New description or notes",
+						"description": "New notes",
 					},
 				},
 				Required: []string{"alias"},

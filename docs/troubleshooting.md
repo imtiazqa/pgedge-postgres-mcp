@@ -343,6 +343,171 @@ echo '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}' | ./pgedge-pos
 - Check protocol version compatibility
 - Update server if using old version
 
+## Embedding Generation Issues
+
+### Symptoms
+
+- `generate_embedding` tool not available
+- Embedding generation returns errors
+- Rate limit errors from Anthropic API
+- High embedding API costs
+
+### Solutions
+
+#### 1. Enable Embedding Logging
+
+To understand embedding API usage and debug rate limits, enable structured logging:
+
+```bash
+# Set log level
+export PGEDGE_LLM_LOG_LEVEL="info"    # Basic info: API calls, errors
+export PGEDGE_LLM_LOG_LEVEL="debug"   # Detailed: text length, dimensions, timing
+export PGEDGE_LLM_LOG_LEVEL="trace"   # Very detailed: full request/response
+
+# Run the server
+./bin/pgedge-postgres-mcp
+```
+
+**Log output will show**:
+
+```
+[LLM] [INFO] Provider initialized: provider=ollama, model=nomic-embed-text, base_url=http://localhost:11434
+[LLM] [INFO] API call succeeded: provider=ollama, model=nomic-embed-text, text_length=245, dimensions=768, duration=156ms
+[LLM] [INFO] RATE LIMIT ERROR: provider=anthropic, model=voyage-3-lite, status_code=429, response={"error":"rate_limit_error"...}
+```
+
+This helps you identify:
+
+- Number of embedding API calls being made
+- Text length being embedded (affects cost)
+- API response times
+- Rate limit errors with full details
+
+#### 2. Embedding Generation Not Enabled
+
+**Error**: "Embedding generation is not enabled"
+
+**Solution**: Enable in configuration file:
+
+```yaml
+embedding:
+  enabled: true
+  provider: "ollama"  # or "anthropic"
+  model: "nomic-embed-text"
+```
+
+#### 3. Ollama Connection Issues
+
+**Error**: "Failed to connect to Ollama"
+
+**Check Ollama is running**:
+
+```bash
+# Verify Ollama is running
+curl http://localhost:11434/api/tags
+
+# Start Ollama if not running
+ollama serve
+
+# Pull embedding model if needed
+ollama pull nomic-embed-text
+```
+
+#### 4. Anthropic Rate Limit Errors
+
+**Error**: "API error 429: rate_limit_error"
+
+**Solutions**:
+
+a) **Check your API usage**:
+   - Visit https://console.anthropic.com/settings/usage
+   - Review your rate limits and usage
+
+b) **Switch to Ollama for development**:
+
+```yaml
+embedding:
+  enabled: true
+  provider: "ollama"  # Free, local, no rate limits
+  model: "nomic-embed-text"
+  ollama_url: "http://localhost:11434"
+```
+
+c) **Use embedding logging to identify high usage**:
+
+```bash
+export PGEDGE_LLM_LOG_LEVEL="info"
+./bin/pgedge-postgres-mcp
+```
+
+Review logs to see:
+
+- Which operations are generating embeddings
+- How much text is being embedded
+- How frequently embeddings are generated
+
+#### 5. Invalid API Key
+
+**Error**: "API request failed with status 401"
+
+**Solution**:
+
+- Verify API key is correct
+- Check environment variable or configuration file:
+
+```bash
+export PGEDGE_ANTHROPIC_API_KEY="sk-ant-your-key-here"
+```
+
+Or in configuration:
+
+```yaml
+embedding:
+  anthropic_api_key: "sk-ant-your-key-here"
+```
+
+#### 6. Model Not Found
+
+**Ollama Error**: "Model not found"
+
+**Solution**:
+
+```bash
+# List available models
+ollama list
+
+# Pull the required model
+ollama pull nomic-embed-text
+```
+
+**Anthropic Error**: "Unknown model"
+
+**Solution**: Check model name in configuration. Supported models:
+
+- `voyage-3-lite` (512 dims)
+- `voyage-3` (1024 dims)
+- `voyage-2` (1024 dims)
+- `voyage-2-lite` (1024 dims)
+
+#### 7. Dimension Mismatch in Semantic Search
+
+**Error**: "Query vector dimensions (768) don't match column dimensions (1536)"
+
+**Cause**: Using different embedding models for document storage vs. query generation
+
+**Solution**:
+
+1. Check your document embeddings dimensions
+2. Use the same embedding model/dimensions for queries:
+
+```yaml
+# Match the model used for your documents
+embedding:
+  enabled: true
+  provider: "ollama"
+  model: "nomic-embed-text"  # 768 dimensions
+```
+
 ## Getting Help
 
 If you're still having issues:

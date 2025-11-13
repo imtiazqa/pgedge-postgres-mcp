@@ -19,6 +19,11 @@ The pgEdge MCP Server supports multiple configuration methods with the following
 | `http.tls.chain_file` | `-chain` | `PGEDGE_TLS_CHAIN_FILE` | Path to TLS certificate chain file (optional) |
 | `http.auth.enabled` | `-no-auth` | `PGEDGE_AUTH_ENABLED` | Enable API token authentication (default: true) |
 | `http.auth.token_file` | `-token-file` | `PGEDGE_AUTH_TOKEN_FILE` | Path to API tokens file |
+| `embedding.enabled` | N/A | N/A | Enable embedding generation (default: false) |
+| `embedding.provider` | N/A | N/A | Embedding provider: "ollama" or "anthropic" |
+| `embedding.model` | N/A | N/A | Embedding model name (provider-specific) |
+| `embedding.ollama_url` | N/A | `PGEDGE_OLLAMA_URL` | Ollama API URL (default: "http://localhost:11434") |
+| `embedding.anthropic_api_key` | N/A | `PGEDGE_ANTHROPIC_API_KEY` | Anthropic API key for Voyage embeddings |
 | `preferences_file` | `-preferences-file` | `PGEDGE_PREFERENCES_FILE` | Path to user preferences file |
 | `secret_file` | `-secret-file` | `PGEDGE_SECRET_FILE` | Path to encryption secret file (auto-generated if not present) |
 
@@ -45,6 +50,14 @@ http:
   auth:
     enabled: true
     token_file: ""  # defaults to {binary_dir}/pgedge-postgres-mcp-server-tokens.yaml
+
+# Embedding generation (optional)
+embedding:
+  enabled: false  # Enable embedding generation from text
+  provider: "ollama"  # Options: "ollama" or "anthropic"
+  model: "nomic-embed-text"  # Model name (provider-specific)
+  ollama_url: "http://localhost:11434"  # Ollama API URL (for ollama provider)
+  # anthropic_api_key: "sk-ant-..."  # Anthropic API key (for anthropic provider)
 
 # User preferences file path (optional)
 preferences_file: ""  # defaults to pgedge-postgres-mcp-prefs.yaml
@@ -206,6 +219,142 @@ chmod 600 pgedge-postgres-mcp.secret
 ERROR: Failed to load encryption key from /path/to/pgedge-postgres-mcp.secret:
 insecure permissions on key file: 0644 (expected 0600).
 Please run: chmod 600 /path/to/pgedge-postgres-mcp.secret
+```
+
+## Embedding Generation Configuration
+
+The server supports generating embeddings from text using three providers: OpenAI (cloud-based), Anthropic Voyage (cloud-based), or Ollama (local, self-hosted). This enables you to convert natural language queries into vector embeddings for semantic search.
+
+### Configuration File
+
+```yaml
+embedding:
+  enabled: true
+  provider: "openai"  # Options: "openai", "anthropic", or "ollama"
+  model: "text-embedding-3-small"
+  openai_api_key: ""  # Set via OPENAI_API_KEY environment variable
+```
+
+### Using OpenAI (Cloud Embeddings)
+
+**Advantages**: High quality, industry standard, multiple dimension options
+
+**Configuration**:
+
+```yaml
+embedding:
+  enabled: true
+  provider: "openai"
+  model: "text-embedding-3-small"  # 1536 dimensions
+  openai_api_key: "sk-proj-your-key-here"
+```
+
+**Supported Models**:
+
+- `text-embedding-3-small`: 1536 dimensions (recommended, cost-effective, compatible with most existing databases)
+- `text-embedding-3-large`: 3072 dimensions (higher quality, larger vectors)
+- `text-embedding-ada-002`: 1536 dimensions (legacy model, still supported)
+
+**Environment Variables**:
+
+```bash
+# Standard OpenAI environment variable (recommended)
+export OPENAI_API_KEY="sk-proj-your-key-here"
+
+# Or use the pgEdge-prefixed version
+export PGEDGE_OPENAI_API_KEY="sk-proj-your-key-here"
+```
+
+**Pricing** (as of 2025):
+
+- text-embedding-3-small: $0.020 / 1M tokens
+- text-embedding-3-large: $0.130 / 1M tokens
+
+### Using Anthropic Voyage (Cloud Embeddings)
+
+**Advantages**: High quality, managed service
+
+**Configuration**:
+
+```yaml
+embedding:
+  enabled: true
+  provider: "anthropic"
+  model: "voyage-3"  # 1024 dimensions
+  anthropic_api_key: "sk-ant-your-key-here"
+```
+
+**Supported Models**:
+
+- `voyage-3`: 1024 dimensions (recommended, higher quality)
+- `voyage-3-lite`: 512 dimensions (cost-effective)
+- `voyage-2`: 1024 dimensions
+- `voyage-2-lite`: 1024 dimensions
+
+**Environment Variable**:
+
+```bash
+export ANTHROPIC_API_KEY="sk-ant-your-key-here"
+```
+
+### Using Ollama (Local Embeddings)
+
+**Advantages**: Free, private, works offline
+
+**Configuration**:
+
+```yaml
+embedding:
+  enabled: true
+  provider: "ollama"
+  model: "nomic-embed-text"  # 768 dimensions
+  ollama_url: "http://localhost:11434"
+```
+
+**Supported Models**:
+
+- `nomic-embed-text`: 768 dimensions (recommended)
+- `mxbai-embed-large`: 1024 dimensions
+- `all-minilm`: 384 dimensions
+
+**Setup**:
+
+```bash
+# Install Ollama from https://ollama.com/
+
+# Pull embedding model
+ollama pull nomic-embed-text
+
+# Verify it's running
+curl http://localhost:11434/api/tags
+```
+
+### Embedding Generation Logging
+
+To debug embedding API calls and rate limits, enable structured logging:
+
+```bash
+# Set log level
+export PGEDGE_LLM_LOG_LEVEL="info"    # Basic info: API calls, errors
+export PGEDGE_LLM_LOG_LEVEL="debug"   # Detailed: text length, dimensions, timing
+export PGEDGE_LLM_LOG_LEVEL="trace"   # Very detailed: full request/response
+
+# Run the server
+./bin/pgedge-postgres-mcp
+```
+
+**Log Levels**:
+
+- `info` (recommended): Logs API calls with success/failure, timing, dimensions, and rate limit errors
+- `debug`: Adds text length, API URLs, and provider initialization
+- `trace`: Adds request text previews and full response details
+
+**Example Output (info level)**:
+
+```
+[LLM] [INFO] Provider initialized: provider=ollama, model=nomic-embed-text, base_url=http://localhost:11434
+[LLM] [INFO] API call succeeded: provider=ollama, model=nomic-embed-text, text_length=245, dimensions=768, duration=156ms
+[LLM] [INFO] RATE LIMIT ERROR: provider=anthropic, model=voyage-3-lite, status_code=429, response={"error":...}
 ```
 
 ### Creating a Configuration File

@@ -700,6 +700,246 @@ func TestClient_ProcessQuery_ContextCancellation(t *testing.T) {
 	// The main thing is it doesn't hang - if we get here, the test passes
 }
 
+func TestClient_ProcessQuery_ToolListRefreshAfterManageConnections(t *testing.T) {
+	// Track the number of times tools/list is called
+	toolsListCallCount := 0
+
+	// Create a custom mock server that returns different tool lists
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var req map[string]interface{}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "Invalid request", http.StatusBadRequest)
+			return
+		}
+
+		method := req["method"].(string)
+		w.Header().Set("Content-Type", "application/json")
+
+		switch method {
+		case "initialize":
+			resp := map[string]interface{}{
+				"jsonrpc": "2.0",
+				"id":      req["id"],
+				"result": map[string]interface{}{
+					"protocolVersion": "1.0.0",
+					"serverInfo": map[string]interface{}{
+						"name":    "test-server",
+						"version": "1.0.0",
+					},
+				},
+			}
+			json.NewEncoder(w).Encode(resp)
+
+		case "tools/list":
+			toolsListCallCount++
+
+			// First call: return 4 stateless tools (no database connection)
+			// Second call: return 9 tools (with database connection)
+			var tools []interface{}
+			if toolsListCallCount == 1 {
+				tools = []interface{}{
+					map[string]interface{}{
+						"name":        "server_info",
+						"description": "Get server information",
+					},
+					map[string]interface{}{
+						"name":        "manage_connections",
+						"description": "Manage database connections",
+					},
+					map[string]interface{}{
+						"name":        "read_resource",
+						"description": "Read resources",
+					},
+					map[string]interface{}{
+						"name":        "generate_embedding",
+						"description": "Generate embeddings",
+					},
+				}
+			} else {
+				// After connection, include all 9 tools
+				tools = []interface{}{
+					map[string]interface{}{
+						"name":        "server_info",
+						"description": "Get server information",
+					},
+					map[string]interface{}{
+						"name":        "manage_connections",
+						"description": "Manage database connections",
+					},
+					map[string]interface{}{
+						"name":        "read_resource",
+						"description": "Read resources",
+					},
+					map[string]interface{}{
+						"name":        "generate_embedding",
+						"description": "Generate embeddings",
+					},
+					map[string]interface{}{
+						"name":        "query_database",
+						"description": "Execute SQL queries",
+					},
+					map[string]interface{}{
+						"name":        "get_schema_info",
+						"description": "Get database schema information",
+					},
+					map[string]interface{}{
+						"name":        "semantic_search",
+						"description": "Perform semantic search",
+					},
+					map[string]interface{}{
+						"name":        "search_similar",
+						"description": "Auto-discover and search",
+					},
+					map[string]interface{}{
+						"name":        "set_pg_configuration",
+						"description": "Set PostgreSQL configuration",
+					},
+				}
+			}
+
+			resp := map[string]interface{}{
+				"jsonrpc": "2.0",
+				"id":      req["id"],
+				"result": map[string]interface{}{
+					"tools": tools,
+				},
+			}
+			json.NewEncoder(w).Encode(resp)
+
+		case "tools/call":
+			params := req["params"].(map[string]interface{})
+			toolName := params["name"].(string)
+
+			resp := map[string]interface{}{
+				"jsonrpc": "2.0",
+				"id":      req["id"],
+				"result": map[string]interface{}{
+					"content": []interface{}{
+						map[string]interface{}{
+							"type": "text",
+							"text": "Connected to database successfully",
+						},
+					},
+				},
+			}
+
+			// Simulate error for non-manage_connections tools
+			if toolName != "manage_connections" {
+				resp["result"] = map[string]interface{}{
+					"isError": true,
+					"content": []interface{}{
+						map[string]interface{}{
+							"type": "text",
+							"text": "Tool " + toolName + " executed",
+						},
+					},
+				}
+			}
+			json.NewEncoder(w).Encode(resp)
+
+		default:
+			http.Error(w, "Unknown method", http.StatusNotImplemented)
+		}
+	}))
+	defer server.Close()
+
+	cfg := &Config{
+		MCP: MCPConfig{
+			Mode:  "http",
+			URL:   server.URL,
+			Token: "test-token",
+		},
+		LLM: LLMConfig{
+			Provider: "anthropic",
+			APIKey:   "test-key",
+			Model:    "claude-test",
+		},
+		UI: UIConfig{
+			NoColor: true,
+		},
+	}
+
+	client, err := NewClient(cfg)
+	if err != nil {
+		t.Fatalf("NewClient failed: %v", err)
+	}
+
+	ctx := context.Background()
+	if err := client.connectToMCP(ctx); err != nil {
+		t.Fatalf("connectToMCP failed: %v", err)
+	}
+	defer client.mcp.Close()
+
+	if err := client.mcp.Initialize(ctx); err != nil {
+		t.Fatalf("Initialize failed: %v", err)
+	}
+
+	// Get initial tools (should be 4)
+	tools, err := client.mcp.ListTools(ctx)
+	if err != nil {
+		t.Fatalf("ListTools failed: %v", err)
+	}
+	client.tools = tools
+
+	if len(client.tools) != 4 {
+		t.Errorf("Expected 4 initial tools, got %d", len(client.tools))
+	}
+
+	// Set up mock LLM that uses manage_connections tool
+	mockLLM := &mockLLMClient{
+		responses: []LLMResponse{
+			{
+				Content: []interface{}{
+					ToolUse{
+						Type:  "tool_use",
+						ID:    "tool_1",
+						Name:  "manage_connections",
+						Input: map[string]interface{}{
+							"operation":        "connect",
+							"connection_string": "postgres://test",
+						},
+					},
+				},
+				StopReason: "tool_use",
+			},
+			{
+				Content: []interface{}{
+					TextContent{Type: "text", Text: "Connected successfully"},
+				},
+				StopReason: "end_turn",
+			},
+		},
+	}
+	client.llm = mockLLM
+
+	// Process query that triggers manage_connections
+	if err := client.processQuery(ctx, "Connect to database"); err != nil {
+		t.Fatalf("processQuery failed: %v", err)
+	}
+
+	// Verify tool list was refreshed (should now be 9 tools)
+	if len(client.tools) != 9 {
+		t.Errorf("Expected 9 tools after connection, got %d", len(client.tools))
+	}
+
+	// Verify search_similar is now available
+	found := false
+	for _, tool := range client.tools {
+		if tool.Name == "search_similar" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("Expected search_similar tool to be available after connection")
+	}
+
+	// Verify tools/list was called exactly twice (initial + refresh)
+	if toolsListCallCount != 2 {
+		t.Errorf("Expected tools/list to be called 2 times, got %d", toolsListCallCount)
+	}
+}
+
 func TestClient_ConnectToMCP_URLFormatting(t *testing.T) {
 	tests := []struct {
 		name     string

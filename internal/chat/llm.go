@@ -18,7 +18,9 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
+	"pgedge-postgres-mcp/internal/embedding"
 	"pgedge-postgres-mcp/internal/mcp"
 )
 
@@ -90,15 +92,27 @@ type anthropicRequest struct {
 	Temperature float64                  `json:"temperature,omitempty"`
 }
 
+type anthropicUsage struct {
+	InputTokens  int `json:"input_tokens"`
+	OutputTokens int `json:"output_tokens"`
+}
+
 type anthropicResponse struct {
 	ID         string                   `json:"id"`
 	Type       string                   `json:"type"`
 	Role       string                   `json:"role"`
 	Content    []map[string]interface{} `json:"content"`
 	StopReason string                   `json:"stop_reason"`
+	Usage      anthropicUsage           `json:"usage"`
 }
 
 func (c *anthropicClient) Chat(ctx context.Context, messages []Message, tools []mcp.Tool) (LLMResponse, error) {
+	startTime := time.Now()
+	operation := "chat"
+	url := "https://api.anthropic.com/v1/messages"
+
+	embedding.LogLLMCallDetails("anthropic", c.model, operation, url, len(messages))
+
 	// Convert MCP tools to Anthropic format
 	anthropicTools := make([]map[string]interface{}, 0, len(tools))
 	for _, tool := range tools {
@@ -122,7 +136,9 @@ func (c *anthropicClient) Chat(ctx context.Context, messages []Message, tools []
 		return LLMResponse{}, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	httpReq, err := http.NewRequestWithContext(ctx, "POST", "https://api.anthropic.com/v1/messages", bytes.NewBuffer(reqData))
+	embedding.LogLLMRequestTrace("anthropic", c.model, operation, string(reqData))
+
+	httpReq, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(reqData))
 	if err != nil {
 		return LLMResponse{}, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -133,6 +149,9 @@ func (c *anthropicClient) Chat(ctx context.Context, messages []Message, tools []
 
 	resp, err := c.client.Do(httpReq)
 	if err != nil {
+		embedding.LogConnectionError("anthropic", url, err)
+		duration := time.Since(startTime)
+		embedding.LogLLMCall("anthropic", c.model, operation, 0, 0, duration, err)
 		return LLMResponse{}, fmt.Errorf("failed to send request: %w", err)
 	}
 	defer resp.Body.Close()
@@ -140,13 +159,27 @@ func (c *anthropicClient) Chat(ctx context.Context, messages []Message, tools []
 	if resp.StatusCode != http.StatusOK {
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
-			return LLMResponse{}, fmt.Errorf("API error %d (failed to read body: %w)", resp.StatusCode, err)
+			duration := time.Since(startTime)
+			readErr := fmt.Errorf("API error %d (failed to read body: %w)", resp.StatusCode, err)
+			embedding.LogLLMCall("anthropic", c.model, operation, 0, 0, duration, readErr)
+			return LLMResponse{}, readErr
 		}
-		return LLMResponse{}, fmt.Errorf("API error %d: %s", resp.StatusCode, string(body))
+
+		// Check if this is a rate limit error
+		if resp.StatusCode == 429 {
+			embedding.LogRateLimitError("anthropic", c.model, resp.StatusCode, string(body))
+		}
+
+		duration := time.Since(startTime)
+		apiErr := fmt.Errorf("API error %d: %s", resp.StatusCode, string(body))
+		embedding.LogLLMCall("anthropic", c.model, operation, 0, 0, duration, apiErr)
+		return LLMResponse{}, apiErr
 	}
 
 	var anthropicResp anthropicResponse
 	if err := json.NewDecoder(resp.Body).Decode(&anthropicResp); err != nil {
+		duration := time.Since(startTime)
+		embedding.LogLLMCall("anthropic", c.model, operation, 0, 0, duration, err)
 		return LLMResponse{}, fmt.Errorf("failed to decode response: %w", err)
 	}
 
@@ -188,6 +221,10 @@ func (c *anthropicClient) Chat(ctx context.Context, messages []Message, tools []
 			})
 		}
 	}
+
+	duration := time.Since(startTime)
+	embedding.LogLLMResponseTrace("anthropic", c.model, operation, resp.StatusCode, anthropicResp.StopReason)
+	embedding.LogLLMCall("anthropic", c.model, operation, anthropicResp.Usage.InputTokens, anthropicResp.Usage.OutputTokens, duration, nil)
 
 	return LLMResponse{
 		Content:    content,
@@ -235,6 +272,12 @@ type toolCallRequest struct {
 }
 
 func (c *ollamaClient) Chat(ctx context.Context, messages []Message, tools []mcp.Tool) (LLMResponse, error) {
+	startTime := time.Now()
+	operation := "chat"
+	url := c.baseURL + "/api/chat"
+
+	embedding.LogLLMCallDetails("ollama", c.model, operation, url, len(messages))
+
 	// Format tools for Ollama
 	toolsContext := c.formatToolsForOllama(tools)
 
@@ -328,6 +371,9 @@ IMPORTANT INSTRUCTIONS:
 
 	resp, err := c.client.Do(httpReq)
 	if err != nil {
+		embedding.LogConnectionError("ollama", url, err)
+		duration := time.Since(startTime)
+		embedding.LogLLMCall("ollama", c.model, operation, 0, 0, duration, err)
 		return LLMResponse{}, fmt.Errorf("failed to send request: %w", err)
 	}
 	defer resp.Body.Close()
@@ -335,13 +381,22 @@ IMPORTANT INSTRUCTIONS:
 	if resp.StatusCode != http.StatusOK {
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
-			return LLMResponse{}, fmt.Errorf("API error %d (failed to read body: %w)", resp.StatusCode, err)
+			duration := time.Since(startTime)
+			readErr := fmt.Errorf("API error %d (failed to read body: %w)", resp.StatusCode, err)
+			embedding.LogLLMCall("ollama", c.model, operation, 0, 0, duration, readErr)
+			return LLMResponse{}, readErr
 		}
-		return LLMResponse{}, fmt.Errorf("API error %d: %s", resp.StatusCode, string(body))
+
+		duration := time.Since(startTime)
+		apiErr := fmt.Errorf("API error %d: %s", resp.StatusCode, string(body))
+		embedding.LogLLMCall("ollama", c.model, operation, 0, 0, duration, apiErr)
+		return LLMResponse{}, apiErr
 	}
 
 	var ollamaResp ollamaResponse
 	if err := json.NewDecoder(resp.Body).Decode(&ollamaResp); err != nil {
+		duration := time.Since(startTime)
+		embedding.LogLLMCall("ollama", c.model, operation, 0, 0, duration, err)
 		return LLMResponse{}, fmt.Errorf("failed to decode response: %w", err)
 	}
 
@@ -351,6 +406,10 @@ IMPORTANT INSTRUCTIONS:
 	var toolCall toolCallRequest
 	if err := json.Unmarshal([]byte(strings.TrimSpace(content)), &toolCall); err == nil && toolCall.Tool != "" {
 		// It's a tool call
+		duration := time.Since(startTime)
+		embedding.LogLLMResponseTrace("ollama", c.model, operation, resp.StatusCode, "tool_use")
+		embedding.LogLLMCall("ollama", c.model, operation, 0, 0, duration, nil) // Ollama doesn't provide token counts
+
 		return LLMResponse{
 			Content: []interface{}{
 				ToolUse{
@@ -365,6 +424,10 @@ IMPORTANT INSTRUCTIONS:
 	}
 
 	// It's a text response
+	duration := time.Since(startTime)
+	embedding.LogLLMResponseTrace("ollama", c.model, operation, resp.StatusCode, "end_turn")
+	embedding.LogLLMCall("ollama", c.model, operation, 0, 0, duration, nil) // Ollama doesn't provide token counts
+
 	return LLMResponse{
 		Content: []interface{}{
 			TextContent{

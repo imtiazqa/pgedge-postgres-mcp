@@ -7,7 +7,7 @@ A Model Context Protocol (MCP) server written in Go that enables natural languag
 ## Quick Links
 
 - **[Configuration Guide](configuration.md)** - Setup and configuration
-- **[Tools Reference](tools.md)** - All 10 MCP tools
+- **[Tools Reference](tools.md)** - All 9 MCP tools
 - **[Resources Reference](resources.md)** - All 4 MCP resources
 - **[Query Examples](examples.md)** - Usage examples
 - **[Deployment Guide](deployment.md)** - HTTP/HTTPS deployment
@@ -19,7 +19,7 @@ A Model Context Protocol (MCP) server written in Go that enables natural languag
 - 🔒 **Read-Only Protection** - All queries execute in read-only transactions
 - 🤖 **Dual LLM Support** - Anthropic Claude (cloud) or Ollama (local/free)
 - 📊 **4 Resources** - PostgreSQL statistics (pg_stat_*, pg://system_info, pg://settings)
-- 🛠️ **10 Tools** - Query execution, schema analysis, config management, connection management
+- 🛠️ **9 Tools** - Query execution, schema analysis, semantic search, embedding generation, connection management
 - 🌐 **HTTP/HTTPS Mode** - Direct API access with token authentication
 - 🔐 **Secure** - TLS support, token authentication, read-only enforcement
 
@@ -73,7 +73,7 @@ For detailed setup instructions, see **[Configuration Guide](configuration.md)**
 Complete configuration reference covering config files, environment variables, command-line flags, and Claude Desktop setup for both Anthropic and Ollama providers.
 
 #### [Tools Documentation](tools.md)
-Reference for all 10 MCP tools including `query_database`, `get_schema_info`, `set_pg_configuration`, connection management, and more.
+Reference for all 9 MCP tools including `query_database`, `get_schema_info`, `set_pg_configuration`, `semantic_search`, `search_similar`, `generate_embedding`, connection management, and more.
 
 #### [Resources Documentation](resources.md)
 Reference for all 4 MCP resources providing access to PostgreSQL statistics, system information, and configuration.

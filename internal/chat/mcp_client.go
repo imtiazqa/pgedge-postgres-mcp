@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"os/exec"
 	"sync"
 
@@ -69,6 +70,9 @@ func NewStdioClient(serverPath string) (MCPClient, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create stdout pipe: %w", err)
 	}
+
+	// Forward server's stderr to our stderr so embedding logs are visible
+	cmd.Stderr = os.Stderr
 
 	// Start the subprocess
 	if err := cmd.Start(); err != nil {

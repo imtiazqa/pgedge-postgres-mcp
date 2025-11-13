@@ -1,6 +1,15 @@
 # MCP Tools
 
-The pgEdge MCP Server provides ten tools that enable SQL database interaction, configuration management, connection management, and server information.
+The pgEdge MCP Server provides nine tools that enable SQL database interaction, configuration management, connection management, semantic search, embedding generation, and server information.
+
+## Smart Tool Filtering
+
+The server uses **smart tool filtering** to optimize token usage and improve user experience:
+
+- **Without database connection**: Only 4 stateless tools are shown (`server_info`, `manage_connections`, `read_resource`, `generate_embedding`)
+- **With database connection**: All 9 tools are available (adds `query_database`, `get_schema_info`, `set_pg_configuration`, `semantic_search`, `search_similar`)
+
+This dynamic tool list reduces token usage by ~60% when no database is connected, helping you stay within API rate limits.
 
 ## Available Tools
 
@@ -90,6 +99,15 @@ Retrieves database schema information including tables, views, columns, data typ
 }
 ```
 
+**For semantic search** (dramatically reduces output):
+```json
+{
+  "vector_tables_only": true
+}
+```
+
+This filters to only show tables with vector columns, reducing token usage by showing only relevant tables for semantic search operations.
+
 **Output**:
 ```
 Database Schema Information:
@@ -105,6 +123,370 @@ public.users (TABLE)
       Description: Account creation timestamp
     ...
 ```
+
+### search_similar
+
+**RECOMMENDED**: Simplified semantic search tool that automatically discovers vector tables and generates embeddings - just provide your search text!
+
+This is the easiest way to perform semantic search. It automatically:
+
+- Discovers tables with vector columns from database metadata
+- Generates embeddings from your natural language query
+- Executes the semantic search and returns results
+
+**Parameters**:
+
+- `text_query` (required): Natural language search query
+- `top_k` (optional): Number of results to return (default: 3)
+
+**Example**:
+
+```json
+{
+    "text_query": "What is PostgreSQL?",
+    "top_k": 5
+}
+```
+
+**Response**:
+
+```
+Auto-discovered vector table: public.wikipedia_articles (column: embedding, dimensions: 768)
+
+Semantic Search Results:
+Table: public.wikipedia_articles
+Vector Column: embedding (dimensions: 768)
+Distance Metric: Cosine Distance
+Top K: 5
+
+Results (5 rows):
+[
+    {
+        "id": 123,
+        "title": "PostgreSQL",
+        "content": "PostgreSQL is an open-source relational database...",
+        "distance": 0.123
+    },
+    ...
+]
+```
+
+**Requirements**:
+
+- Database connection must be established
+- Embedding generation must be enabled in server configuration
+- Database must contain at least one table with a pgvector column
+
+**Use Cases**:
+
+- Quick semantic searches without knowing table structure
+- Interactive queries where you just want to search by text
+- Chatbots and conversational interfaces
+- RAG (Retrieval Augmented Generation) systems
+
+---
+
+### semantic_search
+
+**ADVANCED**: Perform semantic similarity search with explicit control over table, column, and search parameters.
+
+This tool enables vector similarity search using either pre-computed embedding vectors or natural language text queries.
+
+**Recommended Workflow**:
+
+1. **Discover vector columns**: Call `get_schema_info(vector_tables_only=true)` to find only tables with vector columns (dramatically reduces output)
+2. **Execute search**: Call `semantic_search` with `text_query` parameter to automatically generate embeddings and search
+
+**Key Features**:
+
+- Supports multiple distance metrics (cosine, L2/Euclidean, inner product)
+- Automatic detection and validation of pgvector columns
+- Dimension matching validation
+- Optional filtering with WHERE clause conditions
+- Returns top-K most similar results with distance scores
+- **NEW**: Automatic embedding generation from text queries using configured provider
+
+**Prerequisites**:
+
+- pgvector extension installed in your PostgreSQL database
+- Table with vector column(s) containing pre-computed embeddings
+- For `query_vector`: Pre-computed embedding vector (from OpenAI, Anthropic, or other embedding models)
+- For `text_query`: Embedding generation must be enabled in server configuration
+
+**Input Examples**:
+
+Basic semantic search:
+```json
+{
+  "table_name": "documents",
+  "vector_column": "embedding",
+  "query_vector": [0.1, 0.2, 0.3, ...],
+  "top_k": 10,
+  "distance_metric": "cosine"
+}
+```
+
+With filtering:
+```json
+{
+  "table_name": "articles",
+  "vector_column": "content_embedding",
+  "query_vector": [0.1, 0.2, 0.3, ...],
+  "top_k": 5,
+  "distance_metric": "l2",
+  "filter_conditions": "category = 'technology' AND published = true"
+}
+```
+
+With text query (automatic embedding generation):
+```json
+{
+  "table_name": "documents",
+  "vector_column": "embedding",
+  "text_query": "What is vector similarity search?",
+  "top_k": 10,
+  "distance_metric": "cosine"
+}
+```
+
+**Parameters**:
+
+- `table_name` (required): Name of the table containing the vector column (can include schema: 'schema.table')
+- `vector_column` (required): Name of the pgvector column to search
+- `query_vector` (required*): Pre-computed embedding vector as an array of floats (must match column dimensions)
+- `text_query` (required*): Natural language text to convert to embedding automatically
+  - **Note**: Either `query_vector` OR `text_query` must be provided, but not both
+  - Requires embedding generation to be enabled in configuration
+- `top_k` (optional, default: 10): Number of most similar results to return
+- `distance_metric` (optional, default: "cosine"): Distance metric to use
+  - `cosine`: Cosine distance (most common for embeddings)
+  - `l2` or `euclidean`: L2/Euclidean distance
+  - `inner_product` or `inner`: Inner product (negative)
+- `filter_conditions` (optional): SQL WHERE clause for filtering results
+
+**Output**:
+```
+Semantic Search Results:
+Table: documents
+Vector Column: embedding (dimensions: 1536)
+Distance Metric: Cosine Distance
+Top K: 10
+
+SQL Query:
+SELECT *, (embedding <=> '[0.1,0.2,0.3,...]'::vector) AS distance FROM public.documents ORDER BY embedding <=> '[0.1,0.2,0.3,...]'::vector LIMIT 10
+
+Results (10 rows):
+[
+  {
+    "id": 42,
+    "title": "Introduction to Vector Search",
+    "content": "...",
+    "embedding": "[0.12, 0.18, 0.31, ...]",
+    "distance": 0.123
+  },
+  {
+    "id": 87,
+    "title": "Semantic Search with pgvector",
+    "content": "...",
+    "embedding": "[0.15, 0.22, 0.29, ...]",
+    "distance": 0.156
+  },
+  ...
+]
+```
+
+**Distance Metrics**:
+
+- **Cosine Distance** (`<=>` operator):
+  - Range: 0 to 2 (0 = identical, 2 = opposite)
+  - Most commonly used for text embeddings
+  - Measures angular similarity, invariant to vector magnitude
+  - Use for: OpenAI embeddings, sentence embeddings, most NLP tasks
+
+- **L2/Euclidean Distance** (`<->` operator):
+  - Range: 0 to infinity (0 = identical)
+  - Measures absolute distance in vector space
+  - Sensitive to vector magnitude
+  - Use for: Image embeddings, when absolute distance matters
+
+- **Inner Product** (`<#>` operator):
+  - Range: negative infinity to 0 (0 = most similar)
+  - Note: pgvector returns negative inner product for ordering
+  - Use for: Normalized vectors, when you need dot product similarity
+
+**Use Cases**:
+
+- **Document Search**: Find similar documents based on content embeddings
+- **Question Answering**: Retrieve relevant context for RAG (Retrieval Augmented Generation)
+- **Recommendation Systems**: Find similar items based on embedding vectors
+- **Semantic Clustering**: Group similar items together
+- **Duplicate Detection**: Identify near-duplicate content
+
+**Example Workflows**:
+
+**Option 1: With pre-computed query vectors**:
+
+1. Generate embeddings for your documents (using OpenAI, Anthropic, etc.)
+2. Store embeddings in a pgvector column
+3. When you have a user query:
+   - Generate an embedding for the query using the same model
+   - Use `semantic_search` with the query embedding
+   - Get the most similar documents with scores
+
+**Option 2: With automatic embedding generation (RECOMMENDED)**:
+
+1. Generate embeddings for your documents using Ollama or Anthropic
+2. Store embeddings in a pgvector column
+3. Configure embedding generation in the server
+4. When you have a user query:
+   - **First**: Use `get_schema_info(vector_tables_only=true)` to discover tables with vector columns - **dramatically reduces token usage**
+   - **Then**: Use `semantic_search` with `text_query` parameter
+   - Server automatically generates the embedding and searches
+   - Get the most similar documents with scores
+
+```json
+{
+  "table_name": "documents",
+  "vector_column": "embedding",
+  "text_query": "How do I implement RAG?",
+  "top_k": 5
+}
+```
+
+**Error Handling**:
+
+The tool performs extensive validation:
+
+- Verifies table exists in database metadata
+- Verifies column exists in the table
+- Checks that column is a pgvector column
+- Validates query vector dimensions match column dimensions
+- Validates distance metric is supported
+- Validates top_k is greater than 0
+
+**Security**: All queries are executed in read-only transactions.
+
+**Performance Tips**:
+
+- Create an index on your vector column for faster searches:
+  ```sql
+  CREATE INDEX ON documents USING ivfflat (embedding vector_cosine_ops);
+  -- or for L2 distance:
+  CREATE INDEX ON documents USING ivfflat (embedding vector_l2_ops);
+  ```
+- Use appropriate `top_k` values (10-50 is usually sufficient)
+- Apply `filter_conditions` to reduce the search space
+- For very large datasets, consider using HNSW index instead of IVFFlat
+
+### generate_embedding
+
+Generate vector embeddings from text using OpenAI, Anthropic Voyage API (cloud), or Ollama (local). Enables converting natural language queries into embedding vectors for semantic search.
+
+**Prerequisites**:
+
+- Embedding generation must be enabled in server configuration
+- For OpenAI: Valid API key must be configured
+- For Anthropic: Valid API key must be configured
+- For Ollama: Ollama must be running with an embedding model installed
+
+**Input**:
+
+```json
+{
+  "text": "What is vector similarity search?"
+}
+```
+
+**Parameters**:
+
+- `text` (required): The text to convert into an embedding vector
+
+**Output**:
+
+```
+Generated Embedding:
+Provider: ollama
+Model: nomic-embed-text
+Dimensions: 768
+Text Length: 33 characters
+
+Embedding Vector (first 10 dimensions):
+[0.023, -0.145, 0.089, 0.234, -0.067, 0.178, -0.112, 0.045, 0.198, -0.156, ...]
+
+Full embedding vector returned with 768 dimensions.
+```
+
+**Use Cases**:
+
+- **Semantic Search**: Generate query embeddings for vector similarity search
+- **RAG Systems**: Convert questions into embeddings to find relevant context
+- **Document Clustering**: Generate embeddings for grouping similar documents
+- **Content Recommendation**: Create embeddings for matching similar content
+
+**Configuration**:
+
+Enable in `pgedge-postgres-mcp.yaml`:
+
+```yaml
+embedding:
+  enabled: true
+  provider: "openai"  # Options: "openai", "anthropic", or "ollama"
+  model: "text-embedding-3-small"
+  openai_api_key: ""  # Set via OPENAI_API_KEY environment variable
+```
+
+**Supported Providers and Models**:
+
+OpenAI (Cloud):
+
+- `text-embedding-3-small`: 1536 dimensions (recommended, compatible with most databases)
+- `text-embedding-3-large`: 3072 dimensions (higher quality)
+- `text-embedding-ada-002`: 1536 dimensions (legacy)
+
+Anthropic Voyage (Cloud):
+
+- `voyage-3`: 1024 dimensions (recommended)
+- `voyage-3-lite`: 512 dimensions (cost-effective)
+- `voyage-2`: 1024 dimensions
+- `voyage-2-lite`: 1024 dimensions
+
+Ollama (Local):
+
+- `nomic-embed-text`: 768 dimensions (recommended)
+- `mxbai-embed-large`: 1024 dimensions
+- `all-minilm`: 384 dimensions
+
+**Example Workflow**:
+
+```
+1. Generate embedding from query text:
+   generate_embedding(text="What is vector similarity search?")
+
+2. Use the returned embedding with semantic_search:
+   semantic_search(
+     table_name="documents",
+     vector_column="embedding",
+     query_vector=[0.023, -0.145, 0.089, ...],
+     top_k=10
+   )
+```
+
+**Error Handling**:
+
+- Returns error if embedding generation is not enabled in configuration
+- Returns error if embedding provider is not accessible (Ollama not running, invalid API key)
+- Returns error if text is empty
+- Returns error if API request fails (rate limits, network issues)
+
+**Debugging**:
+
+Enable logging to debug embedding API calls:
+
+```bash
+export PGEDGE_LLM_LOG_LEVEL="info"  # or "debug" or "trace"
+```
+
+See [Configuration Guide](configuration.md#embedding-generation-logging) for details.
 
 ### set_pg_configuration
 
@@ -183,15 +565,49 @@ Read a specific resource:
 - `pg://stat/replication` - Replication status
 
 See [Resources](resources.md) for detailed information about each resource.
-## Connection Management Tools
+## Connection Management Tool
 
-### add_database_connection
+### manage_connections
 
-Save a database connection with an alias for later use. Connections are persisted and available across sessions. Passwords are encrypted using AES-256-GCM encryption.
+Unified tool for all database connection management operations. This consolidated tool reduces token usage while providing full CRUD functionality for saved connections.
+
+**Operations**: `connect`, `add`, `edit`, `remove`, `list`
+
+#### Operation: connect
+
+Set the active database connection for the current session. Supports aliases, connection strings, and smart hostname matching.
 
 **Input**:
 ```json
 {
+  "operation": "connect",
+  "connection_string": "production"
+}
+```
+
+Or with full connection string:
+```json
+{
+  "operation": "connect",
+  "connection_string": "postgres://user:pass@host:5432/database"
+}
+```
+
+**Smart Hostname Matching**: If a connection string is provided and the hostname matches a saved connection, it automatically uses the saved credentials while allowing you to override the database name.
+
+**Output**:
+```
+Connected to saved connection 'production'. Loaded metadata for 142 tables/views.
+```
+
+#### Operation: add
+
+Save a new database connection with an alias. Passwords are encrypted using AES-256-GCM.
+
+**Input**:
+```json
+{
+  "operation": "add",
   "alias": "production",
   "host": "prod-host.example.com",
   "port": 5432,
@@ -205,78 +621,78 @@ Save a database connection with an alias for later use. Connections are persiste
 ```
 
 **Parameters**:
-
-- `alias` (required): Friendly name for the connection (e.g., "production", "staging")
-- `host` (required): Database hostname or IP address
-- `port` (optional, default: 5432): Database port number
-- `user` (required): Database username
-- `password` (optional): Database password (will be encrypted before storage)
-- `dbname` (optional, default: same as user): Database name
-- `sslmode` (optional): SSL mode - disable, allow, prefer, require, verify-ca, verify-full
-- `sslcert` (optional): Path to client certificate file
-- `sslkey` (optional): Path to client key file
-- `sslrootcert` (optional): Path to root CA certificate file
-- `sslpassword` (optional): Password for client key (will be encrypted before storage)
-- `sslcrl` (optional): Path to certificate revocation list
-- `connect_timeout` (optional): Connection timeout in seconds
-- `application_name` (optional): Application name for connection tracking
-- `description` (optional): Notes about this connection
+- `alias` (required): Friendly name
+- `host` (required): Hostname/IP
+- `user` (required): Username
+- `password` (optional): Password (encrypted)
+- `port` (optional, default: 5432)
+- `dbname` (optional)
+- `sslmode` (optional)
+- `sslcert`, `sslkey`, `sslrootcert`, `sslpassword` (optional)
+- `connect_timeout`, `application_name`, `description` (optional)
 
 **Output**:
 ```
-Successfully saved connection 'production'
-Host: prod-host.example.com:5432
-User: dbuser
-Database: mydb
-SSL Mode: verify-full
-Description: Production database server
+Connection 'production' saved successfully
 ```
 
-**Security**:
+#### Operation: edit
 
-- Passwords are encrypted using AES-256-GCM before storage
-- Encryption key is stored in a separate secret file (default: `pgedge-postgres-mcp.secret`)
-- Secret file is auto-generated on first run with restricted permissions (0600)
-
-**Storage**:
-
-- **With authentication enabled**: Stored per-token in `pgedge-postgres-mcp-server-tokens.yaml`
-- **With authentication disabled**: Stored globally in preferences file `pgedge-postgres-mcp-prefs.yaml`
-
-### remove_database_connection
-
-Remove a saved database connection by its alias.
+Update an existing saved connection. Only provided fields will be updated.
 
 **Input**:
 ```json
 {
+  "operation": "edit",
+  "alias": "production",
+  "host": "new-prod-host.example.com",
+  "description": "Updated production server"
+}
+```
+
+**Output**:
+```
+Connection 'production' updated successfully
+```
+
+#### Operation: remove
+
+Delete a saved connection.
+
+**Input**:
+```json
+{
+  "operation": "remove",
   "alias": "staging"
 }
 ```
 
 **Output**:
 ```
-Successfully removed connection 'staging'
+Connection 'staging' removed successfully
 ```
 
-### list_database_connections
+#### Operation: list
 
-List all saved database connections for the current user/session.
+List all saved connections.
 
-**Input**: None (no parameters required)
+**Input**:
+```json
+{
+  "operation": "list"
+}
+```
 
 **Output**:
 ```
-Saved Database Connections:
-============================
+Saved Database Connections (2 total):
+==========================================
 
 Alias: production
   Host: prod-host.example.com:5432
   User: dbuser
   Database: mydb
-  Maintenance DB: postgres
   SSL Mode: verify-full
-  SSL Root Cert: /path/to/ca.crt
   Description: Production database
   Created: 2025-01-15 10:00:00
   Last Used: 2025-01-15 14:30:00
@@ -285,182 +701,44 @@ Alias: staging
   Host: staging-host.example.com:5432
   User: dbuser
   Database: mydb
-  Maintenance DB: postgres
   SSL Mode: require
-  Description: Staging environment
   Created: 2025-01-15 10:05:00
-  Last Used: Never
-
-Total: 2 saved connection(s)
 ```
 
-**Security**:
+### Connection Management Workflow
 
-- Passwords are never displayed in output
-- All passwords are stored encrypted using AES-256-GCM encryption
-- Connection details are displayed without sensitive credential information
-
-### edit_database_connection
-
-Permanently modify an existing saved connection's configuration. You can update any or all connection parameters. Only non-empty fields will be updated.
-
-**IMPORTANT**: Only use this tool when explicitly asked to update, change, or edit a saved connection. To temporarily connect to a different database, use `set_database_connection` with a full connection string instead.
-
-**Input**:
-```json
-{
-  "alias": "production",
-  "host": "new-prod-host.example.com",
-  "port": 5433,
-  "user": "newuser",
-  "password": "newpassword",
-  "dbname": "newdb",
-  "sslmode": "verify-full",
-  "sslrootcert": "/path/to/new-ca.crt",
-  "description": "Updated production server"
-}
-```
-
-**Parameters**:
-
-- `alias` (required): The alias of the connection to update
-- `host` (optional): New database hostname or IP address
-- `port` (optional): New database port number
-- `user` (optional): New database username
-- `password` (optional): New database password (will be encrypted before storage)
-- `dbname` (optional): New database name
-- `sslmode` (optional): New SSL mode
-- `sslcert` (optional): New path to client certificate file
-- `sslkey` (optional): New path to client key file
-- `sslrootcert` (optional): New path to root CA certificate file
-- `sslpassword` (optional): New password for client key (will be encrypted before storage)
-- `sslcrl` (optional): New path to certificate revocation list
-- `connect_timeout` (optional): New connection timeout in seconds
-- `application_name` (optional): New application name
-- `description` (optional): New description
-
-**Output**:
-```
-Successfully updated connection 'production'
-Updated: host, port, user, password, sslmode, description
-```
-
-**Note**: Only provided parameters will be updated. Empty or omitted parameters will retain their current values.
-
-### set_database_connection (Enhanced)
-
-Set the database connection for the current session. Now supports both connection strings and aliases.
-
-**IMPORTANT**: This tool does NOT modify saved connections - it only sets which connection to use for this session. To connect to a different database temporarily, provide a full connection string (e.g., `postgres://user@host/different_database`).
-
-**Input with alias**:
-```json
-{
-  "connection_string": "production"
-}
-```
-
-**Input with full connection string**:
-```json
-{
-  "connection_string": "postgres://user:pass@host:5432/database"
-}
-```
-
-**Behavior**:
-
-- If the input looks like an alias (no `postgres://` or `postgresql://` prefix), it attempts to resolve it from saved connections
-- If the alias is found, it uses the saved connection string
-- **Smart hostname matching**: If a connection string is provided and the hostname matches a saved connection (by hostname or alias), it automatically uses the saved connection's credentials while allowing you to override the database name
-- If not found, it treats the input as a literal connection string
-- Successfully used aliases are marked with a "last used" timestamp
-
-**Examples of smart hostname matching**:
-
-```json
-// You have a saved connection "server1" with host "server1.example.com"
-// and credentials user:password, connected to database "myapp"
-
-// Connect to a different database on the same server:
-{
-  "connection_string": "postgres://user@server1/postgres"
-}
-// This will automatically use the saved password from "server1" connection
-
-// Or using the full hostname:
-{
-  "connection_string": "postgres://user@server1.example.com/newdb"
-}
-// Also uses saved credentials, connects to "newdb" instead
-```
-
-**Output with alias**:
-```
-Successfully connected to database using alias 'production'
-Loaded metadata for 142 tables/views.
-```
-
-**Output with connection string**:
-```
-Successfully connected to database.
-Loaded metadata for 142 tables/views.
-```
-
-## Connection Management Workflow
-
-Here's a typical workflow for managing database connections:
+Typical workflow for managing connections:
 
 ```
-1. Save connections with friendly names:
-   add_database_connection(
-     alias="prod",
-     connection_string="postgres://...",
-     description="Production DB"
-   )
+1. Add connections:
+   manage_connections(operation="add", alias="prod", host="...", user="...")
 
 2. List saved connections:
-   list_database_connections()
+   manage_connections(operation="list")
 
-3. Connect using an alias:
-   set_database_connection(connection_string="prod")
+3. Connect using alias:
+   manage_connections(operation="connect", connection_string="prod")
 
 4. Work with the database:
-   query_database(query="Show me...")
+   query_database(query="SELECT ...")
    get_schema_info()
 
-5. Update a connection if needed:
-   edit_database_connection(
-     alias="prod",
-     new_description="Production DB - Updated"
-   )
+5. Update if needed:
+   manage_connections(operation="edit", alias="prod", description="Updated")
 
 6. Remove old connections:
-   remove_database_connection(alias="old_staging")
+   manage_connections(operation="remove", alias="old_staging")
 ```
 
-## Security Considerations
+### Security Considerations
 
-- **Authentication Enabled (per-token connections)**:
-    - Each API token has its own isolated set of saved connections
-    - Users cannot see or access connections from other tokens
-    - Connections are stored in `pgedge-postgres-mcp-server-tokens.yaml` with the token
+- **Password Encryption**: All passwords encrypted with AES-256-GCM
+- **Per-Token Isolation** (with auth enabled): Each token has isolated connections
+- **Global Connections** (auth disabled): Shared connections in preferences file
+- **Secure Storage**: Secret file auto-generated with 0600 permissions
 
-- **Authentication Disabled (global connections)**:
-    - All connections are stored in the preferences file (`pgedge-postgres-mcp-prefs.yaml`)
-    - All users share the same set of saved connections
-    - Suitable for single-user or trusted environments
-
-- **Password Encryption**:
-    - All passwords are encrypted using AES-256-GCM encryption before storage
-    - Encryption key is stored in a separate secret file (default: `pgedge-postgres-mcp.secret`)
-    - Secret file is auto-generated on first run with restricted permissions (0600)
-    - Both database passwords and SSL key passwords are encrypted
-    - Passwords are never displayed in tool outputs or logs
-
-- **Connection Storage Security**:
-    - Use appropriate file permissions (0600 for tokens and preferences files)
-    - Connection parameters are stored in YAML files with encrypted passwords
-    - Never commit secret file or preferences files with real credentials to version control
-    - Secret file should be backed up securely and separately from configuration files
-    - Consider using SSL client certificates instead of passwords for authentication
+**Storage Locations**:
+- With auth: `pgedge-postgres-mcp-server-tokens.yaml`
+- Without auth: `pgedge-postgres-mcp-prefs.yaml`
+- Encryption key: `pgedge-postgres-mcp.secret`
 

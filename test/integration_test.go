@@ -218,12 +218,16 @@ func TestMCPServerIntegration(t *testing.T) {
 		testInitialize(t, server)
 	})
 
+	t.Run("ListToolsBeforeConnection", func(t *testing.T) {
+		testListToolsBeforeConnection(t, server)
+	})
+
 	t.Run("SetDatabaseConnection", func(t *testing.T) {
 		testSetDatabaseConnection(t, server, connString)
 	})
 
-	t.Run("ListTools", func(t *testing.T) {
-		testListTools(t, server)
+	t.Run("ListToolsAfterConnection", func(t *testing.T) {
+		testListToolsAfterConnection(t, server)
 	})
 
 	t.Run("ListResources", func(t *testing.T) {
@@ -342,7 +346,7 @@ func testSetDatabaseConnection(t *testing.T, server *MCPServer, connString strin
 	t.Log("SetDatabaseConnection test passed")
 }
 
-func testListTools(t *testing.T, server *MCPServer) {
+func testListToolsBeforeConnection(t *testing.T, server *MCPServer) {
 	resp, err := server.SendRequest("tools/list", nil)
 	if err != nil {
 		t.Fatalf("tools/list failed: %v", err)
@@ -363,23 +367,76 @@ func testListTools(t *testing.T, server *MCPServer) {
 		t.Fatal("tools array not found in result")
 	}
 
-	// After calling set_database_connection, all tools should be available
-	if len(tools) < 10 {
-		t.Errorf("Expected at least 10 tools after database connection, got %d", len(tools))
+	// Before database connection, only stateless tools should be available
+	if len(tools) != 4 {
+		t.Errorf("Expected exactly 4 stateless tools before database connection, got %d", len(tools))
+	}
+
+	// Verify expected stateless tools exist
+	expectedTools := map[string]bool{
+		"server_info":        false,
+		"manage_connections": false,
+		"read_resource":      false,
+		"generate_embedding": false,
+	}
+
+	for _, tool := range tools {
+		toolMap, ok := tool.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		if name, ok := toolMap["name"].(string); ok {
+			if _, exists := expectedTools[name]; exists {
+				expectedTools[name] = true
+			}
+		}
+	}
+
+	for toolName, found := range expectedTools {
+		if !found {
+			t.Errorf("Expected stateless tool '%s' not found", toolName)
+		}
+	}
+
+	t.Log("ListToolsBeforeConnection test passed")
+}
+
+func testListToolsAfterConnection(t *testing.T, server *MCPServer) {
+	resp, err := server.SendRequest("tools/list", nil)
+	if err != nil {
+		t.Fatalf("tools/list failed: %v", err)
+	}
+
+	if resp.Error != nil {
+		t.Fatalf("tools/list returned error: %s", resp.Error.Message)
+	}
+
+	// Parse the result
+	var result map[string]interface{}
+	if err := json.Unmarshal(resp.Result, &result); err != nil {
+		t.Fatalf("Failed to parse tools/list result: %v", err)
+	}
+
+	tools, ok := result["tools"].([]interface{})
+	if !ok {
+		t.Fatal("tools array not found in result")
+	}
+
+	// After calling manage_connections, all tools should be available
+	if len(tools) != 8 {
+		t.Errorf("Expected exactly 8 tools after database connection, got %d", len(tools))
 	}
 
 	// Verify expected tools exist
 	expectedTools := map[string]bool{
-		"query_database":             false,
-		"get_schema_info":            false,
-		"set_pg_configuration":       false,
-		"server_info":                false,
-		"set_database_connection":    false,
-		"read_resource":              false,
-		"add_database_connection":    false,
-		"remove_database_connection": false,
-		"list_database_connections":  false,
-		"edit_database_connection":   false,
+		"query_database":          false,
+		"get_schema_info":         false,
+		"set_pg_configuration":    false,
+		"server_info":             false,
+		"manage_connections":      false,
+		"read_resource":           false,
+		"generate_embedding":      false,
+		"semantic_search":         false,
 	}
 
 	for _, tool := range tools {
@@ -400,7 +457,7 @@ func testListTools(t *testing.T, server *MCPServer) {
 		}
 	}
 
-	t.Logf("ListTools test passed, found %d tools", len(tools))
+	t.Logf("ListToolsAfterConnection test passed, found %d tools", len(tools))
 }
 
 func testListResources(t *testing.T, server *MCPServer) {

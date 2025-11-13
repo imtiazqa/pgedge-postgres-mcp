@@ -31,6 +31,11 @@ func GetSchemaInfoTool(dbClient *database.Client) Tool {
 						"type":        "string",
 						"description": "Optional: specific schema name to get info for. If not provided, returns all schemas.",
 					},
+					"vector_tables_only": map[string]interface{}{
+						"type":        "boolean",
+						"description": "Optional: if true, only return tables with vector columns (for semantic search). Reduces output significantly.",
+						"default":     false,
+					},
 				},
 			},
 		},
@@ -38,6 +43,11 @@ func GetSchemaInfoTool(dbClient *database.Client) Tool {
 			schemaName, ok := args["schema_name"].(string)
 			if !ok {
 				schemaName = "" // Default to empty string (all schemas)
+			}
+
+			vectorTablesOnly := false
+			if vectorOnly, ok := args["vector_tables_only"].(bool); ok {
+				vectorTablesOnly = vectorOnly
 			}
 
 			// Check if metadata is loaded
@@ -54,6 +64,20 @@ func GetSchemaInfoTool(dbClient *database.Client) Tool {
 				// Filter by schema if requested
 				if schemaName != "" && table.SchemaName != schemaName {
 					continue
+				}
+
+				// Filter for vector tables only if requested
+				if vectorTablesOnly {
+					hasVectorColumn := false
+					for _, col := range table.Columns {
+						if col.IsVectorColumn {
+							hasVectorColumn = true
+							break
+						}
+					}
+					if !hasVectorColumn {
+						continue
+					}
 				}
 
 				sb.WriteString(fmt.Sprintf("\n%s.%s (%s)\n", table.SchemaName, table.TableName, table.TableType))

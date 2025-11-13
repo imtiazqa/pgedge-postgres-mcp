@@ -1,0 +1,75 @@
+/*-------------------------------------------------------------------------
+ *
+ * pgEdge Postgres MCP Server
+ *
+ * Copyright (c) 2025, pgEdge, Inc.
+ * This software is released under The PostgreSQL License
+ *
+ *-------------------------------------------------------------------------
+ */
+
+package embedding
+
+import (
+    "context"
+    "fmt"
+)
+
+// Provider defines the interface for embedding generation
+type Provider interface {
+    // Embed generates an embedding vector for the given text
+    Embed(ctx context.Context, text string) ([]float64, error)
+
+    // Dimensions returns the number of dimensions in the embedding vector
+    Dimensions() int
+
+    // ModelName returns the name of the model being used
+    ModelName() string
+
+    // ProviderName returns the name of the provider (e.g., "anthropic", "ollama")
+    ProviderName() string
+}
+
+// Config holds configuration for embedding providers
+type Config struct {
+    Provider string // "anthropic", "ollama", or "openai"
+    Model    string // Model name (provider-specific)
+
+    // Anthropic-specific
+    AnthropicAPIKey string
+
+    // OpenAI-specific
+    OpenAIAPIKey string
+
+    // Ollama-specific
+    OllamaURL string
+}
+
+// NewProvider creates a new embedding provider based on configuration
+func NewProvider(cfg Config) (Provider, error) {
+    switch cfg.Provider {
+    case "anthropic":
+        if cfg.AnthropicAPIKey == "" {
+            return nil, fmt.Errorf("Anthropic API key is required when provider is 'anthropic'")
+        }
+        return NewAnthropicProvider(cfg.AnthropicAPIKey, cfg.Model)
+
+    case "openai":
+        if cfg.OpenAIAPIKey == "" {
+            return nil, fmt.Errorf("OpenAI API key is required when provider is 'openai'")
+        }
+        return NewOpenAIProvider(cfg.OpenAIAPIKey, cfg.Model)
+
+    case "ollama":
+        if cfg.OllamaURL == "" {
+            cfg.OllamaURL = "http://localhost:11434" // Default
+        }
+        if cfg.Model == "" {
+            cfg.Model = "nomic-embed-text" // Default model
+        }
+        return NewOllamaProvider(cfg.OllamaURL, cfg.Model)
+
+    default:
+        return nil, fmt.Errorf("unsupported embedding provider: %s (supported: anthropic, openai, ollama)", cfg.Provider)
+    }
+}

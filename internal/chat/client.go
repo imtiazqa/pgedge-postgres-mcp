@@ -318,6 +318,14 @@ func (c *Client) processQuery(ctx context.Context, query string) error {
 						Content:   result.Content,
 						IsError:   result.IsError,
 					})
+
+					// Refresh tool list after successful manage_connections operation
+					// This ensures we get the updated tool list when database connection changes
+					if toolUse.Name == "manage_connections" && !result.IsError {
+						if newTools, err := c.mcp.ListTools(ctx); err == nil {
+							c.tools = newTools
+						}
+					}
 				}
 			}
 

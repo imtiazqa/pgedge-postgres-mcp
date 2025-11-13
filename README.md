@@ -22,7 +22,7 @@ SELECT tablename, pg_table_size(tablename::regclass) as size FROM pg_tables WHER
 
 - 🔒 **Read-Only Protection** - All queries run in read-only transactions
 - 📊 **4 Resources** - Access PostgreSQL statistics and settings
-- 🛠️ **10 Tools** - Query execution, schema analysis, config management, connection management
+- 🛠️ **9 Tools** - Query execution, schema analysis, semantic search (pgvector), embedding generation (OpenAI), connection management
 - 🌐 **HTTP/HTTPS Mode** - Direct API access with token authentication
 - 🔐 **Secure** - TLS support, token auth, read-only enforcement
 
@@ -120,7 +120,7 @@ curl -X POST http://localhost:8080/mcp/v1 \
 
 ### Essential Guides
 - **[Configuration Guide](docs/configuration.md)** - Config file, environment variables, CLI flags
-- **[Tools Documentation](docs/tools.md)** - All 10 MCP tools reference
+- **[Tools Documentation](docs/tools.md)** - All 9 MCP tools reference
 - **[Resources Documentation](docs/resources.md)** - All 4 MCP resources reference
 - **[Query Examples](docs/examples.md)** - Comprehensive usage examples
 - **[Deployment Guide](docs/deployment.md)** - HTTP/HTTPS production deployment
