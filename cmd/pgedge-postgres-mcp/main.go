@@ -62,6 +62,18 @@ func main() {
 	tokenNote := flag.String("token-note", "", "Annotation for the new token (used with -add-token)")
 	tokenExpiry := flag.String("token-expiry", "", "Token expiry duration: '30d', '1y', '2w', '12h', 'never' (used with -add-token)")
 
+	// User management commands
+	userFilePath := flag.String("user-file", "", "Path to user file")
+	addUserCmd := flag.Bool("add-user", false, "Add a new user")
+	updateUserCmd := flag.Bool("update-user", false, "Update an existing user")
+	deleteUserCmd := flag.Bool("delete-user", false, "Delete a user")
+	listUsersCmd := flag.Bool("list-users", false, "List all users")
+	enableUserCmd := flag.Bool("enable-user", false, "Enable a user account")
+	disableUserCmd := flag.Bool("disable-user", false, "Disable a user account")
+	username := flag.String("username", "", "Username for user management commands")
+	userPassword := flag.String("password", "", "Password for user management commands (prompted if not provided)")
+	userNote := flag.String("user-note", "", "Annotation for the new user (used with -add-user)")
+
 	flag.Parse()
 
 	// Handle token management commands
@@ -105,6 +117,63 @@ func main() {
 
 		if *listTokensCmd {
 			if err := listTokensCommand(tokenFile); err != nil {
+				fmt.Fprintf(os.Stderr, "ERROR: %v\n", err)
+				os.Exit(1)
+			}
+			return
+		}
+	}
+
+	// Handle user management commands
+	if *addUserCmd || *updateUserCmd || *deleteUserCmd || *listUsersCmd || *enableUserCmd || *disableUserCmd {
+		defaultUserPath := auth.GetDefaultUserPath(execPath)
+		userFile := *userFilePath
+		if userFile == "" {
+			userFile = defaultUserPath
+		}
+
+		if *addUserCmd {
+			if err := addUserCommand(userFile, *username, *userPassword, *userNote); err != nil {
+				fmt.Fprintf(os.Stderr, "ERROR: %v\n", err)
+				os.Exit(1)
+			}
+			return
+		}
+
+		if *updateUserCmd {
+			if err := updateUserCommand(userFile, *username, *userPassword, *userNote); err != nil {
+				fmt.Fprintf(os.Stderr, "ERROR: %v\n", err)
+				os.Exit(1)
+			}
+			return
+		}
+
+		if *deleteUserCmd {
+			if err := deleteUserCommand(userFile, *username); err != nil {
+				fmt.Fprintf(os.Stderr, "ERROR: %v\n", err)
+				os.Exit(1)
+			}
+			return
+		}
+
+		if *listUsersCmd {
+			if err := listUsersCommand(userFile); err != nil {
+				fmt.Fprintf(os.Stderr, "ERROR: %v\n", err)
+				os.Exit(1)
+			}
+			return
+		}
+
+		if *enableUserCmd {
+			if err := enableUserCommand(userFile, *username); err != nil {
+				fmt.Fprintf(os.Stderr, "ERROR: %v\n", err)
+				os.Exit(1)
+			}
+			return
+		}
+
+		if *disableUserCmd {
+			if err := disableUserCommand(userFile, *username); err != nil {
 				fmt.Fprintf(os.Stderr, "ERROR: %v\n", err)
 				os.Exit(1)
 			}
@@ -224,6 +293,8 @@ func main() {
 
 	// Load token store if HTTP auth is enabled
 	var tokenStore *auth.TokenStore
+	var userStore *auth.UserStore
+	userFilePathForTools := ""
 	if cfg.HTTP.Enabled && cfg.HTTP.Auth.Enabled {
 		if _, err := os.Stat(cfg.HTTP.Auth.TokenFile); os.IsNotExist(err) {
 			fmt.Fprintf(os.Stderr, "ERROR: Token file not found: %s\n", cfg.HTTP.Auth.TokenFile)
@@ -239,6 +310,28 @@ func main() {
 		}
 
 		fmt.Fprintf(os.Stderr, "Loaded %d API token(s) from %s\n", len(tokenStore.Tokens), cfg.HTTP.Auth.TokenFile)
+
+		// Load user store for user authentication
+		// Use custom path if specified, otherwise use default
+		if *userFilePath != "" {
+			userFilePathForTools = *userFilePath
+		} else {
+			userFilePathForTools = auth.GetDefaultUserPath(execPath)
+		}
+
+		if _, err := os.Stat(userFilePathForTools); os.IsNotExist(err) {
+			// User file doesn't exist - create empty store
+			// Users can be added via CLI commands
+			userStore = auth.InitializeUserStore()
+			fmt.Fprintf(os.Stderr, "User file not found, initialized empty user store\n")
+		} else {
+			userStore, err = auth.LoadUserStore(userFilePathForTools)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "ERROR: Failed to load user file: %v\n", err)
+				os.Exit(1)
+			}
+			fmt.Fprintf(os.Stderr, "Loaded %d user(s) from %s\n", len(userStore.Users), userFilePathForTools)
+		}
 	}
 
 	// Create a cancellable context for graceful shutdown of background goroutines
@@ -298,7 +391,7 @@ func main() {
 	contextAwareResourceProvider := resources.NewContextAwareRegistry(clientManager, authEnabled)
 
 	// Context-aware tool provider
-	contextAwareToolProvider := tools.NewContextAwareProvider(clientManager, contextAwareResourceProvider, authEnabled, fallbackClient, cfg)
+	contextAwareToolProvider := tools.NewContextAwareProvider(clientManager, contextAwareResourceProvider, authEnabled, fallbackClient, cfg, userStore, userFilePathForTools)
 	if err := contextAwareToolProvider.RegisterTools(ctx); err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: Failed to register tools: %v\n", err)
 		os.Exit(1)
@@ -360,6 +453,7 @@ func main() {
 			ChainFile:   cfg.HTTP.TLS.ChainFile,
 			AuthEnabled: cfg.HTTP.Auth.Enabled,
 			TokenStore:  tokenStore,
+			UserStore:   userStore,
 			Debug:       *debug,
 		}
 

@@ -31,6 +31,7 @@ type HTTPConfig struct {
 	ChainFile   string           // Optional path to certificate chain file
 	AuthEnabled bool             // Enable API token authentication
 	TokenStore  *auth.TokenStore // Token store for authentication
+	UserStore   *auth.UserStore  // User store for session token authentication
 	Debug       bool             // Enable debug logging
 }
 
@@ -51,7 +52,7 @@ func (s *Server) RunHTTP(config *HTTPConfig) error {
 	// Wrap with authentication middleware if enabled
 	var handler http.Handler = mux
 	if config.AuthEnabled {
-		handler = auth.AuthMiddleware(config.TokenStore, true)(handler)
+		handler = auth.AuthMiddleware(config.TokenStore, config.UserStore, true)(handler)
 	}
 
 	// Configure server

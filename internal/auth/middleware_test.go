@@ -25,7 +25,7 @@ func TestAuthMiddleware_Disabled(t *testing.T) {
 		Tokens: make(map[string]*Token),
 	}
 
-	middleware := AuthMiddleware(tokenStore, false)
+	middleware := AuthMiddleware(tokenStore, nil, false)
 
 	handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -52,7 +52,7 @@ func TestAuthMiddleware_HealthCheck(t *testing.T) {
 		Tokens: make(map[string]*Token),
 	}
 
-	middleware := AuthMiddleware(tokenStore, true)
+	middleware := AuthMiddleware(tokenStore, nil, true)
 
 	handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -79,7 +79,7 @@ func TestAuthMiddleware_MissingAuthHeader(t *testing.T) {
 		Tokens: make(map[string]*Token),
 	}
 
-	middleware := AuthMiddleware(tokenStore, true)
+	middleware := AuthMiddleware(tokenStore, nil, true)
 
 	handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Error("Handler should not be called for missing auth header")
@@ -120,7 +120,7 @@ func TestAuthMiddleware_MalformedAuthHeader(t *testing.T) {
 				Tokens: make(map[string]*Token),
 			}
 
-			middleware := AuthMiddleware(tokenStore, true)
+			middleware := AuthMiddleware(tokenStore, nil, true)
 
 			handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				t.Error("Handler should not be called for malformed auth header")
@@ -153,7 +153,7 @@ func TestAuthMiddleware_InvalidToken(t *testing.T) {
 		Tokens: make(map[string]*Token),
 	}
 
-	middleware := AuthMiddleware(tokenStore, true)
+	middleware := AuthMiddleware(tokenStore, nil, true)
 
 	handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Error("Handler should not be called for invalid token")
@@ -198,7 +198,7 @@ func TestAuthMiddleware_ValidToken(t *testing.T) {
 		},
 	}
 
-	middleware := AuthMiddleware(tokenStore, true)
+	middleware := AuthMiddleware(tokenStore, nil, true)
 
 	var capturedContext context.Context
 	handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -259,7 +259,7 @@ func TestAuthMiddleware_ExpiredToken(t *testing.T) {
 	// Wait for token to expire
 	time.Sleep(10 * time.Millisecond)
 
-	middleware := AuthMiddleware(tokenStore, true)
+	middleware := AuthMiddleware(tokenStore, nil, true)
 
 	handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Error("Handler should not be called for expired token")
@@ -276,9 +276,9 @@ func TestAuthMiddleware_ExpiredToken(t *testing.T) {
 	}
 
 	body := strings.TrimSpace(rr.Body.String())
-	// Should get generic "Invalid token" message, not internal error details
-	if !strings.Contains(body, "Invalid token") {
-		t.Errorf("Expected 'Invalid token' in response, got %q", body)
+	// Should get generic "Invalid or unknown token" message, not internal error details
+	if !strings.Contains(body, "Invalid or unknown token") {
+		t.Errorf("Expected 'Invalid or unknown token' in response, got %q", body)
 	}
 
 	// Verify no internal error details leaked
@@ -336,7 +336,7 @@ func TestAuthMiddleware_NoInfoLeak(t *testing.T) {
 		},
 	}
 
-	middleware := AuthMiddleware(tokenStore, true)
+	middleware := AuthMiddleware(tokenStore, nil, true)
 
 	handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Error("Handler should not be called for token validation error")

@@ -13,6 +13,7 @@ package tools
 import (
 	"context"
 	"fmt"
+	"os"
 	"sync"
 
 	"pgedge-postgres-mcp/internal/auth"
@@ -25,16 +26,21 @@ import (
 // ContextAwareProvider wraps a tool registry and provides per-token database clients
 // This ensures connection isolation in HTTP/HTTPS mode with authentication
 type ContextAwareProvider struct {
-	baseRegistry    *Registry // Registry for tool definitions (List operation)
-	clientManager   *database.ClientManager
-	resourceReg     *resources.ContextAwareRegistry
-	authEnabled     bool
-	fallbackClient  *database.Client // Used when auth is disabled
-	cfg             *config.Config   // Server configuration (for embedding settings)
+	baseRegistry   *Registry // Registry for tool definitions (List operation)
+	clientManager  *database.ClientManager
+	resourceReg    *resources.ContextAwareRegistry
+	authEnabled    bool
+	fallbackClient *database.Client // Used when auth is disabled
+	cfg            *config.Config   // Server configuration (for embedding settings)
+	userStore      *auth.UserStore  // User store for authentication
+	userFilePath   string           // Path to user file for persisting updates
 
 	// Cache of registries per client to avoid re-creating tools on every Execute()
 	mu               sync.RWMutex
 	clientRegistries map[*database.Client]*Registry
+
+	// Hidden tools registry (not advertised to LLM but available for execution)
+	hiddenRegistry *Registry
 }
 
 // registerStatelessTools registers all stateless tools (those that don't require a database client)
@@ -56,7 +62,7 @@ func (p *ContextAwareProvider) registerDatabaseTools(registry *Registry, client 
 }
 
 // NewContextAwareProvider creates a new context-aware tool provider
-func NewContextAwareProvider(clientManager *database.ClientManager, resourceReg *resources.ContextAwareRegistry, authEnabled bool, fallbackClient *database.Client, cfg *config.Config) *ContextAwareProvider {
+func NewContextAwareProvider(clientManager *database.ClientManager, resourceReg *resources.ContextAwareRegistry, authEnabled bool, fallbackClient *database.Client, cfg *config.Config, userStore *auth.UserStore, userFilePath string) *ContextAwareProvider {
 	provider := &ContextAwareProvider{
 		baseRegistry:     NewRegistry(),
 		clientManager:    clientManager,
@@ -64,7 +70,10 @@ func NewContextAwareProvider(clientManager *database.ClientManager, resourceReg 
 		authEnabled:      authEnabled,
 		fallbackClient:   fallbackClient,
 		cfg:              cfg,
+		userStore:        userStore,
+		userFilePath:     userFilePath,
 		clientRegistries: make(map[*database.Client]*Registry),
+		hiddenRegistry:   NewRegistry(),
 	}
 
 	// Register ALL tools in base registry so they're always visible in tools/list
@@ -72,6 +81,11 @@ func NewContextAwareProvider(clientManager *database.ClientManager, resourceReg 
 	// This provides better UX - users can discover all tools even before connecting
 	provider.registerStatelessTools(provider.baseRegistry)
 	provider.registerDatabaseTools(provider.baseRegistry, nil) // nil client for base registry
+
+	// Register hidden tools (not advertised to LLM but available for execution)
+	if userStore != nil {
+		provider.hiddenRegistry.Register("authenticate_user", AuthenticateUserTool(userStore))
+	}
 
 	return provider
 }
@@ -205,7 +219,24 @@ func (p *ContextAwareProvider) getOrCreateRegistryForClient(client *database.Cli
 // Execute runs a tool by name with the given arguments and context
 // Uses cached per-client registries to avoid re-creating tools on every request
 func (p *ContextAwareProvider) Execute(ctx context.Context, name string, args map[string]interface{}) (mcp.ToolResponse, error) {
-	// If authentication is enabled, validate token for ALL tools
+	// Check if this is a hidden tool (like authenticate_user)
+	// Hidden tools don't require authentication and are not advertised to LLM
+	if p.hiddenRegistry != nil {
+		if _, exists := p.hiddenRegistry.Get(name); exists {
+			// Tool found in hidden registry - execute it without auth validation
+			response, err := p.hiddenRegistry.Execute(ctx, name, args)
+			// After authentication, save the updated user store to persist last login time
+			if name == "authenticate_user" && err == nil && p.userStore != nil && p.userFilePath != "" {
+				if saveErr := auth.SaveUserStore(p.userFilePath, p.userStore); saveErr != nil {
+					// Log error but don't fail the authentication
+					fmt.Fprintf(os.Stderr, "Warning: failed to save user store: %v\n", saveErr)
+				}
+			}
+			return response, err
+		}
+	}
+
+	// If authentication is enabled, validate token for ALL non-hidden tools
 	if p.authEnabled {
 		tokenHash := auth.GetTokenHashFromContext(ctx)
 		if tokenHash == "" {

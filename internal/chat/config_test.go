@@ -166,8 +166,9 @@ func TestValidate_StdioMode(t *testing.T) {
 func TestValidate_HTTPMode(t *testing.T) {
 	cfg := &Config{
 		MCP: MCPConfig{
-			Mode: "http",
-			URL:  "http://localhost:8080",
+			Mode:     "http",
+			URL:      "http://localhost:8080",
+			AuthMode: "token",
 		},
 		LLM: LLMConfig{
 			Provider: "ollama",

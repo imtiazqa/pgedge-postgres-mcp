@@ -30,7 +30,10 @@ type MCPConfig struct {
 	Mode       string `yaml:"mode"`        // stdio or http
 	URL        string `yaml:"url"`         // HTTP URL (for http mode)
 	ServerPath string `yaml:"server_path"` // Path to server binary (for stdio mode)
-	Token      string `yaml:"token"`       // Authentication token (for http mode)
+	AuthMode   string `yaml:"auth_mode"`   // token or user (for http mode)
+	Token      string `yaml:"token"`       // Authentication token (for token mode)
+	Username   string `yaml:"username"`    // Username (for user mode)
+	Password   string `yaml:"password"`    // Password (for user mode)
 	TLS        bool   `yaml:"tls"`         // Use TLS/HTTPS
 }
 
@@ -56,7 +59,10 @@ func LoadConfig(configPath string) (*Config, error) {
 			Mode:       getEnvOrDefault("PGEDGE_MCP_MODE", "stdio"),
 			URL:        os.Getenv("PGEDGE_MCP_URL"),
 			ServerPath: getEnvOrDefault("PGEDGE_MCP_SERVER_PATH", "../../bin/pgedge-postgres-mcp"),
+			AuthMode:   getEnvOrDefault("PGEDGE_MCP_AUTH_MODE", "user"),
 			Token:      "", // Will be loaded separately
+			Username:   os.Getenv("PGEDGE_MCP_USERNAME"),
+			Password:   os.Getenv("PGEDGE_MCP_PASSWORD"),
 			TLS:        false,
 		},
 		LLM: LLMConfig{
@@ -141,10 +147,13 @@ func (c *Config) Validate() error {
 		if c.MCP.URL == "" {
 			return fmt.Errorf("mcp-url is required for HTTP mode")
 		}
-	} else {
-		if c.MCP.ServerPath == "" {
-			return fmt.Errorf("mcp-server-path is required for stdio mode")
+
+		// Validate auth mode
+		if c.MCP.AuthMode != "token" && c.MCP.AuthMode != "user" {
+			return fmt.Errorf("invalid auth-mode: %s (must be token or user)", c.MCP.AuthMode)
 		}
+	} else if c.MCP.ServerPath == "" {
+		return fmt.Errorf("mcp-server-path is required for stdio mode")
 	}
 
 	// Validate LLM provider

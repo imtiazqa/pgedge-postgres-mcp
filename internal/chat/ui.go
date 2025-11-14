@@ -17,6 +17,8 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"golang.org/x/term"
 )
 
 // Color codes for terminal output
@@ -192,6 +194,69 @@ func (ui *UI) PromptForToken() string {
 	var token string
 	_, _ = fmt.Scanln(&token) //nolint:errcheck // User input, errors not actionable
 	return strings.TrimSpace(token)
+}
+
+// PromptForUsername prompts the user to enter a username
+// Returns an error if the input is interrupted (e.g., Ctrl+C)
+func (ui *UI) PromptForUsername(ctx context.Context) (string, error) {
+	fmt.Print(ui.colorize(ColorYellow, "Username: "))
+
+	// Use a channel to get the result from the blocking read
+	type result struct {
+		username string
+		err      error
+	}
+	resultChan := make(chan result, 1)
+
+	go func() {
+		var username string
+		_, err := fmt.Scanln(&username)
+		resultChan <- result{username: strings.TrimSpace(username), err: err}
+	}()
+
+	// Wait for either the input or context cancellation
+	select {
+	case <-ctx.Done():
+		fmt.Println() // Ensure newline after cancellation
+		return "", ctx.Err()
+	case res := <-resultChan:
+		if res.err != nil {
+			fmt.Println() // Ensure newline after error
+			return "", res.err
+		}
+		return res.username, nil
+	}
+}
+
+// PromptForPassword prompts the user to enter a password (hidden input)
+// Returns an error if the input is interrupted (e.g., Ctrl+C)
+func (ui *UI) PromptForPassword(ctx context.Context) (string, error) {
+	fmt.Print(ui.colorize(ColorYellow, "Password: "))
+
+	// Use a channel to get the result from the blocking read
+	type result struct {
+		password string
+		err      error
+	}
+	resultChan := make(chan result, 1)
+
+	go func() {
+		password, err := term.ReadPassword(int(os.Stdin.Fd()))
+		resultChan <- result{password: strings.TrimSpace(string(password)), err: err}
+	}()
+
+	// Wait for either the input or context cancellation
+	select {
+	case <-ctx.Done():
+		fmt.Println() // Print newline after cancellation
+		return "", ctx.Err()
+	case res := <-resultChan:
+		fmt.Println() // Print newline after password input
+		if res.err != nil {
+			return "", res.err
+		}
+		return res.password, nil
+	}
 }
 
 // PrintHelp prints the help message

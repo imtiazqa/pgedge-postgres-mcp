@@ -32,6 +32,10 @@ func main() {
 	mcpMode := flag.String("mcp-mode", "", "MCP connection mode: stdio or http (default: stdio)")
 	mcpURL := flag.String("mcp-url", "", "MCP server URL (for HTTP mode)")
 	mcpServerPath := flag.String("mcp-server-path", "", "Path to MCP server binary (for stdio mode)")
+	mcpAuthMode := flag.String("mcp-auth-mode", "", "MCP authentication mode: token or user (default: user)")
+	mcpToken := flag.String("mcp-token", "", "MCP server authentication token (for token mode)")
+	mcpUsername := flag.String("mcp-username", "", "MCP server username (for user mode)")
+	mcpPassword := flag.String("mcp-password", "", "MCP server password (for user mode)")
 	llmProvider := flag.String("llm-provider", "", "LLM provider: anthropic, openai, or ollama (default: anthropic)")
 	llmModel := flag.String("llm-model", "", "LLM model to use")
 	apiKey := flag.String("api-key", "", "API key for LLM provider")
@@ -62,6 +66,18 @@ func main() {
 	}
 	if *mcpServerPath != "" {
 		cfg.MCP.ServerPath = *mcpServerPath
+	}
+	if *mcpAuthMode != "" {
+		cfg.MCP.AuthMode = *mcpAuthMode
+	}
+	if *mcpToken != "" {
+		cfg.MCP.Token = *mcpToken
+	}
+	if *mcpUsername != "" {
+		cfg.MCP.Username = *mcpUsername
+	}
+	if *mcpPassword != "" {
+		cfg.MCP.Password = *mcpPassword
 	}
 	if *llmProvider != "" {
 		cfg.LLM.Provider = *llmProvider

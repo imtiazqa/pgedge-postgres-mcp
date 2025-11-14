@@ -12,6 +12,7 @@ package chat
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -80,12 +81,54 @@ func (c *Client) Run(ctx context.Context) error {
 func (c *Client) connectToMCP(ctx context.Context) error {
 	if c.config.MCP.Mode == "http" {
 		// HTTP mode
-		token := c.config.MCP.Token
-		if token == "" {
-			// Prompt for token
-			token = c.ui.PromptForToken()
+		var token string
+
+		if c.config.MCP.AuthMode == "user" {
+			// User authentication mode
+			username := c.config.MCP.Username
+			password := c.config.MCP.Password
+
+			// Prompt for username if not provided
+			if username == "" {
+				var err error
+				username, err = c.ui.PromptForUsername(ctx)
+				if err != nil {
+					// User interrupted (Ctrl+C) or other input error
+					return fmt.Errorf("authentication canceled")
+				}
+				if username == "" {
+					return fmt.Errorf("username is required for user authentication")
+				}
+			}
+
+			// Prompt for password if not provided
+			if password == "" {
+				var err error
+				password, err = c.ui.PromptForPassword(ctx)
+				if err != nil {
+					// User interrupted (Ctrl+C) or other input error
+					return fmt.Errorf("authentication canceled")
+				}
+				if password == "" {
+					return fmt.Errorf("password is required for user authentication")
+				}
+			}
+
+			// Authenticate and get session token
+			sessionToken, err := c.authenticateUser(ctx, username, password)
+			if err != nil {
+				return fmt.Errorf("authentication failed: %w", err)
+			}
+			token = sessionToken
+		} else {
+			// Token authentication mode
+			token = c.config.MCP.Token
 			if token == "" {
-				return fmt.Errorf("authentication token is required for HTTP mode")
+				// Prompt for token
+				token = c.ui.PromptForToken()
+				if token == "" {
+					return fmt.Errorf("authentication token is required for HTTP mode")
+				}
 			}
 		}
 
@@ -118,6 +161,74 @@ func (c *Client) connectToMCP(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// authenticateUser authenticates with username/password and returns a session token
+func (c *Client) authenticateUser(ctx context.Context, username, password string) (string, error) {
+	// Construct the URL for authentication (without /mcp/v1 suffix)
+	baseURL := c.config.MCP.URL
+	if !strings.HasPrefix(baseURL, "http://") && !strings.HasPrefix(baseURL, "https://") {
+		if c.config.MCP.TLS {
+			baseURL = "https://" + baseURL
+		} else {
+			baseURL = "http://" + baseURL
+		}
+	}
+
+	// Ensure URL ends with /mcp/v1
+	if !strings.HasSuffix(baseURL, "/mcp/v1") {
+		if strings.HasSuffix(baseURL, "/") {
+			baseURL += "mcp/v1"
+		} else {
+			baseURL += "/mcp/v1"
+		}
+	}
+
+	// Create a temporary HTTP client without authentication to call authenticate_user
+	tempClient := NewHTTPClient(baseURL, "")
+
+	// Call authenticate_user tool
+	args := map[string]interface{}{
+		"username": username,
+		"password": password,
+	}
+
+	response, err := tempClient.CallTool(ctx, "authenticate_user", args)
+	if err != nil {
+		return "", err
+	}
+
+	// Check for errors in response
+	if response.IsError {
+		if len(response.Content) > 0 {
+			return "", fmt.Errorf("%v", response.Content[0].Text)
+		}
+		return "", fmt.Errorf("authentication failed")
+	}
+
+	// Parse the response to extract session token
+	if len(response.Content) == 0 {
+		return "", fmt.Errorf("empty response from authentication")
+	}
+
+	// The response is JSON: {"success": true, "session_token": "...", "expires_at": "...", "message": "..."}
+	var authResult struct {
+		Success      bool   `json:"success"`
+		SessionToken string `json:"session_token"`
+		ExpiresAt    string `json:"expires_at"`
+		Message      string `json:"message"`
+	}
+
+	// Parse JSON from text content
+	if err := json.Unmarshal([]byte(response.Content[0].Text), &authResult); err != nil {
+		return "", fmt.Errorf("failed to parse authentication response: %w", err)
+	}
+
+	if !authResult.Success || authResult.SessionToken == "" {
+		return "", fmt.Errorf("authentication failed: %s", authResult.Message)
+	}
+
+	return authResult.SessionToken, nil
 }
 
 // initializeLLM creates the LLM client

@@ -1,11 +1,13 @@
 # Authentication Guide
 
-The pgEdge MCP Server includes built-in API token authentication for HTTP/HTTPS mode, enabled by default.
+The pgEdge MCP Server includes built-in authentication with two methods: API tokens for machine-to-machine communication and user accounts for interactive authentication.
 
 ## Overview
 
+- **API Tokens**: For machine-to-machine communication (direct HTTP/HTTPS access)
+- **User Accounts**: For interactive authentication with session tokens
 - **Enabled by default** in HTTP/HTTPS mode
-- **SHA256 token hashing** for secure storage
+- **SHA256/Bcrypt hashing** for secure credential storage
 - **Token expiration** with automatic cleanup
 - **Per-token connection isolation** for multi-user security
 - **Bearer token authentication** using HTTP Authorization header
@@ -21,6 +23,106 @@ When authentication is enabled, each API token gets its own isolated database co
 - **Resource management**: Independent connection pools per token
 
 See [Security Guide - Connection Isolation](security.md#connection-isolation) for more details.
+
+## User Management
+
+User accounts provide interactive authentication with session-based access. Users authenticate with username and password to receive a 24-hour session token.
+
+### When to Use Users vs API Tokens
+
+- **API Tokens**: Direct machine-to-machine access, long-lived, managed by administrators
+- **User Accounts**: Interactive applications, session-based, users manage own passwords
+
+### Adding Users
+
+#### Interactive Mode
+
+```bash
+# Add user with prompts
+./bin/pgedge-postgres-mcp -add-user
+```
+
+You'll be prompted for:
+
+- **Username**: Unique username for the account
+- **Password**: Password (hidden, with confirmation)
+- **Note**: Optional description (e.g., "Alice Smith - Developer")
+
+#### Command Line Mode
+
+```bash
+# Add user with all details specified
+./bin/pgedge-postgres-mcp -add-user \
+  -username alice \
+  -password "SecurePassword123!" \
+  -user-note "Alice Smith - Developer"
+```
+
+### Listing Users
+
+```bash
+./bin/pgedge-postgres-mcp -list-users
+```
+
+Output:
+```
+Users:
+==========================================================================================
+Username             Created                   Last Login           Status      Annotation
+------------------------------------------------------------------------------------------
+alice                2024-10-30 10:15          2024-11-14 09:30     Enabled     Developer
+bob                  2024-10-15 14:20          Never                Enabled     Admin
+charlie              2024-09-01 08:00          2024-10-10 16:45     DISABLED    Former emp
+==========================================================================================
+```
+
+### Updating Users
+
+```bash
+# Update password
+./bin/pgedge-postgres-mcp -update-user -username alice
+
+# Update with new password from command line (less secure)
+./bin/pgedge-postgres-mcp -update-user \
+  -username alice \
+  -password "NewPassword456!"
+
+# Update annotation only
+./bin/pgedge-postgres-mcp -update-user \
+  -username alice \
+  -user-note "Alice Smith - Senior Developer"
+```
+
+### Managing User Status
+
+```bash
+# Disable a user account (prevents login)
+./bin/pgedge-postgres-mcp -disable-user -username charlie
+
+# Re-enable a user account
+./bin/pgedge-postgres-mcp -enable-user -username charlie
+```
+
+### Deleting Users
+
+```bash
+# Delete user (with confirmation prompt)
+./bin/pgedge-postgres-mcp -delete-user -username charlie
+```
+
+### Custom User File Location
+
+```bash
+# Specify custom user file path
+./bin/pgedge-postgres-mcp -user-file /etc/pgedge-mcp/users.yaml -list-users
+```
+
+### User Storage
+
+- **Default location**: `pgedge-postgres-mcp-users.yaml` in the same directory as the binary
+- **Storage format**: YAML with bcrypt-hashed passwords (cost factor 12)
+- **File permissions**: Automatically set to 0600 (owner read/write only)
+- **Session tokens**: Generated with crypto/rand (32 bytes, 24-hour validity)
 
 ## Token Management
 
@@ -461,6 +563,229 @@ When distributing tokens to users/services:
 2. **One-time display**: Show token only once during creation
 3. **Documentation**: Include expiry date and renewal process
 4. **Revocation plan**: Document how to remove compromised tokens
+
+## User Authentication Flow
+
+For interactive applications using user accounts, authentication follows a two-step process:
+
+### Step 1: Authenticate User
+
+Call the `authenticate_user` tool (this tool is NOT advertised to the LLM and is only for direct client use):
+
+```bash
+curl -X POST http://localhost:8080/mcp/v1 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/call",
+    "params": {
+      "name": "authenticate_user",
+      "arguments": {
+        "username": "alice",
+        "password": "SecurePassword123!"
+      }
+    }
+  }'
+```
+
+**Response:**
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"success\": true, \"session_token\": \"AQz9XfK...\", \"expires_at\": \"2024-11-15T09:30:00Z\", \"message\": \"Authentication successful\"}"
+      }
+    ]
+  }
+}
+```
+
+### Step 2: Use Session Token
+
+Extract the `session_token` from the response and use it as a Bearer token for all subsequent requests:
+
+```bash
+curl -X POST http://localhost:8080/mcp/v1 \
+  -H "Authorization: Bearer AQz9XfK..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 2,
+    "method": "tools/call",
+    "params": {
+      "name": "query_database",
+      "arguments": {
+        "query": "Show me all users"
+      }
+    }
+  }'
+```
+
+### Session Token Properties
+
+- **Validity**: 24 hours from authentication
+- **Format**: Base64-encoded random 32-byte token
+- **Security**: Strongly random, cryptographically secure
+- **Expiration**: Tokens expire automatically after 24 hours
+- **Renewal**: Re-authenticate to get a new session token
+
+### Client Implementation Example
+
+#### Python Client
+
+```python
+import requests
+import json
+
+class MCPUserClient:
+    def __init__(self, base_url):
+        self.base_url = base_url
+        self.session_token = None
+        self.token_expiry = None
+
+    def authenticate(self, username, password):
+        """Authenticate and get session token"""
+        response = requests.post(
+            f"{self.base_url}/mcp/v1",
+            json={
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "tools/call",
+                "params": {
+                    "name": "authenticate_user",
+                    "arguments": {
+                        "username": username,
+                        "password": password
+                    }
+                }
+            }
+        )
+
+        result = response.json()
+        if "result" in result:
+            auth_data = json.loads(result["result"]["content"][0]["text"])
+            self.session_token = auth_data["session_token"]
+            self.token_expiry = auth_data["expires_at"]
+            return True
+        return False
+
+    def call_tool(self, tool_name, arguments):
+        """Call a tool using the session token"""
+        if not self.session_token:
+            raise Exception("Not authenticated")
+
+        response = requests.post(
+            f"{self.base_url}/mcp/v1",
+            headers={
+                "Authorization": f"Bearer {self.session_token}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "jsonrpc": "2.0",
+                "id": 2,
+                "method": "tools/call",
+                "params": {
+                    "name": tool_name,
+                    "arguments": arguments
+                }
+            }
+        )
+        return response.json()
+
+# Usage
+client = MCPUserClient("http://localhost:8080")
+if client.authenticate("alice", "SecurePassword123!"):
+    result = client.call_tool("query_database", {"query": "Show tables"})
+    print(result)
+```
+
+### Authentication Errors
+
+#### Invalid Credentials
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "error": {
+    "code": -32603,
+    "message": "Tool execution error",
+    "data": "authentication failed: invalid username or password"
+  }
+}
+```
+
+#### Disabled User Account
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "error": {
+    "code": -32603,
+    "message": "Tool execution error",
+    "data": "authentication failed: user account is disabled"
+  }
+}
+```
+
+#### Expired Session Token
+
+```json
+{
+  "error": "Unauthorized"
+}
+```
+
+HTTP Status: `401 Unauthorized`
+
+**Solution**: Re-authenticate to get a new session token
+
+## User Authentication Best Practices
+
+### 1. Password Security
+
+- **Strong passwords**: Enforce minimum complexity requirements
+- **Never log passwords**: Ensure passwords are not logged or displayed
+- **Secure transmission**: Always use HTTPS in production
+- **Password updates**: Regularly prompt users to update passwords
+
+### 2. Session Management
+
+- **Token storage**: Store session tokens securely (not in localStorage for web apps)
+- **Token refresh**: Re-authenticate before token expiration
+- **Logout**: Implement proper logout (client-side token deletion)
+- **Concurrent sessions**: Consider implementing session limits per user
+
+### 3. Account Security
+
+- **Account lockout**: Implement rate limiting for failed authentication attempts
+- **Audit logging**: Log authentication events (success and failures)
+- **Inactive accounts**: Disable accounts after period of inactivity
+- **Role-based access**: Use annotations to track user roles/permissions
+
+### 4. Integration with Applications
+
+```python
+# Good: Check token expiration before use
+from datetime import datetime, timezone
+
+def is_token_expired(expiry_str):
+    expiry = datetime.fromisoformat(expiry_str.replace('Z', '+00:00'))
+    return datetime.now(timezone.utc) >= expiry
+
+if not client.session_token or is_token_expired(client.token_expiry):
+    client.authenticate(username, password)
+
+# Now use the token
+result = client.call_tool("query_database", {...})
+```
 
 ## Troubleshooting
 

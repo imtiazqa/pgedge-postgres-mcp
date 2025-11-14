@@ -11,10 +11,11 @@
 package auth
 
 import (
+	"bytes"
 	"context"
-	"fmt"
+	"encoding/json"
+	"io"
 	"net/http"
-	"os"
 	"strings"
 )
 
@@ -38,8 +39,8 @@ func GetTokenHashFromContext(ctx context.Context) string {
 	return ""
 }
 
-// AuthMiddleware creates an HTTP middleware that validates API tokens
-func AuthMiddleware(tokenStore *TokenStore, enabled bool) func(http.Handler) http.Handler {
+// AuthMiddleware creates an HTTP middleware that validates API tokens and session tokens
+func AuthMiddleware(tokenStore *TokenStore, userStore *UserStore, enabled bool) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Skip authentication if disabled
@@ -50,6 +51,12 @@ func AuthMiddleware(tokenStore *TokenStore, enabled bool) func(http.Handler) htt
 
 			// Skip authentication for health check endpoint
 			if r.URL.Path == HealthCheckPath {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			// Check if this is an authenticate_user tool call (which should bypass auth)
+			if isAuthenticateUserCall(r) {
 				next.ServeHTTP(w, r)
 				return
 			}
@@ -70,30 +77,65 @@ func AuthMiddleware(tokenStore *TokenStore, enabled bool) func(http.Handler) htt
 
 			token := parts[1]
 
-			// Validate token
-			valid, err := tokenStore.ValidateToken(token)
-			if err != nil {
-				// Log detailed error for debugging
-				_, _ = fmt.Fprintf(os.Stderr, "Token validation error: %v\n", err)
-				// Return generic error to client (don't leak internal details)
-				http.Error(w, "Invalid token", http.StatusUnauthorized)
+			// Try to validate as API token first
+			validAPIToken, err := tokenStore.ValidateToken(token)
+			if err == nil && validAPIToken {
+				// Valid API token - use token hash for connection isolation
+				tokenHash := HashToken(token)
+				ctx := context.WithValue(r.Context(), TokenHashContextKey, tokenHash)
+				r = r.WithContext(ctx)
+				next.ServeHTTP(w, r)
 				return
 			}
 
-			if !valid {
-				http.Error(w, "Invalid or unknown token", http.StatusUnauthorized)
-				return
+			// Try to validate as session token if userStore is available
+			if userStore != nil {
+				username, err := userStore.ValidateSessionToken(token)
+				if err == nil && username != "" {
+					// Valid session token - use token hash for connection isolation
+					tokenHash := HashToken(token)
+					ctx := context.WithValue(r.Context(), TokenHashContextKey, tokenHash)
+					r = r.WithContext(ctx)
+					next.ServeHTTP(w, r)
+					return
+				}
 			}
 
-			// Hash the token to use as connection pool key
-			tokenHash := HashToken(token)
-
-			// Store token hash in context for per-token connection isolation
-			ctx := context.WithValue(r.Context(), TokenHashContextKey, tokenHash)
-			r = r.WithContext(ctx)
-
-			// Token is valid, proceed with request
-			next.ServeHTTP(w, r)
+			// Neither API token nor session token is valid
+			http.Error(w, "Invalid or unknown token", http.StatusUnauthorized)
 		})
 	}
+}
+
+// isAuthenticateUserCall checks if the request is a tools/call for authenticate_user
+// This function reads and restores the request body
+func isAuthenticateUserCall(r *http.Request) bool {
+	// Read the body
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		return false
+	}
+	defer func() {
+		// Restore the body for the next handler
+		r.Body = io.NopCloser(bytes.NewBuffer(body))
+	}()
+
+	// Parse as JSON-RPC request
+	var req struct {
+		Method string                 `json:"method"`
+		Params map[string]interface{} `json:"params"`
+	}
+
+	if err := json.Unmarshal(body, &req); err != nil {
+		return false
+	}
+
+	// Check if it's a tools/call for authenticate_user
+	if req.Method == "tools/call" {
+		if name, ok := req.Params["name"].(string); ok {
+			return name == "authenticate_user"
+		}
+	}
+
+	return false
 }
