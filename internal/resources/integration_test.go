@@ -43,11 +43,6 @@ func TestAllResources_Integration(t *testing.T) {
 		requiresData bool // Whether the resource requires existing data
 	}{
 		{
-			name:         "pg://settings",
-			resource:     PGSettingsResource(client),
-			requiresData: false,
-		},
-		{
 			name:         "pg://system_info",
 			resource:     PGSystemInfoResource(client),
 			requiresData: false,

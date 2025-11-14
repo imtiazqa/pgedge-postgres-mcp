@@ -7,8 +7,8 @@ A Model Context Protocol (MCP) server written in Go that enables natural languag
 ## Quick Links
 
 - **[Configuration Guide](configuration.md)** - Setup and configuration
-- **[Tools Reference](tools.md)** - All 9 MCP tools
-- **[Resources Reference](resources.md)** - All 4 MCP resources
+- **[Tools Reference](tools.md)** - All 7 MCP tools
+- **[Resources Reference](resources.md)** - All 3 MCP resources
 - **[Query Examples](examples.md)** - Usage examples
 - **[Deployment Guide](deployment.md)** - HTTP/HTTPS deployment
 - **[Troubleshooting](troubleshooting.md)** - Common issues and solutions
@@ -18,8 +18,8 @@ A Model Context Protocol (MCP) server written in Go that enables natural languag
 - ✨ **Natural Language to SQL** - Convert plain English questions into SQL queries
 - 🔒 **Read-Only Protection** - All queries execute in read-only transactions
 - 🤖 **Multiple LLM Support** - Anthropic Claude, OpenAI (GPT-4o, GPT-5), or Ollama (local/free)
-- 📊 **4 Resources** - PostgreSQL statistics (pg_stat_*, pg://system_info, pg://settings)
-- 🛠️ **9 Tools** - Query execution, schema analysis, semantic search, embedding generation, connection management
+- 📊 **3 Resources** - PostgreSQL statistics (pg_stat_*, pg://system_info)
+- 🛠️ **7 Tools** - Query execution, schema analysis, semantic search, embedding generation, connection management
 - 🌐 **HTTP/HTTPS Mode** - Direct API access with token authentication
 - 🔐 **Secure** - TLS support, token authentication, read-only enforcement
 

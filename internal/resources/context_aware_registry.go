@@ -39,12 +39,6 @@ func (r *ContextAwareRegistry) List() []mcp.Resource {
 	// Return static list of all resources
 	return []mcp.Resource{
 		{
-			URI:         URISettings,
-			Name:        "PostgreSQL Server Configuration",
-			Description: "Returns PostgreSQL server configuration parameters including current values, default values, pending changes, and descriptions. Queries pg_settings system catalog.",
-			MimeType:    "application/json",
-		},
-		{
 			URI:         URISystemInfo,
 			Name:        "PostgreSQL System Information",
 			Description: "Returns PostgreSQL version, operating system, and build architecture information. Provides a quick way to check server version and platform details.",
@@ -84,8 +78,6 @@ func (r *ContextAwareRegistry) Read(ctx context.Context, uri string) (mcp.Resour
 	// Create resource handler with the correct client
 	var resource Resource
 	switch uri {
-	case URISettings:
-		resource = PGSettingsResource(dbClient)
 	case URISystemInfo:
 		resource = PGSystemInfoResource(dbClient)
 	case URIStatActivity:

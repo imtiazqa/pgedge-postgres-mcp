@@ -1,43 +1,17 @@
 # MCP Tools
 
-The pgEdge MCP Server provides nine tools that enable SQL database interaction, configuration management, connection management, semantic search, embedding generation, and server information.
+The pgEdge MCP Server provides seven tools that enable SQL database interaction, connection management, semantic search, and embedding generation.
 
 ## Smart Tool Filtering
 
 The server uses **smart tool filtering** to optimize token usage and improve user experience:
 
-- **Without database connection**: Only 4 stateless tools are shown (`server_info`, `manage_connections`, `read_resource`, `generate_embedding`)
-- **With database connection**: All 9 tools are available (adds `query_database`, `get_schema_info`, `set_pg_configuration`, `semantic_search`, `search_similar`)
+- **Without database connection**: Only 3 stateless tools are shown (`manage_connections`, `read_resource`, `generate_embedding`)
+- **With database connection**: All 7 tools are available (adds `query_database`, `get_schema_info`, `semantic_search`, `search_similar`)
 
 This dynamic tool list reduces token usage by ~60% when no database is connected, helping you stay within API rate limits.
 
 ## Available Tools
-
-### server_info
-
-Get information about the MCP server itself, including server name, company, and version.
-
-**Input**: None (no parameters required)
-
-**Output**:
-```
-Server Information:
-===================
-
-Server Name:    pgEdge PostgreSQL MCP Server
-Company:        pgEdge, Inc.
-Version:        1.0.0
-
-Description:    An MCP (Model Context Protocol) server that enables AI assistants to interact with PostgreSQL databases through SQL queries and schema exploration.
-
-License:        PostgreSQL License
-Copyright:      © 2025, pgEdge, Inc.
-```
-
-**Use Cases**:
-
-- Verify server version for compatibility and troubleshooting
-- Get quick reference to server information during support requests
 
 ### query_database
 
@@ -488,53 +462,6 @@ export PGEDGE_LLM_LOG_LEVEL="info"  # or "debug" or "trace"
 
 See [Configuration Guide](configuration.md#embedding-generation-logging) for details.
 
-### set_pg_configuration
-
-Sets PostgreSQL server configuration parameters using ALTER SYSTEM SET. Changes persist across server restarts. Some parameters require a restart to take effect.
-
-**Input**:
-```json
-{
-  "parameter": "max_connections",
-  "value": "200"
-}
-```
-
-Use "DEFAULT" as the value to reset to default:
-```json
-{
-  "parameter": "work_mem",
-  "value": "DEFAULT"
-}
-```
-
-**Output**:
-```
-Configuration parameter 'max_connections' updated successfully.
-
-Parameter: max_connections
-Description: Sets the maximum number of concurrent connections
-Type: integer
-Context: postmaster
-
-Previous value: 100
-New value: 200
-
-⚠️  WARNING: This parameter requires a server restart to take effect.
-The change has been saved to postgresql.auto.conf but will not be active until the server is restarted.
-
-SQL executed: ALTER SYSTEM SET max_connections = '200'
-```
-
-**Security Considerations**:
-
-- Requires PostgreSQL superuser privileges
-- Changes persist across server restarts via `postgresql.auto.conf`
-- Test configuration changes in development before applying to production
-- Some parameters require a server restart to take effect
-- Keep backups of configuration files before making changes
-
-
 ### read_resource
 
 Reads MCP resources by their URI. Provides access to system information and statistics.
@@ -559,7 +486,6 @@ Read a specific resource:
 
 **Available Resource URIs**:
 
-- `pg://settings` - PostgreSQL configuration parameters
 - `pg://system_info` - PostgreSQL version, OS, and build architecture
 - `pg://stat/activity` - Current connections and queries
 - `pg://stat/replication` - Replication status

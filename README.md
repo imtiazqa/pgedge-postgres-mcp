@@ -21,8 +21,8 @@ SELECT tablename, pg_table_size(tablename::regclass) as size FROM pg_tables WHER
 ## Key Features
 
 - 🔒 **Read-Only Protection** - All queries run in read-only transactions
-- 📊 **4 Resources** - Access PostgreSQL statistics and settings
-- 🛠️ **9 Tools** - Query execution, schema analysis, semantic search (pgvector), embedding generation (OpenAI), connection management
+- 📊 **3 Resources** - Access PostgreSQL statistics
+- 🛠️ **7 Tools** - Query execution, schema analysis, semantic search (pgvector), embedding generation (OpenAI), connection management
 - 🌐 **HTTP/HTTPS Mode** - Direct API access with token authentication
 - 🔐 **Secure** - TLS support, token auth, read-only enforcement
 

@@ -234,10 +234,6 @@ func TestMCPServerIntegration(t *testing.T) {
 		testListResources(t, server)
 	})
 
-	t.Run("ReadPgSettingsResource", func(t *testing.T) {
-		testReadPgSettingsResource(t, server)
-	})
-
 	t.Run("CallGetSchemaInfo", func(t *testing.T) {
 		testCallGetSchemaInfo(t, server)
 	})
@@ -310,25 +306,26 @@ func testInitialize(t *testing.T, server *MCPServer) {
 
 func testSetDatabaseConnection(t *testing.T, server *MCPServer, connString string) {
 	params := map[string]interface{}{
-		"name": "set_database_connection",
+		"name": "manage_connections",
 		"arguments": map[string]interface{}{
+			"operation":         "connect",
 			"connection_string": connString,
 		},
 	}
 
 	resp, err := server.SendRequest("tools/call", params)
 	if err != nil {
-		t.Fatalf("tools/call (set_database_connection) failed: %v", err)
+		t.Fatalf("tools/call (manage_connections connect) failed: %v", err)
 	}
 
 	if resp.Error != nil {
-		t.Fatalf("set_database_connection returned error: %s", resp.Error.Message)
+		t.Fatalf("manage_connections connect returned error: %s", resp.Error.Message)
 	}
 
 	// Parse the result
 	var result map[string]interface{}
 	if err := json.Unmarshal(resp.Result, &result); err != nil {
-		t.Fatalf("Failed to parse set_database_connection result: %v", err)
+		t.Fatalf("Failed to parse manage_connections result: %v", err)
 	}
 
 	// Check for error response in the tool result
@@ -336,7 +333,7 @@ func testSetDatabaseConnection(t *testing.T, server *MCPServer, connString strin
 		content := result["content"].([]interface{})
 		if len(content) > 0 {
 			contentMap := content[0].(map[string]interface{})
-			t.Fatalf("set_database_connection returned error: %s", contentMap["text"])
+			t.Fatalf("manage_connections connect returned error: %s", contentMap["text"])
 		}
 	}
 
@@ -368,13 +365,12 @@ func testListToolsBeforeConnection(t *testing.T, server *MCPServer) {
 	}
 
 	// Before database connection, only stateless tools should be available
-	if len(tools) != 4 {
-		t.Errorf("Expected exactly 4 stateless tools before database connection, got %d", len(tools))
+	if len(tools) != 3 {
+		t.Errorf("Expected exactly 3 stateless tools before database connection, got %d", len(tools))
 	}
 
 	// Verify expected stateless tools exist
 	expectedTools := map[string]bool{
-		"server_info":        false,
 		"manage_connections": false,
 		"read_resource":      false,
 		"generate_embedding": false,
@@ -423,20 +419,19 @@ func testListToolsAfterConnection(t *testing.T, server *MCPServer) {
 	}
 
 	// After calling manage_connections, all tools should be available
-	if len(tools) != 8 {
-		t.Errorf("Expected exactly 8 tools after database connection, got %d", len(tools))
+	if len(tools) != 7 {
+		t.Errorf("Expected exactly 7 tools after database connection, got %d", len(tools))
 	}
 
 	// Verify expected tools exist
 	expectedTools := map[string]bool{
-		"query_database":          false,
-		"get_schema_info":         false,
-		"set_pg_configuration":    false,
-		"server_info":             false,
-		"manage_connections":      false,
-		"read_resource":           false,
-		"generate_embedding":      false,
-		"semantic_search":         false,
+		"query_database":     false,
+		"get_schema_info":    false,
+		"manage_connections": false,
+		"read_resource":      false,
+		"generate_embedding": false,
+		"semantic_search":    false,
+		"search_similar":     false,
 	}
 
 	for _, tool := range tools {
@@ -512,94 +507,6 @@ func testListResources(t *testing.T, server *MCPServer) {
 	}
 
 	t.Log("ListResources test passed")
-}
-
-func testReadPgSettingsResource(t *testing.T, server *MCPServer) {
-	params := map[string]interface{}{
-		"uri": "pg://settings",
-	}
-
-	// Retry a few times in case metadata is still loading
-	var resp *MCPResponse
-	var err error
-	maxRetries := 5
-	for i := 0; i < maxRetries; i++ {
-		resp, err = server.SendRequest("resources/read", params)
-		if err != nil {
-			t.Fatalf("resources/read failed: %v", err)
-		}
-
-		// If no error, break out
-		if resp.Error == nil {
-			break
-		}
-
-		// If error is "database not ready", retry
-		if strings.Contains(resp.Error.Message, "not ready") || strings.Contains(resp.Error.Message, "initializing") {
-			if i < maxRetries-1 {
-				t.Logf("Database not ready, retrying in 1 second... (attempt %d/%d)", i+1, maxRetries)
-				time.Sleep(1 * time.Second)
-				continue
-			}
-		}
-
-		t.Fatalf("resources/read returned error: %s", resp.Error.Message)
-	}
-
-	// Parse the result
-	var result map[string]interface{}
-	if err := json.Unmarshal(resp.Result, &result); err != nil {
-		t.Fatalf("Failed to parse resources/read result: %v", err)
-	}
-
-	// Verify contents
-	contents, ok := result["contents"].([]interface{})
-	if !ok || len(contents) == 0 {
-		t.Fatal("contents array not found or empty in result")
-	}
-
-	// Get the first content item
-	content, ok := contents[0].(map[string]interface{})
-	if !ok {
-		t.Fatal("Invalid content format")
-	}
-
-	// Verify it's text type
-	if contentType, ok := content["type"].(string); !ok || contentType != "text" {
-		t.Errorf("Expected content type 'text', got '%v'", content["type"])
-	}
-
-	// Verify text is not empty
-	text, ok := content["text"].(string)
-	if !ok || text == "" {
-		t.Error("Content text is empty")
-	}
-
-	// The text contains JSON object with a "settings" array
-	// Parse the entire JSON object first
-	var settingsData map[string]interface{}
-	if err := json.Unmarshal([]byte(text), &settingsData); err != nil {
-		t.Errorf("Content JSON is not valid: %v", err)
-		return
-	}
-
-	// Extract the settings array
-	settings, ok := settingsData["settings"].([]interface{})
-	if !ok {
-		t.Error("Settings array not found in JSON object")
-		return
-	}
-
-	if len(settings) == 0 {
-		t.Error("Settings array is empty")
-	}
-
-	// Verify some expected settings exist
-	if len(settings) < 100 {
-		t.Errorf("Expected at least 100 settings, got %d", len(settings))
-	}
-
-	t.Logf("ReadPgSettingsResource test passed, found %d settings", len(settings))
 }
 
 func testCallGetSchemaInfo(t *testing.T, server *MCPServer) {

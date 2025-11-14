@@ -103,6 +103,12 @@ func ManageConnectionsTool(clientManager *database.ClientManager, connMgr *Conne
 			},
 		},
 		Handler: func(args map[string]interface{}) (mcp.ToolResponse, error) {
+			// Extract context from args (injected by Registry.Execute)
+			ctx, ok := args["__context"].(context.Context)
+			if !ok {
+				ctx = context.Background()
+			}
+
 			operation, ok := args["operation"].(string)
 			if !ok || operation == "" {
 				return mcp.NewToolError("'operation' parameter is required")
@@ -112,13 +118,13 @@ func ManageConnectionsTool(clientManager *database.ClientManager, connMgr *Conne
 			case "connect":
 				return handleConnect(args, clientManager, connMgr, configPath)
 			case "add":
-				return handleAdd(args, connMgr, configPath)
+				return handleAdd(ctx, args, connMgr, configPath)
 			case "edit":
-				return handleEdit(args, connMgr, configPath)
+				return handleEdit(ctx, args, connMgr, configPath)
 			case "remove":
-				return handleRemove(args, connMgr, configPath)
+				return handleRemove(ctx, args, connMgr, configPath)
 			case "list":
-				return handleList(connMgr)
+				return handleList(ctx, connMgr)
 			default:
 				return mcp.NewToolError(fmt.Sprintf("Unknown operation: %s. Valid operations: connect, add, edit, remove, list", operation))
 			}
@@ -171,7 +177,7 @@ func handleConnect(args map[string]interface{}, clientManager *database.ClientMa
 }
 
 // handleAdd saves a new connection
-func handleAdd(args map[string]interface{}, connMgr *ConnectionManager, configPath string) (mcp.ToolResponse, error) {
+func handleAdd(ctx context.Context, args map[string]interface{}, connMgr *ConnectionManager, configPath string) (mcp.ToolResponse, error) {
 	// Parse required parameters
 	alias, ok := args["alias"].(string)
 	if !ok || alias == "" {
@@ -220,7 +226,6 @@ func handleAdd(args map[string]interface{}, connMgr *ConnectionManager, configPa
 	}
 
 	// Get connection store
-	ctx := context.Background()
 	store, err := connMgr.GetConnectionStore(ctx)
 	if err != nil {
 		return mcp.NewToolError(fmt.Sprintf("Error: %v", err))
@@ -278,14 +283,13 @@ func handleAdd(args map[string]interface{}, connMgr *ConnectionManager, configPa
 }
 
 // handleEdit updates an existing connection
-func handleEdit(args map[string]interface{}, connMgr *ConnectionManager, configPath string) (mcp.ToolResponse, error) {
+func handleEdit(ctx context.Context, args map[string]interface{}, connMgr *ConnectionManager, configPath string) (mcp.ToolResponse, error) {
 	alias, ok := args["alias"].(string)
 	if !ok || alias == "" {
 		return mcp.NewToolError("'alias' is required for edit operation")
 	}
 
 	// Get connection store
-	ctx := context.Background()
 	store, err := connMgr.GetConnectionStore(ctx)
 	if err != nil {
 		return mcp.NewToolError(fmt.Sprintf("Error: %v", err))
@@ -401,14 +405,13 @@ func handleEdit(args map[string]interface{}, connMgr *ConnectionManager, configP
 }
 
 // handleRemove deletes a saved connection
-func handleRemove(args map[string]interface{}, connMgr *ConnectionManager, configPath string) (mcp.ToolResponse, error) {
+func handleRemove(ctx context.Context, args map[string]interface{}, connMgr *ConnectionManager, configPath string) (mcp.ToolResponse, error) {
 	alias, ok := args["alias"].(string)
 	if !ok || alias == "" {
 		return mcp.NewToolError("'alias' is required for remove operation")
 	}
 
 	// Get connection store
-	ctx := context.Background()
 	store, err := connMgr.GetConnectionStore(ctx)
 	if err != nil {
 		return mcp.NewToolError(fmt.Sprintf("Error: %v", err))
@@ -433,9 +436,8 @@ func handleRemove(args map[string]interface{}, connMgr *ConnectionManager, confi
 }
 
 // handleList shows all saved connections
-func handleList(connMgr *ConnectionManager) (mcp.ToolResponse, error) {
+func handleList(ctx context.Context, connMgr *ConnectionManager) (mcp.ToolResponse, error) {
 	// Get connection store
-	ctx := context.Background()
 	store, err := connMgr.GetConnectionStore(ctx)
 	if err != nil {
 		return mcp.NewToolError(fmt.Sprintf("Error: %v", err))

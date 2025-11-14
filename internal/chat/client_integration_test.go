@@ -733,15 +733,11 @@ func TestClient_ProcessQuery_ToolListRefreshAfterManageConnections(t *testing.T)
 		case "tools/list":
 			toolsListCallCount++
 
-			// First call: return 4 stateless tools (no database connection)
-			// Second call: return 9 tools (with database connection)
+			// First call: return 3 stateless tools (no database connection)
+			// Second call: return 7 tools (with database connection)
 			var tools []interface{}
 			if toolsListCallCount == 1 {
 				tools = []interface{}{
-					map[string]interface{}{
-						"name":        "server_info",
-						"description": "Get server information",
-					},
 					map[string]interface{}{
 						"name":        "manage_connections",
 						"description": "Manage database connections",
@@ -756,12 +752,8 @@ func TestClient_ProcessQuery_ToolListRefreshAfterManageConnections(t *testing.T)
 					},
 				}
 			} else {
-				// After connection, include all 9 tools
+				// After connection, include all 7 tools
 				tools = []interface{}{
-					map[string]interface{}{
-						"name":        "server_info",
-						"description": "Get server information",
-					},
 					map[string]interface{}{
 						"name":        "manage_connections",
 						"description": "Manage database connections",
@@ -789,10 +781,6 @@ func TestClient_ProcessQuery_ToolListRefreshAfterManageConnections(t *testing.T)
 					map[string]interface{}{
 						"name":        "search_similar",
 						"description": "Auto-discover and search",
-					},
-					map[string]interface{}{
-						"name":        "set_pg_configuration",
-						"description": "Set PostgreSQL configuration",
 					},
 				}
 			}
@@ -881,8 +869,8 @@ func TestClient_ProcessQuery_ToolListRefreshAfterManageConnections(t *testing.T)
 	}
 	client.tools = tools
 
-	if len(client.tools) != 4 {
-		t.Errorf("Expected 4 initial tools, got %d", len(client.tools))
+	if len(client.tools) != 3 {
+		t.Errorf("Expected 3 initial tools, got %d", len(client.tools))
 	}
 
 	// Set up mock LLM that uses manage_connections tool
@@ -917,9 +905,9 @@ func TestClient_ProcessQuery_ToolListRefreshAfterManageConnections(t *testing.T)
 		t.Fatalf("processQuery failed: %v", err)
 	}
 
-	// Verify tool list was refreshed (should now be 9 tools)
-	if len(client.tools) != 9 {
-		t.Errorf("Expected 9 tools after connection, got %d", len(client.tools))
+	// Verify tool list was refreshed (should now be 7 tools)
+	if len(client.tools) != 7 {
+		t.Errorf("Expected 7 tools after connection, got %d", len(client.tools))
 	}
 
 	// Verify search_similar is now available

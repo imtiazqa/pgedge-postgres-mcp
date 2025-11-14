@@ -444,25 +444,26 @@ func testHTTPInitialize(t *testing.T, server *HTTPMCPServer) {
 
 func testHTTPSetDatabaseConnection(t *testing.T, server *HTTPMCPServer) {
 	params := map[string]interface{}{
-		"name": "set_database_connection",
+		"name": "manage_connections",
 		"arguments": map[string]interface{}{
+			"operation":         "connect",
 			"connection_string": server.connString,
 		},
 	}
 
 	resp, err := server.SendHTTPRequest("tools/call", params)
 	if err != nil {
-		t.Fatalf("tools/call (set_database_connection) failed: %v", err)
+		t.Fatalf("tools/call (manage_connections connect) failed: %v", err)
 	}
 
 	if resp.Error != nil {
-		t.Fatalf("set_database_connection returned error: %s", resp.Error.Message)
+		t.Fatalf("manage_connections connect returned error: %s", resp.Error.Message)
 	}
 
 	// Parse the result
 	var result map[string]interface{}
 	if err := json.Unmarshal(resp.Result, &result); err != nil {
-		t.Fatalf("Failed to parse set_database_connection result: %v", err)
+		t.Fatalf("Failed to parse manage_connections result: %v", err)
 	}
 
 	// Check for error response in the tool result
@@ -470,7 +471,7 @@ func testHTTPSetDatabaseConnection(t *testing.T, server *HTTPMCPServer) {
 		content := result["content"].([]interface{})
 		if len(content) > 0 {
 			contentMap := content[0].(map[string]interface{})
-			t.Fatalf("set_database_connection returned error: %s", contentMap["text"])
+			t.Fatalf("manage_connections connect returned error: %s", contentMap["text"])
 		}
 	}
 
@@ -500,9 +501,9 @@ func testHTTPListTools(t *testing.T, server *HTTPMCPServer) {
 		t.Fatal("tools array not found in result")
 	}
 
-	// After calling set_database_connection, all tools should be available
-	if len(tools) < 10 {
-		t.Errorf("Expected at least 10 tools after database connection, got %d", len(tools))
+	// After calling manage_connections connect, all 7 tools should be available
+	if len(tools) != 7 {
+		t.Errorf("Expected exactly 7 tools after database connection, got %d", len(tools))
 	}
 
 	t.Logf("HTTP ListTools test passed, found %d tools", len(tools))

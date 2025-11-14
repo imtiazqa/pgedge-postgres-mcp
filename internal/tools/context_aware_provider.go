@@ -31,7 +31,6 @@ type ContextAwareProvider struct {
 	resourceReg     *resources.ContextAwareRegistry
 	authEnabled     bool
 	fallbackClient  *database.Client   // Used when auth is disabled
-	serverInfo      ServerInfo         // Server metadata for server_info tool
 	connMgr         *ConnectionManager // Manages saved database connections
 	preferencesPath string             // Path to preferences file for persistence
 	cfg             *config.Config     // Server configuration (for embedding settings)
@@ -43,8 +42,6 @@ type ContextAwareProvider struct {
 
 // registerStatelessTools registers all stateless tools (those that don't require a database client)
 func (p *ContextAwareProvider) registerStatelessTools(registry *Registry) {
-	registry.Register("server_info", ServerInfoTool(p.serverInfo))
-
 	// Consolidated connection management tool (connect, add, edit, remove, list)
 	registry.Register("manage_connections", ManageConnectionsTool(p.clientManager, p.connMgr, p.preferencesPath))
 
@@ -60,13 +57,12 @@ func (p *ContextAwareProvider) registerStatelessTools(registry *Registry) {
 func (p *ContextAwareProvider) registerDatabaseTools(registry *Registry, client *database.Client) {
 	registry.Register("query_database", QueryDatabaseTool(client))
 	registry.Register("get_schema_info", GetSchemaInfoTool(client))
-	registry.Register("set_pg_configuration", SetPGConfigurationTool(client))
 	registry.Register("semantic_search", SemanticSearchTool(client, p.cfg))
 	registry.Register("search_similar", SearchSimilarTool(client, p.cfg))
 }
 
 // NewContextAwareProvider creates a new context-aware tool provider
-func NewContextAwareProvider(clientManager *database.ClientManager, resourceReg *resources.ContextAwareRegistry, authEnabled bool, fallbackClient *database.Client, serverInfo ServerInfo, tokenStore *auth.TokenStore, cfg *config.Config, prefs *config.Preferences, preferencesPath string, encryptionKey *crypto.EncryptionKey) *ContextAwareProvider {
+func NewContextAwareProvider(clientManager *database.ClientManager, resourceReg *resources.ContextAwareRegistry, authEnabled bool, fallbackClient *database.Client, tokenStore *auth.TokenStore, cfg *config.Config, prefs *config.Preferences, preferencesPath string, encryptionKey *crypto.EncryptionKey) *ContextAwareProvider {
 	// Create connection manager
 	connMgr := NewConnectionManager(tokenStore, cfg, prefs, authEnabled, encryptionKey)
 
@@ -76,7 +72,6 @@ func NewContextAwareProvider(clientManager *database.ClientManager, resourceReg 
 		resourceReg:      resourceReg,
 		authEnabled:      authEnabled,
 		fallbackClient:   fallbackClient,
-		serverInfo:       serverInfo,
 		connMgr:          connMgr,
 		preferencesPath:  preferencesPath,
 		cfg:              cfg,
@@ -147,7 +142,6 @@ func (p *ContextAwareProvider) List() []mcp.Tool {
 
 	// No connection - filter to only stateless tools
 	statelessTools := map[string]bool{
-		"server_info":        true,
 		"manage_connections": true,
 		"read_resource":      true,
 		"generate_embedding": true,
@@ -234,7 +228,6 @@ func (p *ContextAwareProvider) Execute(ctx context.Context, name string, args ma
 	statelessTools := map[string]bool{
 		"recommend_pg_configuration": true,
 		"read_resource":              true,
-		"server_info":                true,
 		"manage_connections":         true, // Consolidated connection management (connect, add, edit, remove, list)
 		"generate_embedding":         true, // Embedding generation doesn't need database
 	}

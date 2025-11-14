@@ -4,34 +4,6 @@ Resources provide read-only access to PostgreSQL system information and statisti
 
 ## System Information Resources
 
-### pg://settings
-
-Returns PostgreSQL server configuration parameters including current values, default values, pending changes, and descriptions.
-
-**Access**: Read the resource to view all PostgreSQL configuration settings from pg_settings.
-
-**Output**: JSON array with detailed information about each configuration parameter:
-
-```json
-[
-  {
-    "name": "max_connections",
-    "current_value": "100",
-    "category": "Connections and Authentication / Connection Settings",
-    "description": "Sets the maximum number of concurrent connections.",
-    "context": "postmaster",
-    "type": "integer",
-    "source": "configuration file",
-    "min_value": "1",
-    "max_value": "262143",
-    "default_value": "100",
-    "reset_value": "100",
-    "pending_restart": false
-  },
-  ...
-]
-```
-
 ### pg://system_info
 
 Returns PostgreSQL version, operating system, and build architecture information. Provides a quick and efficient way to check server version and platform details without executing natural language queries.

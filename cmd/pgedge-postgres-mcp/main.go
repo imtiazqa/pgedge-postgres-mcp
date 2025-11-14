@@ -26,12 +26,6 @@ import (
 	"pgedge-postgres-mcp/internal/tools"
 )
 
-const (
-	serverName    = "pgEdge PostgreSQL MCP Server"
-	serverCompany = "pgEdge, Inc."
-	serverVersion = "1.0.0-alpha1"
-)
-
 func main() {
 	// Get executable path for default config location
 	execPath, err := os.Executable()
@@ -269,13 +263,6 @@ func main() {
 	// Initialize client manager for runtime database connections
 	clientManager := database.NewClientManager()
 
-	// Prepare server info
-	serverInfo := tools.ServerInfo{
-		Name:    serverName,
-		Company: serverCompany,
-		Version: serverVersion,
-	}
-
 	// Use context-aware providers for runtime database connections
 	// Both stdio and HTTP modes use the same providers
 	authEnabled := cfg.HTTP.Enabled && cfg.HTTP.Auth.Enabled
@@ -284,7 +271,7 @@ func main() {
 	contextAwareResourceProvider := resources.NewContextAwareRegistry(clientManager, authEnabled)
 
 	// Context-aware tool provider
-	contextAwareToolProvider := tools.NewContextAwareProvider(clientManager, contextAwareResourceProvider, authEnabled, nil, serverInfo, tokenStore, cfg, prefs, cfg.PreferencesFile, encryptionKey)
+	contextAwareToolProvider := tools.NewContextAwareProvider(clientManager, contextAwareResourceProvider, authEnabled, nil, tokenStore, cfg, prefs, cfg.PreferencesFile, encryptionKey)
 	if err := contextAwareToolProvider.RegisterTools(ctx); err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: Failed to register tools: %v\n", err)
 		os.Exit(1)

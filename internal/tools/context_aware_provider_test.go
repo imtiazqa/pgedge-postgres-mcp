@@ -17,6 +17,7 @@ import (
 	"testing"
 
 	"pgedge-postgres-mcp/internal/auth"
+	"pgedge-postgres-mcp/internal/config"
 	"pgedge-postgres-mcp/internal/database"
 )
 
@@ -25,13 +26,8 @@ func TestNewContextAwareProvider(t *testing.T) {
 	clientManager := database.NewClientManager()
 	// nil no longer needed
 	fallbackClient := database.NewClient()
-	serverInfo := ServerInfo{
-		Name:    "Test Server",
-		Company: "Test Co",
-		Version: "1.0.0",
-	}
 
-	provider := NewContextAwareProvider(clientManager, nil, true, fallbackClient, serverInfo, nil, nil, nil, "", nil)
+	provider := NewContextAwareProvider(clientManager, nil, true, fallbackClient, nil, nil, nil, "", nil)
 
 	if provider == nil {
 		t.Fatal("Expected non-nil provider")
@@ -48,10 +44,6 @@ func TestNewContextAwareProvider(t *testing.T) {
 	if provider.authEnabled != true {
 		t.Error("Expected authEnabled to be true")
 	}
-
-	if provider.serverInfo.Name != "Test Server" {
-		t.Error("Expected serverInfo to be set correctly")
-	}
 }
 
 // TestContextAwareProvider_List tests tool listing with smart filtering
@@ -60,13 +52,8 @@ func TestContextAwareProvider_List(t *testing.T) {
 	defer clientManager.CloseAll()
 
 	fallbackClient := database.NewClient()
-	serverInfo := ServerInfo{
-		Name:    "Test Server",
-		Company: "Test Co",
-		Version: "1.0.0",
-	}
 
-	provider := NewContextAwareProvider(clientManager, nil, false, fallbackClient, serverInfo, nil, nil, nil, "", nil)
+	provider := NewContextAwareProvider(clientManager, nil, false, fallbackClient, nil, nil, nil, "", nil)
 
 	// Register tools
 	err := provider.RegisterTools(context.TODO())
@@ -78,9 +65,8 @@ func TestContextAwareProvider_List(t *testing.T) {
 		// List tools without connection
 		tools := provider.List()
 
-		// Should have only 4 stateless tools
+		// Should have only 3 stateless tools
 		expectedTools := []string{
-			"server_info",
 			"manage_connections",
 			"read_resource",
 			"generate_embedding",
@@ -125,12 +111,10 @@ func TestContextAwareProvider_List(t *testing.T) {
 		// List tools with connection
 		tools := provider.List()
 
-		// Should have all 9 tools
+		// Should have all 7 tools
 		expectedTools := []string{
 			"query_database",
 			"get_schema_info",
-			"set_pg_configuration",
-			"server_info",
 			"manage_connections",
 			"read_resource",
 			"generate_embedding",
@@ -158,26 +142,31 @@ func TestContextAwareProvider_List(t *testing.T) {
 
 // TestContextAwareProvider_Execute_NoAuth tests execution without authentication
 func TestContextAwareProvider_Execute_NoAuth(t *testing.T) {
-	// This test doesn't require database connection, testing server_info tool
+	// This test doesn't require database connection, testing manage_connections tool
 	clientManager := database.NewClientManager()
 	defer clientManager.CloseAll()
 
 	// nil no longer needed
 	fallbackClient := database.NewClient()
-	serverInfo := ServerInfo{
-		Name:    "Test Server",
-		Company: "Test Co",
-		Version: "1.0.0",
-	}
+
+	// Create minimal config for manage_connections tool
+	cfg := &config.Config{}
+	prefs := &config.Preferences{}
+
+	// Use temp file for preferences
+	tmpFile := "/tmp/test-prefs-noauth.yaml"
+	defer os.Remove(tmpFile)
 
 	// Auth disabled - should use fallback client
-	provider := NewContextAwareProvider(clientManager, nil, false, fallbackClient, serverInfo, nil, nil, nil, "", nil)
+	provider := NewContextAwareProvider(clientManager, nil, false, fallbackClient, nil, cfg, prefs, tmpFile, nil)
 
 	// Context without token hash
 	ctx := context.Background()
 
-	// Execute server_info (doesn't require database)
-	response, err := provider.Execute(ctx, "server_info", map[string]interface{}{})
+	// Execute manage_connections with list operation (doesn't require database)
+	response, err := provider.Execute(ctx, "manage_connections", map[string]interface{}{
+		"operation": "list",
+	})
 	if err != nil {
 		t.Fatalf("Execute failed: %v", err)
 	}
@@ -186,44 +175,42 @@ func TestContextAwareProvider_Execute_NoAuth(t *testing.T) {
 		t.Error("Expected successful response")
 	}
 
-	// Verify response contains server info
+	// Verify response contains connection list (may be empty)
 	if len(response.Content) == 0 {
 		t.Fatal("Expected non-empty response content")
-	}
-
-	output := response.Content[0].Text
-	if !strings.Contains(output, "Test Server") {
-		t.Error("Expected output to contain server name")
 	}
 }
 
 // TestContextAwareProvider_Execute_WithAuth tests execution with authentication
 func TestContextAwareProvider_Execute_WithAuth(t *testing.T) {
-	// Skip if no database connection available (needed for client creation)
-	if os.Getenv("TEST_PGEDGE_POSTGRES_CONNECTION_STRING") == "" {
-		t.Skip("TEST_PGEDGE_POSTGRES_CONNECTION_STRING not set, skipping database test")
-	}
-
 	clientManager := database.NewClientManager()
 	defer clientManager.CloseAll()
 
 	// nil no longer needed
 	fallbackClient := database.NewClient()
-	serverInfo := ServerInfo{
-		Name:    "Test Server",
-		Company: "Test Co",
-		Version: "1.0.0",
-	}
+
+	// Create minimal config for manage_connections tool
+	cfg := &config.Config{}
+	prefs := &config.Preferences{}
+
+	// Use temp file for preferences
+	tmpFile := "/tmp/test-prefs-withauth.yaml"
+	defer os.Remove(tmpFile)
+
+	// Create token store for auth mode
+	tokenStore := auth.InitializeTokenStore()
 
 	// Auth enabled - should require token hash
-	provider := NewContextAwareProvider(clientManager, nil, true, fallbackClient, serverInfo, nil, nil, nil, "", nil)
+	provider := NewContextAwareProvider(clientManager, nil, true, fallbackClient, tokenStore, cfg, prefs, tmpFile, nil)
 
 	t.Run("missing token hash returns error", func(t *testing.T) {
 		// Context without token hash
 		ctx := context.Background()
 
-		// Execute server_info (even though it doesn't need DB, context validation happens first)
-		_, err := provider.Execute(ctx, "server_info", map[string]interface{}{})
+		// Execute manage_connections (even though it doesn't need DB, context validation happens first)
+		_, err := provider.Execute(ctx, "manage_connections", map[string]interface{}{
+			"operation": "list",
+		})
 		if err == nil {
 			t.Fatal("Expected error for missing token hash, got nil")
 		}
@@ -234,58 +221,77 @@ func TestContextAwareProvider_Execute_WithAuth(t *testing.T) {
 	})
 
 	t.Run("with valid token hash succeeds", func(t *testing.T) {
-		// Context with token hash
-		ctx := context.WithValue(context.Background(), auth.TokenHashContextKey, "test-token-hash-123")
+		// Add a token to the store
+		tokenHash := "test-token-hash-123"
+		err := tokenStore.AddToken("test-token-id", tokenHash, "test token", nil)
+		if err != nil {
+			t.Fatalf("Failed to add token: %v", err)
+		}
 
-		// Execute server_info (doesn't require database queries)
-		response, err := provider.Execute(ctx, "server_info", map[string]interface{}{})
+		// Context with token hash
+		ctx := context.WithValue(context.Background(), auth.TokenHashContextKey, tokenHash)
+
+		// Execute manage_connections with list operation (doesn't require database queries)
+		response, err := provider.Execute(ctx, "manage_connections", map[string]interface{}{
+			"operation": "list",
+		})
 		if err != nil {
 			t.Fatalf("Execute failed: %v", err)
 		}
 
 		if response.IsError {
-			t.Error("Expected successful response")
+			if len(response.Content) > 0 {
+				t.Errorf("Expected successful response, got error: %s", response.Content[0].Text)
+			} else {
+				t.Error("Expected successful response")
+			}
 		}
 
-		// Verify response contains server info
+		// Verify response contains connection list
 		if len(response.Content) == 0 {
 			t.Fatal("Expected non-empty response content")
 		}
 
-		output := response.Content[0].Text
-		if !strings.Contains(output, "Test Server") {
-			t.Error("Expected output to contain server name")
-		}
-
-		// Note: server_info is a stateless tool, so no client should be created
+		// Note: manage_connections is a stateless tool, so no client should be created
 		if count := clientManager.GetClientCount(); count != 0 {
 			t.Errorf("Expected 0 clients for stateless tool, got %d", count)
 		}
 	})
 
 	t.Run("multiple tokens get different clients", func(t *testing.T) {
+		// Add tokens to the store
+		tokenStore.AddToken("token-id-1", "token-hash-1", "token 1", nil)
+		tokenStore.AddToken("token-id-2", "token-hash-2", "token 2", nil)
+		tokenStore.AddToken("token-id-3", "token-hash-3", "token 3", nil)
+
 		// First token
 		ctx1 := context.WithValue(context.Background(), auth.TokenHashContextKey, "token-hash-1")
-		_, err := provider.Execute(ctx1, "server_info", map[string]interface{}{})
+		_, err := provider.Execute(ctx1, "manage_connections", map[string]interface{}{
+			"operation": "list",
+		})
 		if err != nil {
 			t.Fatalf("Execute failed for token 1: %v", err)
 		}
 
 		// Second token
 		ctx2 := context.WithValue(context.Background(), auth.TokenHashContextKey, "token-hash-2")
-		_, err = provider.Execute(ctx2, "server_info", map[string]interface{}{})
+		_, err = provider.Execute(ctx2, "manage_connections", map[string]interface{}{
+			"operation": "list",
+		})
 		if err != nil {
 			t.Fatalf("Execute failed for token 2: %v", err)
 		}
 
 		// Third token
 		ctx3 := context.WithValue(context.Background(), auth.TokenHashContextKey, "token-hash-3")
-		_, err = provider.Execute(ctx3, "server_info", map[string]interface{}{})
+		_, err = provider.Execute(ctx3, "manage_connections", map[string]interface{}{
+			"operation": "list",
+		})
 		if err != nil {
 			t.Fatalf("Execute failed for token 3: %v", err)
 		}
 
-		// Note: server_info is a stateless tool, so no clients should be created
+		// Note: manage_connections is a stateless tool, so no clients should be created
 		if count := clientManager.GetClientCount(); count != 0 {
 			t.Errorf("Expected 0 clients for stateless tool, got %d", count)
 		}
@@ -299,14 +305,9 @@ func TestContextAwareProvider_Execute_InvalidTool(t *testing.T) {
 
 	// nil no longer needed
 	fallbackClient := database.NewClient()
-	serverInfo := ServerInfo{
-		Name:    "Test Server",
-		Company: "Test Co",
-		Version: "1.0.0",
-	}
 
 	// Auth disabled for simplicity
-	provider := NewContextAwareProvider(clientManager, nil, false, fallbackClient, serverInfo, nil, nil, nil, "", nil)
+	provider := NewContextAwareProvider(clientManager, nil, false, fallbackClient, nil, nil, nil, "", nil)
 
 	ctx := context.Background()
 
@@ -335,22 +336,12 @@ func TestContextAwareProvider_Execute_InvalidTool(t *testing.T) {
 
 // TestContextAwareProvider_RegisterTools_WithContext tests registering with context
 func TestContextAwareProvider_RegisterTools_WithContext(t *testing.T) {
-	// Skip if no database connection available
-	if os.Getenv("TEST_PGEDGE_POSTGRES_CONNECTION_STRING") == "" {
-		t.Skip("TEST_PGEDGE_POSTGRES_CONNECTION_STRING not set, skipping database test")
-	}
-
 	clientManager := database.NewClientManager()
 	defer clientManager.CloseAll()
 
 	fallbackClient := database.NewClient()
-	serverInfo := ServerInfo{
-		Name:    "Test Server",
-		Company: "Test Co",
-		Version: "1.0.0",
-	}
 
-	provider := NewContextAwareProvider(clientManager, nil, true, fallbackClient, serverInfo, nil, nil, nil, "", nil)
+	provider := NewContextAwareProvider(clientManager, nil, true, fallbackClient, nil, nil, nil, "", nil)
 
 	// Register with context containing token hash
 	ctx := context.WithValue(context.Background(), auth.TokenHashContextKey, "registration-token")
