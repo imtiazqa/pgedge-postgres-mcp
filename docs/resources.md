@@ -1,8 +1,8 @@
 # MCP Resources
 
-Resources provide read-only access to PostgreSQL system information and statistics. All resources are accessed via the `read_resource` tool or through MCP protocol resource methods.
+Resources provide read-only access to PostgreSQL system information. Resources are accessed via the `read_resource` tool or through MCP protocol resource methods.
 
-## System Information Resources
+## Available Resources
 
 ### pg://system_info
 
@@ -41,82 +41,58 @@ Returns PostgreSQL version, operating system, and build architecture information
 - Audit server build information
 - Troubleshoot compatibility issues
 
-## Statistics Resources
+### pg://database/schema
 
-All statistics resources are compatible with PostgreSQL 14 and later. They provide real-time monitoring data from PostgreSQL's `pg_stat_*` system views.
+Returns a lightweight overview of all tables in the database. This resource provides quick discovery of what tables exist without the detailed column information from the `get_schema_info` tool.
 
-### pg://stat/activity
+**Access**: Read the resource to view database table listing.
 
-Shows information about currently executing queries and connections. Essential for monitoring active database sessions and identifying long-running queries.
-
-**Output**: JSON with current database activity:
+**Output**: JSON object with table information:
 
 ```json
 {
-  "activity_count": 5,
-  "activities": [
+  "tables": [
     {
-      "datname": "mydb",
-      "pid": 12345,
-      "usename": "myuser",
-      "application_name": "psql",
-      "client_addr": "127.0.0.1",
-      "backend_start": "2024-10-30T10:00:00",
-      "state": "active",
-      "query": "SELECT * FROM users"
+      "schema": "public",
+      "table": "users",
+      "owner": "postgres"
+    },
+    {
+      "schema": "public",
+      "table": "products",
+      "owner": "postgres"
+    },
+    {
+      "schema": "analytics",
+      "table": "events",
+      "owner": "analytics_user"
     }
   ],
-  "description": "Current database activity showing all non-idle connections and their queries."
+  "count": 3
 }
 ```
 
-**Use Cases:**
+**Fields:**
 
-- Monitor currently executing queries
-- Identify long-running queries
-- Track connection counts
-- Troubleshoot performance issues
+- `tables`: Array of table information objects
+  - `schema`: Schema name containing the table
+  - `table`: Table name
+  - `owner`: Table owner (role)
+- `count`: Total number of tables returned
 
-### pg://stat/replication
-
-Shows the status of replication connections from this primary server including WAL sender processes, replication lag, and sync state. Empty if the server is not a replication primary or has no active replicas.
-
-**Output**: JSON with replication status:
-
-```json
-{
-  "replica_count": 2,
-  "replicas": [
-    {
-      "pid": 12345,
-      "usename": "replicator",
-      "application_name": "walreceiver",
-      "client_addr": "192.168.1.100",
-      "client_hostname": "replica1",
-      "client_port": 5432,
-      "backend_start": "2024-10-30T10:00:00",
-      "state": "streaming",
-      "sync_state": "async",
-      "replay_lag": "00:00:02"
-    }
-  ],
-  "status": "Primary server with 2 active replica(s)",
-  "description": "Replication status for all connected standby servers. Monitor replay_lag to detect replication delays."
-}
-```
-
-**Key Fields:**
-
-- `state`: Replication state (startup, catchup, streaming, backup, stopping)
-- `sync_state`: Synchronization state (sync, async, quorum, potential)
-- `replay_lag`: Time delay between primary and replica
+**Note**: System catalogs (`pg_catalog`, `information_schema`) are excluded from the listing.
 
 **Use Cases:**
 
-- Monitor replication health
-- Identify replication lag issues
-- Verify replica connections
-- Track synchronous vs asynchronous replicas
+- Quick discovery of what tables exist in the database
+- Get an overview of table organization by schema
+- Identify table ownership for permission management
+- Use as a starting point before calling `get_schema_info` for detailed column information
+
+**When to Use Resource vs Tool:**
+
+- **Use this resource** (`pg://database/schema`) when you need a quick overview of table names
+- **Use the tool** (`get_schema_info`) when you need detailed column information, data types, constraints, and descriptions
 
 ## Accessing Resources
 
@@ -141,7 +117,12 @@ Or list all resources:
 
 Simply ask Claude to read a resource:
 
+**System Information:**
 - "Show me the output from pg://system_info"
-- "Read the pg://settings resource"
 - "What's the current PostgreSQL version?" (uses pg://system_info)
-- "Show me current database activity" (uses pg://stat/activity)
+- "What version of PostgreSQL is running?" (uses pg://system_info)
+
+**Database Schema:**
+- "Show me the output from pg://database/schema"
+- "What tables are in the database?" (uses pg://database/schema)
+- "List all tables" (uses pg://database/schema)

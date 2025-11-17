@@ -411,7 +411,7 @@ func (c *Client) processQuery(ctx context.Context, query string) error {
 			toolResults := []ToolResult{}
 			for _, toolUse := range toolUses {
 				close(thinkingDone)
-				c.ui.PrintToolExecution(toolUse.Name)
+				c.ui.PrintToolExecution(toolUse.Name, toolUse.Input)
 				thinkingDone = make(chan struct{})
 				go c.ui.ShowThinking(ctx, thinkingDone)
 

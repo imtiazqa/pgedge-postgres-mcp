@@ -45,12 +45,6 @@ func TestReadResourceTool(t *testing.T) {
 					Description: "Returns version and system info",
 					MimeType:    "application/json",
 				},
-				{
-					URI:         "pg://stat/activity",
-					Name:        "PostgreSQL Activity Statistics",
-					Description: "Shows current database activity",
-					MimeType:    "application/json",
-				},
 			},
 		}
 
@@ -79,12 +73,6 @@ func TestReadResourceTool(t *testing.T) {
 		}
 		if !strings.Contains(content, "PostgreSQL System Information") {
 			t.Error("Expected system info resource name")
-		}
-		if !strings.Contains(content, "pg://stat/activity") {
-			t.Error("Expected 'pg://stat/activity' URI")
-		}
-		if !strings.Contains(content, "PostgreSQL Activity Statistics") {
-			t.Error("Expected activity resource name")
 		}
 	})
 
@@ -258,7 +246,7 @@ func TestReadResourceTool(t *testing.T) {
 
 		tool := ReadResourceTool(mockReader)
 		response, err := tool.Handler(map[string]interface{}{
-			"uri":  "pg://stat/activity",
+			"uri":  "pg://system_info",
 			"list": false,
 		})
 

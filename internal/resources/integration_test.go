@@ -48,13 +48,8 @@ func TestAllResources_Integration(t *testing.T) {
 			requiresData: false,
 		},
 		{
-			name:         "pg://stat/activity",
-			resource:     PGStatActivityResource(client),
-			requiresData: false,
-		},
-		{
-			name:         "pg://stat/replication",
-			resource:     PGStatReplicationResource(client),
+			name:         "pg://database/schema",
+			resource:     PGDatabaseSchemaResource(client),
 			requiresData: false,
 		},
 	}

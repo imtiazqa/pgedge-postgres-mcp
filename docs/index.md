@@ -8,7 +8,7 @@ A Model Context Protocol (MCP) server written in Go that enables natural languag
 
 - **[Configuration Guide](configuration.md)** - Setup and configuration
 - **[Tools Reference](tools.md)** - All 6 MCP tools
-- **[Resources Reference](resources.md)** - All 3 MCP resources
+- **[Resources Reference](resources.md)** - All MCP resources
 - **[Query Examples](examples.md)** - Usage examples
 - **[Deployment Guide](deployment.md)** - HTTP/HTTPS deployment
 - **[Troubleshooting](troubleshooting.md)** - Common issues and solutions
@@ -18,7 +18,7 @@ A Model Context Protocol (MCP) server written in Go that enables natural languag
 - ✨ **Natural Language to SQL** - Convert plain English questions into SQL queries
 - 🔒 **Read-Only Protection** - All queries execute in read-only transactions
 - 🤖 **Multiple LLM Support** - Anthropic Claude, OpenAI (GPT-4o, GPT-5), or Ollama (local/free)
-- 📊 **3 Resources** - PostgreSQL statistics (pg_stat_*, pg://system_info)
+- 📊 **2 Resources** - PostgreSQL system information and database schema overview
 - 🛠️ **6 Tools** - Query execution, schema analysis, semantic search, embedding generation, resource reading
 - 🌐 **HTTP/HTTPS Mode** - Direct API access with token authentication
 - 🔐 **Secure** - TLS support, token authentication, read-only enforcement
@@ -81,7 +81,7 @@ Complete configuration reference covering config files, environment variables, c
 Reference for all 6 MCP tools including `query_database`, `get_schema_info`, `semantic_search`, `search_similar`, `generate_embedding`, and `read_resource`.
 
 #### [Resources Documentation](resources.md)
-Reference for all 3 MCP resources providing access to PostgreSQL statistics and system information.
+Reference for MCP resources providing access to PostgreSQL system information and database schema overview.
 
 #### [Query Examples](examples.md)
 Comprehensive collection of example queries covering schema discovery, data analysis, system monitoring, and multi-database operations.

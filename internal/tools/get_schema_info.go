@@ -23,7 +23,7 @@ func GetSchemaInfoTool(dbClient *database.Client) Tool {
 	return Tool{
 		Definition: mcp.Tool{
 			Name:        "get_schema_info",
-			Description: "Get detailed schema information about the database, including all tables, views, columns, data types, and descriptions from pg_description. Useful for understanding the database structure before querying.",
+			Description: "PRIMARY TOOL for discovering database tables and schema information. Lists all tables, views, columns, data types, constraints (primary/foreign keys), and descriptions from pg_description. ALWAYS use this tool first when you need to know what tables exist in the database. Optional parameters: schema_name to filter by schema, vector_tables_only=true to reduce output for semantic search workflows.",
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]interface{}{

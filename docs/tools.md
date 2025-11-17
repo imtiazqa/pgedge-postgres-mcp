@@ -66,7 +66,7 @@ Results (15 rows):
 
 ### get_schema_info
 
-Retrieves database schema information including tables, views, columns, data types, and comments from pg_description.
+**PRIMARY TOOL for discovering database tables and schema information.** Retrieves detailed database schema information including tables, views, columns, data types, constraints (primary/foreign keys), and comments from pg_description. **ALWAYS use this tool first when you need to know what tables exist in the database.**
 
 **Input** (optional):
 ```json
@@ -489,8 +489,7 @@ Read a specific resource:
 **Available Resource URIs**:
 
 - `pg://system_info` - PostgreSQL version, OS, and build architecture
-- `pg://stat/activity` - Current connections and queries
-- `pg://stat/replication` - Replication status
+- `pg://database/schema` - Lightweight overview of all database tables (names and owners)
 
-See [Resources](resources.md) for detailed information about each resource.
+See [Resources](resources.md) for detailed information.
 

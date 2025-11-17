@@ -14,10 +14,8 @@ package resources
 // These constants define the URIs for all available MCP resources
 const (
 	// System Information Resources
-	URISettings   = "pg://settings"
 	URISystemInfo = "pg://system_info"
 
-	// Statistics Resources
-	URIStatActivity    = "pg://stat/activity"
-	URIStatReplication = "pg://stat/replication"
+	// Database Schema Resources
+	URIDatabaseSchema = "pg://database/schema"
 )

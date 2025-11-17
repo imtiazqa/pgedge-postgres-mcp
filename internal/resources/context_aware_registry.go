@@ -45,15 +45,9 @@ func (r *ContextAwareRegistry) List() []mcp.Resource {
 			MimeType:    "application/json",
 		},
 		{
-			URI:         URIStatActivity,
-			Name:        "PostgreSQL Current Activity",
-			Description: "Shows information about currently executing queries and connections. Useful for monitoring active sessions, identifying long-running queries, and understanding current database load. Each row represents one server process with details about its current activity.",
-			MimeType:    "application/json",
-		},
-		{
-			URI:         URIStatReplication,
-			Name:        "PostgreSQL Replication Status",
-			Description: "Shows the status of replication connections from this primary server including WAL sender processes, replication lag, and sync state. Empty if the server is not a replication primary or has no active replicas. Critical for monitoring replication health and identifying lag issues.",
+			URI:         URIDatabaseSchema,
+			Name:        "PostgreSQL Database Schema",
+			Description: "Returns a lightweight overview of all tables in the database. Lists schema names, table names, and table owners. Use get_schema_info tool for detailed column information.",
 			MimeType:    "application/json",
 		},
 	}
@@ -69,7 +63,7 @@ func (r *ContextAwareRegistry) Read(ctx context.Context, uri string) (mcp.Resour
 			Contents: []mcp.ContentItem{
 				{
 					Type: "text",
-					Text: fmt.Sprintf("Failed to get database client: %v\nPlease call set_database_connection first to configure the database connection.", err),
+					Text: fmt.Sprintf("Error: %v", err),
 				},
 			},
 		}, nil
@@ -80,10 +74,8 @@ func (r *ContextAwareRegistry) Read(ctx context.Context, uri string) (mcp.Resour
 	switch uri {
 	case URISystemInfo:
 		resource = PGSystemInfoResource(dbClient)
-	case URIStatActivity:
-		resource = PGStatActivityResource(dbClient)
-	case URIStatReplication:
-		resource = PGStatReplicationResource(dbClient)
+	case URIDatabaseSchema:
+		resource = PGDatabaseSchemaResource(dbClient)
 	default:
 		return mcp.ResourceContent{
 			URI: uri,

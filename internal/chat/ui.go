@@ -99,8 +99,17 @@ func (ui *UI) PrintError(text string) {
 }
 
 // PrintToolExecution prints a tool execution message on the same line as the thinking animation
-func (ui *UI) PrintToolExecution(toolName string) {
-	fmt.Print(ui.colorize(ColorMagenta, fmt.Sprintf(" → Executing tool: %s\n", toolName)))
+func (ui *UI) PrintToolExecution(toolName string, params map[string]interface{}) {
+	message := fmt.Sprintf(" → Executing tool: %s", toolName)
+
+	// For read_resource, show the URI being accessed
+	if toolName == "read_resource" {
+		if uri, ok := params["uri"].(string); ok && uri != "" {
+			message = fmt.Sprintf(" → Executing tool: %s (%s)", toolName, uri)
+		}
+	}
+
+	fmt.Print(ui.colorize(ColorMagenta, message + "\n"))
 }
 
 // PrintSeparator prints a separator line

@@ -25,13 +25,13 @@ func ReadResourceTool(resourceProvider ResourceReader) Tool {
 	return Tool{
 		Definition: mcp.Tool{
 			Name:        "read_resource",
-			Description: "Read the contents of an MCP resource by its URI. Resources provide read-only access to PostgreSQL system information and statistics. Available resources include: System Info (pg://system_info), Settings (pg://settings), Activity (pg://stat/activity), and Replication (pg://stat/replication). Use list=true to see all resources with full descriptions.",
+			Description: "Read the contents of an MCP resource by its URI. Resources provide read-only access to PostgreSQL system information. Available resource: System Info (pg://system_info). Use list=true to see all resources with full descriptions.",
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]interface{}{
 					"uri": map[string]interface{}{
 						"type":        "string",
-						"description": "The URI of the resource to read. Examples: 'pg://system_info', 'pg://settings', 'pg://stat/activity', 'pg://stat/replication'",
+						"description": "The URI of the resource to read. Example: 'pg://system_info'",
 					},
 					"list": map[string]interface{}{
 						"type":        "boolean",

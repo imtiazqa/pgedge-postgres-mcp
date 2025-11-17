@@ -178,7 +178,7 @@ func TestUI_PrintToolExecution(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	ui.PrintToolExecution("test_tool")
+	ui.PrintToolExecution("test_tool", map[string]interface{}{})
 
 	w.Close()
 	os.Stdout = old
@@ -194,6 +194,39 @@ func TestUI_PrintToolExecution(t *testing.T) {
 
 	if !strings.Contains(output, "test_tool") {
 		t.Error("Output should contain 'test_tool'")
+	}
+}
+
+func TestUI_PrintToolExecution_WithURI(t *testing.T) {
+	ui := NewUI(true)
+
+	// Capture stdout
+	old := os.Stdout
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+
+	ui.PrintToolExecution("read_resource", map[string]interface{}{
+		"uri": "pg://database/schema",
+	})
+
+	w.Close()
+	os.Stdout = old
+
+	var buf bytes.Buffer
+	io.Copy(&buf, r)
+	output := buf.String()
+
+	// Check for tool execution message with URI
+	if !strings.Contains(output, "Executing tool:") {
+		t.Error("Output should contain 'Executing tool:'")
+	}
+
+	if !strings.Contains(output, "read_resource") {
+		t.Error("Output should contain 'read_resource'")
+	}
+
+	if !strings.Contains(output, "pg://database/schema") {
+		t.Error("Output should contain 'pg://database/schema'")
 	}
 }
 
