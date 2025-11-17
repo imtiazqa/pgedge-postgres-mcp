@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -26,8 +27,9 @@ import (
 
 // Message represents a chat message
 type Message struct {
-	Role    string      `json:"role"`
-	Content interface{} `json:"content"`
+	Role         string                 `json:"role"`
+	Content      interface{}            `json:"content"`
+	CacheControl map[string]interface{} `json:"cache_control,omitempty"`
 }
 
 // ToolUse represents a tool invocation in a message
@@ -90,11 +92,14 @@ type anthropicRequest struct {
 	Messages    []Message                `json:"messages"`
 	Tools       []map[string]interface{} `json:"tools,omitempty"`
 	Temperature float64                  `json:"temperature,omitempty"`
+	System      []map[string]interface{} `json:"system,omitempty"` // Support for system messages with caching
 }
 
 type anthropicUsage struct {
-	InputTokens  int `json:"input_tokens"`
-	OutputTokens int `json:"output_tokens"`
+	InputTokens            int `json:"input_tokens"`
+	OutputTokens           int `json:"output_tokens"`
+	CacheCreationInputTokens int `json:"cache_creation_input_tokens,omitempty"`
+	CacheReadInputTokens     int `json:"cache_read_input_tokens,omitempty"`
 }
 
 type anthropicResponse struct {
@@ -132,14 +137,24 @@ func (c *anthropicClient) Chat(ctx context.Context, messages []Message, tools []
 
 	embedding.LogLLMCallDetails("anthropic", c.model, operation, url, len(messages))
 
-	// Convert MCP tools to Anthropic format
+	// Convert MCP tools to Anthropic format with caching
 	anthropicTools := make([]map[string]interface{}, 0, len(tools))
-	for _, tool := range tools {
-		anthropicTools = append(anthropicTools, map[string]interface{}{
+	for i, tool := range tools {
+		toolDef := map[string]interface{}{
 			"name":         tool.Name,
 			"description":  tool.Description,
 			"input_schema": tool.InputSchema,
-		})
+		}
+
+		// Add cache_control to the last tool definition to cache all tools
+		// This caches the entire tools array (must be on the last item)
+		if i == len(tools)-1 {
+			toolDef["cache_control"] = map[string]interface{}{
+				"type": "ephemeral",
+			}
+		}
+
+		anthropicTools = append(anthropicTools, toolDef)
 	}
 
 	req := anthropicRequest{
@@ -165,6 +180,7 @@ func (c *anthropicClient) Chat(ctx context.Context, messages []Message, tools []
 	httpReq.Header.Set("Content-Type", "application/json")
 	httpReq.Header.Set("x-api-key", c.apiKey)
 	httpReq.Header.Set("anthropic-version", "2023-06-01")
+	httpReq.Header.Set("anthropic-beta", "prompt-caching-2024-07-31")
 
 	resp, err := c.client.Do(httpReq)
 	if err != nil {
@@ -247,6 +263,20 @@ func (c *anthropicClient) Chat(ctx context.Context, messages []Message, tools []
 	duration := time.Since(startTime)
 	embedding.LogLLMResponseTrace("anthropic", c.model, operation, resp.StatusCode, anthropicResp.StopReason)
 	embedding.LogLLMCall("anthropic", c.model, operation, anthropicResp.Usage.InputTokens, anthropicResp.Usage.OutputTokens, duration, nil)
+
+	// Log cache usage if present
+	if anthropicResp.Usage.CacheCreationInputTokens > 0 || anthropicResp.Usage.CacheReadInputTokens > 0 {
+		totalInput := anthropicResp.Usage.InputTokens + anthropicResp.Usage.CacheReadInputTokens
+		savePercent := 0.0
+		if totalInput > 0 {
+			savePercent = float64(anthropicResp.Usage.CacheReadInputTokens) / float64(totalInput) * 100
+		}
+		fmt.Fprintf(os.Stderr, "[LLM] [INFO] Prompt Cache - Created: %d tokens, Read: %d tokens (saved ~%.0f%% on input)\n",
+			anthropicResp.Usage.CacheCreationInputTokens,
+			anthropicResp.Usage.CacheReadInputTokens,
+			savePercent,
+		)
+	}
 
 	return LLMResponse{
 		Content:    content,

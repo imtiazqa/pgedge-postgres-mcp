@@ -57,8 +57,7 @@ func (p *ContextAwareProvider) registerStatelessTools(registry *Registry) {
 func (p *ContextAwareProvider) registerDatabaseTools(registry *Registry, client *database.Client) {
 	registry.Register("query_database", QueryDatabaseTool(client))
 	registry.Register("get_schema_info", GetSchemaInfoTool(client))
-	registry.Register("semantic_search", SemanticSearchTool(client, p.cfg))
-	registry.Register("search_similar", SearchSimilarTool(client, p.cfg))
+	registry.Register("similarity_search", SimilaritySearchTool(client, p.cfg))
 }
 
 // NewContextAwareProvider creates a new context-aware tool provider

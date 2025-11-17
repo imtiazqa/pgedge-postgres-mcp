@@ -7,8 +7,8 @@ A Model Context Protocol (MCP) server written in Go that enables natural languag
 ## Quick Links
 
 - **[Configuration Guide](configuration.md)** - Setup and configuration
-- **[Tools Reference](tools.md)** - All 6 MCP tools
-- **[Resources Reference](resources.md)** - All MCP resources
+- **[Tools Reference](tools.md)** - All 5 MCP tools
+- **[Resources Reference](resources.md)** - All 3 MCP resources
 - **[Query Examples](examples.md)** - Usage examples
 - **[Deployment Guide](deployment.md)** - HTTP/HTTPS deployment
 - **[Troubleshooting](troubleshooting.md)** - Common issues and solutions
@@ -18,8 +18,8 @@ A Model Context Protocol (MCP) server written in Go that enables natural languag
 - ✨ **Natural Language to SQL** - Convert plain English questions into SQL queries
 - 🔒 **Read-Only Protection** - All queries execute in read-only transactions
 - 🤖 **Multiple LLM Support** - Anthropic Claude, OpenAI (GPT-4o, GPT-5), or Ollama (local/free)
-- 📊 **2 Resources** - PostgreSQL system information and database schema overview
-- 🛠️ **6 Tools** - Query execution, schema analysis, semantic search, embedding generation, resource reading
+- 📊 **3 Resources** - PostgreSQL statistics (pg_stat_*, pg://system_info)
+- 🛠️ **5 Tools** - Query execution, schema analysis, advanced hybrid search, embedding generation, resource reading
 - 🌐 **HTTP/HTTPS Mode** - Direct API access with token authentication
 - 🔐 **Secure** - TLS support, token authentication, read-only enforcement
 
@@ -78,7 +78,7 @@ For detailed setup instructions, see **[Configuration Guide](configuration.md)**
 Complete configuration reference covering config files, environment variables, command-line flags, and Claude Desktop setup for Anthropic, OpenAI, and Ollama providers.
 
 #### [Tools Documentation](tools.md)
-Reference for all 6 MCP tools including `query_database`, `get_schema_info`, `semantic_search`, `search_similar`, `generate_embedding`, and `read_resource`.
+Reference for all 5 MCP tools including `query_database`, `get_schema_info`, `similarity_search`, `generate_embedding`, and `read_resource`.
 
 #### [Resources Documentation](resources.md)
 Reference for MCP resources providing access to PostgreSQL system information and database schema overview.

@@ -308,6 +308,17 @@ func setStringFromEnv(dest *string, key string) {
 	}
 }
 
+// setStringFromEnvWithFallback sets a string config value from an environment variable,
+// checking multiple environment variable names in priority order
+func setStringFromEnvWithFallback(dest *string, keys ...string) {
+	for _, key := range keys {
+		if val := os.Getenv(key); val != "" {
+			*dest = val
+			return
+		}
+	}
+}
+
 // setBoolFromEnv sets a boolean config value from an environment variable if it exists
 // Accepts "true", "1", or "yes" as true values
 func setBoolFromEnv(dest *bool, key string) {
@@ -376,8 +387,9 @@ func applyEnvironmentVariables(cfg *Config) {
 	setBoolFromEnv(&cfg.Embedding.Enabled, "PGEDGE_EMBEDDING_ENABLED")
 	setStringFromEnv(&cfg.Embedding.Provider, "PGEDGE_EMBEDDING_PROVIDER")
 	setStringFromEnv(&cfg.Embedding.Model, "PGEDGE_EMBEDDING_MODEL")
-	setStringFromEnv(&cfg.Embedding.AnthropicAPIKey, "PGEDGE_ANTHROPIC_API_KEY")
-	setStringFromEnv(&cfg.Embedding.OpenAIAPIKey, "PGEDGE_OPENAI_API_KEY")
+	// Support both PGEDGE_-prefixed and standard environment variable names for API keys
+	setStringFromEnvWithFallback(&cfg.Embedding.AnthropicAPIKey, "PGEDGE_ANTHROPIC_API_KEY", "ANTHROPIC_API_KEY")
+	setStringFromEnvWithFallback(&cfg.Embedding.OpenAIAPIKey, "PGEDGE_OPENAI_API_KEY", "OPENAI_API_KEY")
 	setStringFromEnv(&cfg.Embedding.OllamaURL, "PGEDGE_OLLAMA_URL")
 
 	// Secret file

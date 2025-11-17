@@ -68,14 +68,13 @@ func TestContextAwareProvider_List(t *testing.T) {
 		// List tools - should return all tools
 		tools := provider.List()
 
-		// Should have all 6 tools (no filtering)
+		// Should have all 5 tools (no filtering)
 		expectedTools := []string{
 			"read_resource",
 			"generate_embedding",
 			"query_database",
 			"get_schema_info",
-			"semantic_search",
-			"search_similar",
+			"similarity_search",
 		}
 
 		if len(tools) != len(expectedTools) {

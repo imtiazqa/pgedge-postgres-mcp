@@ -348,20 +348,18 @@ func testListTools(t *testing.T, server *MCPServer) {
 		t.Fatal("tools array not found in result")
 	}
 
-	// With database connected at startup, all 6 tools should be available
-	// (manage_connections removed, so 6 instead of 7)
-	if len(tools) != 6 {
-		t.Errorf("Expected exactly 6 tools with database connection, got %d", len(tools))
+	// With database connected at startup, all 5 tools should be available
+	if len(tools) != 5 {
+		t.Errorf("Expected exactly 5 tools with database connection, got %d", len(tools))
 	}
 
 	// Verify expected tools exist
 	expectedTools := map[string]bool{
 		"query_database":     false,
 		"get_schema_info":    false,
+		"similarity_search":  false,
 		"read_resource":      false,
 		"generate_embedding": false,
-		"semantic_search":    false,
-		"search_similar":     false,
 	}
 
 	for _, tool := range tools {

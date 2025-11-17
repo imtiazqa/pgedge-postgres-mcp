@@ -70,8 +70,8 @@ func LoadConfig(configPath string) (*Config, error) {
 		LLM: LLMConfig{
 			Provider:        getEnvOrDefault("PGEDGE_LLM_PROVIDER", "anthropic"),
 			Model:           getEnvOrDefault("PGEDGE_LLM_MODEL", "claude-sonnet-4-20250514"),
-			AnthropicAPIKey: os.Getenv("PGEDGE_ANTHROPIC_API_KEY"),
-			OpenAIAPIKey:    os.Getenv("PGEDGE_OPENAI_API_KEY"),
+			AnthropicAPIKey: getEnvWithFallback("PGEDGE_ANTHROPIC_API_KEY", "ANTHROPIC_API_KEY"),
+			OpenAIAPIKey:    getEnvWithFallback("PGEDGE_OPENAI_API_KEY", "OPENAI_API_KEY"),
 			OllamaURL:       getEnvOrDefault("PGEDGE_OLLAMA_URL", "http://localhost:11434"),
 			MaxTokens:       4096,
 			Temperature:     0.7,
@@ -198,4 +198,14 @@ func getEnvOrDefault(key, defaultValue string) string {
 		return value
 	}
 	return defaultValue
+}
+
+// getEnvWithFallback checks multiple environment variable names in priority order
+func getEnvWithFallback(keys ...string) string {
+	for _, key := range keys {
+		if value := os.Getenv(key); value != "" {
+			return value
+		}
+	}
+	return ""
 }

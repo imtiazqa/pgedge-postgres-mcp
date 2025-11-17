@@ -1,13 +1,13 @@
 # MCP Tools
 
-The pgEdge MCP Server provides six tools that enable SQL database interaction, semantic search, embedding generation, and resource reading.
+The pgEdge MCP Server provides five tools that enable SQL database interaction, advanced semantic search, embedding generation, and resource reading.
 
 ## Smart Tool Filtering
 
 The server uses **smart tool filtering** to optimize token usage and improve user experience:
 
 - **Without database connection**: Only 2 stateless tools are shown (`read_resource`, `generate_embedding`)
-- **With database connection**: All 6 tools are available (adds `query_database`, `get_schema_info`, `semantic_search`, `search_similar`)
+- **With database connection**: All 5 tools are available (adds `query_database`, `get_schema_info`, `similarity_search`)
 
 This dynamic tool list reduces token usage when no database is connected, helping you stay within API rate limits.
 
@@ -75,15 +75,6 @@ Results (15 rows):
 }
 ```
 
-**For semantic search** (dramatically reduces output):
-```json
-{
-  "vector_tables_only": true
-}
-```
-
-This filters to only show tables with vector columns, reducing token usage by showing only relevant tables for semantic search operations.
-
 **Output**:
 ```
 Database Schema Information:
@@ -100,259 +91,132 @@ public.users (TABLE)
     ...
 ```
 
-### search_similar
+### similarity_search
 
-**RECOMMENDED**: Simplified semantic search tool that automatically discovers vector tables and generates embeddings - just provide your search text!
+**Advanced hybrid search** combining vector similarity with BM25 lexical matching and MMR diversity filtering. This tool is ideal for searching through large documents like Wikipedia articles without requiring users to pre-chunk their data.
 
-This is the easiest way to perform semantic search. It automatically:
+**How It Works**:
 
-- Discovers tables with vector columns from database metadata
-- Generates embeddings from your natural language query
-- Executes the semantic search and returns results
-
-**Parameters**:
-
-- `text_query` (required): Natural language search query
-- `top_k` (optional): Number of results to return (default: 3)
-
-**Example**:
-
-```json
-{
-    "text_query": "What is PostgreSQL?",
-    "top_k": 5
-}
-```
-
-**Response**:
-
-```
-Auto-discovered vector table: public.wikipedia_articles (column: embedding, dimensions: 768)
-
-Semantic Search Results:
-Table: public.wikipedia_articles
-Vector Column: embedding (dimensions: 768)
-Distance Metric: Cosine Distance
-Top K: 5
-
-Results (5 rows):
-[
-    {
-        "id": 123,
-        "title": "PostgreSQL",
-        "content": "PostgreSQL is an open-source relational database...",
-        "distance": 0.123
-    },
-    ...
-]
-```
-
-**Requirements**:
-
-- Database connection must be established
-- Embedding generation must be enabled in server configuration
-- Database must contain at least one table with a pgvector column
-
-**Use Cases**:
-
-- Quick semantic searches without knowing table structure
-- Interactive queries where you just want to search by text
-- Chatbots and conversational interfaces
-- RAG (Retrieval Augmented Generation) systems
-
----
-
-### semantic_search
-
-**ADVANCED**: Perform semantic similarity search with explicit control over table, column, and search parameters.
-
-This tool enables vector similarity search using either pre-computed embedding vectors or natural language text queries.
-
-**Recommended Workflow**:
-
-1. **Discover vector columns**: Call `get_schema_info(vector_tables_only=true)` to find only tables with vector columns (dramatically reduces output)
-2. **Execute search**: Call `semantic_search` with `text_query` parameter to automatically generate embeddings and search
-
-**Key Features**:
-
-- Supports multiple distance metrics (cosine, L2/Euclidean, inner product)
-- Automatic detection and validation of pgvector columns
-- Dimension matching validation
-- Optional filtering with WHERE clause conditions
-- Returns top-K most similar results with distance scores
-- **NEW**: Automatic embedding generation from text queries using configured provider
+1. **Auto-Discovery**: Automatically detects pgvector columns in your table and corresponding text columns
+2. **Smart Weighting**: Analyzes column names, descriptions, and sample data to identify title vs content columns, weighting content more heavily (70% vs 30%)
+3. **Query Embedding**: Generates embedding from your search query using the configured provider
+4. **Vector Search**: Performs weighted semantic search across all vector columns
+5. **Intelligent Chunking**: Breaks retrieved documents into overlapping chunks (default: 100 tokens per chunk, 25 token overlap)
+6. **BM25 Re-ranking**: Scores chunks using BM25 lexical matching for precision
+7. **MMR Diversity**: Applies Maximal Marginal Relevance to avoid returning too many chunks from the same document
+8. **Token Budget**: Returns as many relevant chunks as possible within the token limit (default: 2500 tokens)
 
 **Prerequisites**:
 
-- pgvector extension installed in your PostgreSQL database
-- Table with vector column(s) containing pre-computed embeddings
-- For `query_vector`: Pre-computed embedding vector (from OpenAI, Anthropic, or other embedding models)
-- For `text_query`: Embedding generation must be enabled in server configuration
-
-**Input Examples**:
-
-Basic semantic search:
-```json
-{
-  "table_name": "documents",
-  "vector_column": "embedding",
-  "query_vector": [0.1, 0.2, 0.3, ...],
-  "top_k": 10,
-  "distance_metric": "cosine"
-}
-```
-
-With filtering:
-```json
-{
-  "table_name": "articles",
-  "vector_column": "content_embedding",
-  "query_vector": [0.1, 0.2, 0.3, ...],
-  "top_k": 5,
-  "distance_metric": "l2",
-  "filter_conditions": "category = 'technology' AND published = true"
-}
-```
-
-With text query (automatic embedding generation):
-```json
-{
-  "table_name": "documents",
-  "vector_column": "embedding",
-  "text_query": "What is vector similarity search?",
-  "top_k": 10,
-  "distance_metric": "cosine"
-}
-```
+- Database connection must be established
+- Table must have at least one pgvector column
+- Embedding generation must be enabled in server configuration
+- Corresponding text columns must exist (e.g., `title` for `title_embedding`)
 
 **Parameters**:
 
-- `table_name` (required): Name of the table containing the vector column (can include schema: 'schema.table')
-- `vector_column` (required): Name of the pgvector column to search
-- `query_vector` (required*): Pre-computed embedding vector as an array of floats (must match column dimensions)
-- `text_query` (required*): Natural language text to convert to embedding automatically
-  - **Note**: Either `query_vector` OR `text_query` must be provided, but not both
-  - Requires embedding generation to be enabled in configuration
-- `top_k` (optional, default: 10): Number of most similar results to return
-- `distance_metric` (optional, default: "cosine"): Distance metric to use
-  - `cosine`: Cosine distance (most common for embeddings)
-  - `l2` or `euclidean`: L2/Euclidean distance
-  - `inner_product` or `inner`: Inner product (negative)
-- `filter_conditions` (optional): SQL WHERE clause for filtering results
+- `table_name` (required): Table to search (can include schema: `'schema.table'`)
+- `query_text` (required): Natural language search query
+- `top_n` (optional): Number of rows from vector search (default: 10)
+- `chunk_size_tokens` (optional): Maximum tokens per chunk (default: 100)
+- `lambda` (optional): MMR diversity parameter - 0.0=max diversity, 1.0=max relevance (default: 0.6)
+- `max_output_tokens` (optional): Maximum total tokens to return (default: 2500)
+- `distance_metric` (optional): `'cosine'`, `'l2'`, or `'inner_product'` (default: `'cosine'`)
 
-**Output**:
-```
-Semantic Search Results:
-Table: documents
-Vector Column: embedding (dimensions: 1536)
-Distance Metric: Cosine Distance
-Top K: 10
-
-SQL Query:
-SELECT *, (embedding <=> '[0.1,0.2,0.3,...]'::vector) AS distance FROM public.documents ORDER BY embedding <=> '[0.1,0.2,0.3,...]'::vector LIMIT 10
-
-Results (10 rows):
-[
-  {
-    "id": 42,
-    "title": "Introduction to Vector Search",
-    "content": "...",
-    "embedding": "[0.12, 0.18, 0.31, ...]",
-    "distance": 0.123
-  },
-  {
-    "id": 87,
-    "title": "Semantic Search with pgvector",
-    "content": "...",
-    "embedding": "[0.15, 0.22, 0.29, ...]",
-    "distance": 0.156
-  },
-  ...
-]
-```
-
-**Distance Metrics**:
-
-- **Cosine Distance** (`<=>` operator):
-  - Range: 0 to 2 (0 = identical, 2 = opposite)
-  - Most commonly used for text embeddings
-  - Measures angular similarity, invariant to vector magnitude
-  - Use for: OpenAI embeddings, sentence embeddings, most NLP tasks
-
-- **L2/Euclidean Distance** (`<->` operator):
-  - Range: 0 to infinity (0 = identical)
-  - Measures absolute distance in vector space
-  - Sensitive to vector magnitude
-  - Use for: Image embeddings, when absolute distance matters
-
-- **Inner Product** (`<#>` operator):
-  - Range: negative infinity to 0 (0 = most similar)
-  - Note: pgvector returns negative inner product for ordering
-  - Use for: Normalized vectors, when you need dot product similarity
-
-**Use Cases**:
-
-- **Document Search**: Find similar documents based on content embeddings
-- **Question Answering**: Retrieve relevant context for RAG (Retrieval Augmented Generation)
-- **Recommendation Systems**: Find similar items based on embedding vectors
-- **Semantic Clustering**: Group similar items together
-- **Duplicate Detection**: Identify near-duplicate content
-
-**Example Workflows**:
-
-**Option 1: With pre-computed query vectors**:
-
-1. Generate embeddings for your documents (using OpenAI, Anthropic, etc.)
-2. Store embeddings in a pgvector column
-3. When you have a user query:
-   - Generate an embedding for the query using the same model
-   - Use `semantic_search` with the query embedding
-   - Get the most similar documents with scores
-
-**Option 2: With automatic embedding generation (RECOMMENDED)**:
-
-1. Generate embeddings for your documents using Ollama or Anthropic
-2. Store embeddings in a pgvector column
-3. Configure embedding generation in the server
-4. When you have a user query:
-   - **First**: Use `get_schema_info(vector_tables_only=true)` to discover tables with vector columns - **dramatically reduces token usage**
-   - **Then**: Use `semantic_search` with `text_query` parameter
-   - Server automatically generates the embedding and searches
-   - Get the most similar documents with scores
+**Example** - Wikipedia Search:
 
 ```json
 {
-  "table_name": "documents",
-  "vector_column": "embedding",
-  "text_query": "How do I implement RAG?",
-  "top_k": 5
+  "table_name": "wikipedia_articles",
+  "query_text": "How does PostgreSQL handle vector similarity search?",
+  "top_n": 10,
+  "chunk_size_tokens": 150,
+  "lambda": 0.6,
+  "max_output_tokens": 3000
 }
 ```
 
-**Error Handling**:
+**Example Response**:
 
-The tool performs extensive validation:
+```
+Similarity Search Results: "How does PostgreSQL handle vector similarity search?"
+================================================================================
 
-- Verifies table exists in database metadata
-- Verifies column exists in the table
-- Checks that column is a pgvector column
-- Validates query vector dimensions match column dimensions
-- Validates distance metric is supported
-- Validates top_k is greater than 0
+Configuration:
+  - Vector Search: Top 10 rows
+  - Chunking: 150 tokens per chunk, 38 token overlap
+  - Diversity: λ=0.60 (60% relevance, 40% diversity)
+  - Distance Metric: cosine
+  - Column Weights:
+      title (30.0%) [title]
+      content (70.0%) [content]
 
-**Security**: All queries are executed in read-only transactions.
+Result 1/5
+Source: wikipedia_articles.content (vector search rank: #1, chunk: 1)
+Relevance Score: 8.452
+Tokens: ~145
+
+PostgreSQL supports vector similarity search through the pgvector extension.
+This extension adds a new data type called 'vector' that can store embedding
+vectors of any dimension. The extension provides three distance operators:
+<=> for cosine distance, <-> for L2 (Euclidean) distance, and <#> for inner
+product (negative). To perform similarity search, you first generate embeddings
+for your documents using a model like OpenAI's text-embedding-ada-002...
+
+--------------------------------------------------------------------------------
+
+Result 2/5
+Source: wikipedia_articles.content (vector search rank: #2, chunk: 2)
+Relevance Score: 7.921
+Tokens: ~138
+
+...indexes can dramatically improve query performance. pgvector supports two
+index types: IVFFlat and HNSW. IVFFlat uses inverted file indexes with product
+quantization, which divides the vector space into lists and searches only the
+nearest lists. HNSW (Hierarchical Navigable Small World) creates a multi-layer
+graph structure that enables fast approximate nearest neighbor search...
+
+--------------------------------------------------------------------------------
+
+Total: 5 chunks, ~687 tokens
+```
+
+**Key Features**:
+
+- **No Pre-Chunking Required**: Users don't need to chunk their data in advance - the tool handles it at query time
+- **Smart Column Detection**: Automatically identifies title vs content columns and weights them appropriately
+- **Hybrid Search**: Combines semantic (vector) and lexical (BM25) matching for better results
+- **Diversity Filtering**: Prevents returning redundant chunks from the same document
+- **Token-Aware**: Respects token limits to avoid API rate limit issues
+
+**Use Cases**:
+
+- **Knowledge Base Search**: Find relevant documentation chunks for RAG systems
+- **Wikipedia/Encyclopedia Search**: Search through large articles efficiently
+- **Customer Support**: Search through support articles and FAQs
+- **Research**: Find relevant sections in academic papers or reports
+- **Code Search**: Find relevant code snippets (if using code embeddings)
+
+**Comparison with Old Tools**:
+
+Unlike the previous `semantic_search` and `search_similar` tools, this new implementation:
+
+- Automatically chunks large documents at query time
+- Uses BM25 for improved lexical matching
+- Applies MMR diversity to avoid redundancy
+- Intelligently weights title vs content columns
+- Manages token budgets automatically
+- Works with any table structure (no pre-chunking required)
 
 **Performance Tips**:
 
-- Create an index on your vector column for faster searches:
+- Create indexes on vector columns for faster search:
   ```sql
-  CREATE INDEX ON documents USING ivfflat (embedding vector_cosine_ops);
-  -- or for L2 distance:
-  CREATE INDEX ON documents USING ivfflat (embedding vector_l2_ops);
+  CREATE INDEX ON wikipedia_articles USING ivfflat (content_embedding vector_cosine_ops);
   ```
-- Use appropriate `top_k` values (10-50 is usually sufficient)
-- Apply `filter_conditions` to reduce the search space
-- For very large datasets, consider using HNSW index instead of IVFFlat
+- Adjust `top_n` based on your use case (more rows = better recall but slower)
+- Use higher `lambda` (0.7-0.8) for focused queries, lower (0.4-0.5) for exploratory search
+- Adjust `chunk_size_tokens` based on your documents (smaller chunks for dense content)
 
 ### generate_embedding
 
@@ -432,20 +296,15 @@ Ollama (Local):
 - `mxbai-embed-large`: 1024 dimensions
 - `all-minilm`: 384 dimensions
 
-**Example Workflow**:
+**Example Usage**:
 
+```json
+{
+  "text": "What is vector similarity search?"
+}
 ```
-1. Generate embedding from query text:
-   generate_embedding(text="What is vector similarity search?")
 
-2. Use the returned embedding with semantic_search:
-   semantic_search(
-     table_name="documents",
-     vector_column="embedding",
-     query_vector=[0.023, -0.145, 0.089, ...],
-     top_k=10
-   )
-```
+Returns an embedding vector that can be used for semantic search operations or stored in a pgvector column.
 
 **Error Handling**:
 

@@ -26,7 +26,7 @@ func GenerateEmbeddingTool(cfg *config.Config) Tool {
 	return Tool{
 		Definition: mcp.Tool{
 			Name:        "generate_embedding",
-			Description: "Generate embedding vector for STORAGE purposes (e.g., to insert into database). For SEARCHING existing vectors, use search_similar instead - it handles embedding generation AND search automatically. This tool only returns the vector without searching.",
+			Description: "Generate embedding vector from text using configured provider (OpenAI, Anthropic Voyage, or Ollama). Returns the embedding vector for storage or semantic search operations.",
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]interface{}{

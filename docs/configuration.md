@@ -164,9 +164,14 @@ embedding:
 **Environment Variables**:
 
 ```bash
-# Use PGEDGE-prefixed environment variable
+# Use PGEDGE-prefixed environment variable (recommended for isolation)
 export PGEDGE_OPENAI_API_KEY="sk-proj-your-key-here"
+
+# Or use standard environment variable (also supported)
+export OPENAI_API_KEY="sk-proj-your-key-here"
 ```
+
+**Note**: Both `PGEDGE_OPENAI_API_KEY` and `OPENAI_API_KEY` are supported. The prefixed version takes priority if both are set.
 
 **Pricing** (as of 2025):
 
@@ -194,11 +199,17 @@ embedding:
 - `voyage-2`: 1024 dimensions
 - `voyage-2-lite`: 1024 dimensions
 
-**Environment Variable**:
+**Environment Variables**:
 
 ```bash
+# Use PGEDGE-prefixed environment variable (recommended for isolation)
 export PGEDGE_ANTHROPIC_API_KEY="sk-ant-your-key-here"
+
+# Or use standard environment variable (also supported)
+export ANTHROPIC_API_KEY="sk-ant-your-key-here"
 ```
+
+**Note**: Both `PGEDGE_ANTHROPIC_API_KEY` and `ANTHROPIC_API_KEY` are supported. The prefixed version takes priority if both are set.
 
 ### Using Ollama (Local Embeddings)
 

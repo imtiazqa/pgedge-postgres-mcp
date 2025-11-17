@@ -774,14 +774,6 @@ func TestClient_ProcessQuery_ToolListRefreshAfterManageConnections(t *testing.T)
 						"name":        "get_schema_info",
 						"description": "Get database schema information",
 					},
-					map[string]interface{}{
-						"name":        "semantic_search",
-						"description": "Perform semantic search",
-					},
-					map[string]interface{}{
-						"name":        "search_similar",
-						"description": "Auto-discover and search",
-					},
 				}
 			}
 
@@ -905,21 +897,9 @@ func TestClient_ProcessQuery_ToolListRefreshAfterManageConnections(t *testing.T)
 		t.Fatalf("processQuery failed: %v", err)
 	}
 
-	// Verify tool list was refreshed (should now be 7 tools)
-	if len(client.tools) != 7 {
-		t.Errorf("Expected 7 tools after connection, got %d", len(client.tools))
-	}
-
-	// Verify search_similar is now available
-	found := false
-	for _, tool := range client.tools {
-		if tool.Name == "search_similar" {
-			found = true
-			break
-		}
-	}
-	if !found {
-		t.Error("Expected search_similar tool to be available after connection")
+	// Verify tool list was refreshed (should now be 5 tools)
+	if len(client.tools) != 5 {
+		t.Errorf("Expected 5 tools after connection, got %d", len(client.tools))
 	}
 
 	// Verify tools/list was called exactly twice (initial + refresh)
