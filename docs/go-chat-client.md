@@ -8,6 +8,7 @@ This is the recommended client for production use and provides significantly mor
 
 - **Dual Mode Support**: Connect via stdio (subprocess) or HTTP
 - **Multiple LLM Providers**: Support for Anthropic Claude, OpenAI, and Ollama
+- **Prompt Caching**: Automatic Anthropic prompt caching to reduce costs and latency (up to 90% savings on cached tokens)
 - **Agentic Tool Execution**: Automatically executes database tools based on LLM decisions
 - **PostgreSQL-Themed UI**: Colorful output with elephant-themed animations
 - **Flexible Configuration**: Configure via YAML file, environment variables, or command-line flags
@@ -102,6 +103,60 @@ Flags:
   -ollama-url string        Ollama server URL
   -no-color                 Disable colored output
 ```
+
+## Prompt Caching (Anthropic Only)
+
+When using Anthropic Claude as your LLM provider, the chat client automatically uses **prompt caching** to significantly reduce costs and improve response times.
+
+### How It Works
+
+Anthropic's prompt caching feature allows frequently used content (like tool definitions) to be cached on Anthropic's servers for 5 minutes. The chat client automatically implements this optimization:
+
+1. **Tool Definitions Cached**: All MCP tool definitions are cached after the first request
+2. **Automatic Detection**: No configuration needed - works automatically when using Anthropic
+3. **Cost Savings**: Cached input tokens cost ~90% less than regular input tokens
+4. **Lower Latency**: Cached content doesn't need to be reprocessed, reducing response time
+
+### Cache Usage Logging
+
+When caching is active, you'll see log messages showing cache performance:
+
+```
+[LLM] [INFO] Prompt Cache - Created: 1247 tokens, Read: 0 tokens (saved ~0% on input)
+[LLM] [INFO] Prompt Cache - Created: 0 tokens, Read: 1247 tokens (saved ~89% on input)
+```
+
+- **Created**: First time content is sent - creates a cache entry
+- **Read**: Subsequent requests - reads from cache instead of reprocessing
+- **Saved %**: Percentage of input tokens that were cached (cost reduction)
+
+### Cost Savings Example
+
+Without caching:
+
+- Request 1: 1500 input tokens × $3.00/1M = $0.0045
+- Request 2: 1500 input tokens × $3.00/1M = $0.0045
+- Total: $0.0090
+
+With caching:
+
+- Request 1: 1500 input tokens × $3.00/1M = $0.0045 (cache created)
+- Request 2: 200 new + 1300 cached × $0.30/1M = $0.0010
+- Total: $0.0055 (39% savings)
+
+### Requirements
+
+- Only available with Anthropic Claude models
+- Cache entries expire after 5 minutes of inactivity
+- Tool definitions must remain constant (automatic in our implementation)
+
+### Compatibility
+
+- **Anthropic Claude**: Full support ✅
+- **OpenAI**: Not available (OpenAI doesn't support prompt caching)
+- **Ollama**: Not available (local models don't have caching)
+
+For more details, see [Anthropic's Prompt Caching documentation](https://docs.anthropic.com/claude/docs/prompt-caching).
 
 ## Usage Examples
 

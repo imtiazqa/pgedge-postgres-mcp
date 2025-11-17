@@ -22,7 +22,8 @@ SELECT tablename, pg_table_size(tablename::regclass) as size FROM pg_tables WHER
 
 - 🔒 **Read-Only Protection** - All queries run in read-only transactions
 - 📊 **3 Resources** - Access PostgreSQL statistics
-- 🛠️ **6 Tools** - Query execution, schema analysis, semantic search (pgvector), embedding generation, resource reading
+- 🛠️ **5 Tools** - Query execution, schema analysis, advanced hybrid search (BM25+MMR), embedding generation, resource reading
+- 💬 **Production Chat Client** - Full-featured Go client with Anthropic prompt caching (90% cost reduction)
 - 🌐 **HTTP/HTTPS Mode** - Direct API access with token authentication
 - 🔐 **Secure** - TLS support, token auth, read-only enforcement
 
@@ -155,7 +156,8 @@ curl -X POST http://localhost:8080/mcp/v1 \
 
 ### Essential Guides
 - **[Configuration Guide](docs/configuration.md)** - Config file, environment variables, CLI flags
-- **[Tools Documentation](docs/tools.md)** - All 6 MCP tools reference
+- **[Go Chat Client](docs/go-chat-client.md)** - Production-ready chat client with prompt caching
+- **[Tools Documentation](docs/tools.md)** - All 5 MCP tools reference
 - **[Resources Documentation](docs/resources.md)** - All 3 MCP resources reference
 - **[Query Examples](docs/examples.md)** - Comprehensive usage examples
 - **[Deployment Guide](docs/deployment.md)** - HTTP/HTTPS production deployment
