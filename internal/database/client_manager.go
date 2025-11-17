@@ -177,8 +177,6 @@ func (cm *ClientManager) SetClient(key string, client *Client) error {
 
 	cm.clients[key] = client
 
-	fmt.Fprintf(os.Stderr, "Set database connection for key: %s (total: %d)\n", key, len(cm.clients))
-
 	return nil
 }
 
