@@ -2,17 +2,6 @@
 
 The pgEdge MCP Server provides five tools that enable SQL database interaction, advanced semantic search, embedding generation, and resource reading.
 
-## Smart Tool Filtering
-
-The server uses **smart tool filtering** to optimize token usage and improve user experience:
-
-- **Without database connection**: Only 2 stateless tools are shown (`read_resource`, `generate_embedding`)
-- **With database connection**: All 5 tools are available (adds `query_database`, `get_schema_info`, `similarity_search`)
-
-This dynamic tool list reduces token usage when no database is connected, helping you stay within API rate limits.
-
-> **Note:** Database connections are now configured at server startup via environment variables (PGEDGE_DB_* or PG*) or command-line flags, not via tools.
-
 ## Available Tools
 
 ### query_database
