@@ -26,17 +26,17 @@ type Provider interface {
 	// ModelName returns the name of the model being used
 	ModelName() string
 
-	// ProviderName returns the name of the provider (e.g., "anthropic", "ollama")
+	// ProviderName returns the name of the provider (e.g., "voyage", "ollama", "openai")
 	ProviderName() string
 }
 
 // Config holds configuration for embedding providers
 type Config struct {
-	Provider string // "anthropic", "ollama", or "openai"
+	Provider string // "voyage", "ollama", or "openai"
 	Model    string // Model name (provider-specific)
 
-	// Anthropic-specific
-	AnthropicAPIKey string
+	// Voyage AI-specific
+	VoyageAPIKey string
 
 	// OpenAI-specific
 	OpenAIAPIKey string
@@ -48,11 +48,11 @@ type Config struct {
 // NewProvider creates a new embedding provider based on configuration
 func NewProvider(cfg Config) (Provider, error) {
 	switch cfg.Provider {
-	case "anthropic":
-		if cfg.AnthropicAPIKey == "" {
-			return nil, fmt.Errorf("Anthropic API key is required when provider is 'anthropic'")
+	case "voyage":
+		if cfg.VoyageAPIKey == "" {
+			return nil, fmt.Errorf("Voyage AI API key is required when provider is 'voyage'")
 		}
-		return NewAnthropicProvider(cfg.AnthropicAPIKey, cfg.Model)
+		return NewVoyageProvider(cfg.VoyageAPIKey, cfg.Model)
 
 	case "openai":
 		if cfg.OpenAIAPIKey == "" {
@@ -70,6 +70,6 @@ func NewProvider(cfg Config) (Provider, error) {
 		return NewOllamaProvider(cfg.OllamaURL, cfg.Model)
 
 	default:
-		return nil, fmt.Errorf("unsupported embedding provider: %s (supported: anthropic, openai, ollama)", cfg.Provider)
+		return nil, fmt.Errorf("unsupported embedding provider: %s (supported: voyage, openai, ollama)", cfg.Provider)
 	}
 }

@@ -57,11 +57,11 @@ func GenerateEmbeddingTool(cfg *config.Config) Tool {
 
 			// Create embedding provider from config
 			embCfg := embedding.Config{
-				Provider:        cfg.Embedding.Provider,
-				Model:           cfg.Embedding.Model,
-				AnthropicAPIKey: cfg.Embedding.AnthropicAPIKey,
-				OpenAIAPIKey:    cfg.Embedding.OpenAIAPIKey,
-				OllamaURL:       cfg.Embedding.OllamaURL,
+				Provider:     cfg.Embedding.Provider,
+				Model:        cfg.Embedding.Model,
+				VoyageAPIKey: cfg.Embedding.VoyageAPIKey,
+				OpenAIAPIKey: cfg.Embedding.OpenAIAPIKey,
+				OllamaURL:    cfg.Embedding.OllamaURL,
 			}
 
 			provider, err := embedding.NewProvider(embCfg)

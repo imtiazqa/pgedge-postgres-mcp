@@ -341,11 +341,11 @@ func generateQueryEmbeddingWithConfig(serverCfg *config.Config, queryText string
 	}
 
 	embCfg := embedding.Config{
-		Provider:        serverCfg.Embedding.Provider,
-		Model:           serverCfg.Embedding.Model,
-		AnthropicAPIKey: serverCfg.Embedding.AnthropicAPIKey,
-		OpenAIAPIKey:    serverCfg.Embedding.OpenAIAPIKey,
-		OllamaURL:       serverCfg.Embedding.OllamaURL,
+		Provider:     serverCfg.Embedding.Provider,
+		Model:        serverCfg.Embedding.Model,
+		VoyageAPIKey: serverCfg.Embedding.VoyageAPIKey,
+		OpenAIAPIKey: serverCfg.Embedding.OpenAIAPIKey,
+		OllamaURL:    serverCfg.Embedding.OllamaURL,
 	}
 
 	provider, err := embedding.NewProvider(embCfg)

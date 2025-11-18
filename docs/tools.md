@@ -192,13 +192,13 @@ Unlike the previous `semantic_search` and `search_similar` tools, this new imple
 
 ### generate_embedding
 
-Generate vector embeddings from text using OpenAI, Anthropic Voyage API (cloud), or Ollama (local). Enables converting natural language queries into embedding vectors for semantic search.
+Generate vector embeddings from text using OpenAI, Voyage AI (cloud), or Ollama (local). Enables converting natural language queries into embedding vectors for semantic search.
 
 **Prerequisites**:
 
 - Embedding generation must be enabled in server configuration
 - For OpenAI: Valid API key must be configured
-- For Anthropic: Valid API key must be configured
+- For Voyage AI: Valid API key must be configured
 - For Ollama: Ollama must be running with an embedding model installed
 
 **Input**:
@@ -242,7 +242,7 @@ Enable in `pgedge-pg-mcp-svr.yaml`:
 ```yaml
 embedding:
   enabled: true
-  provider: "openai"  # Options: "openai", "anthropic", or "ollama"
+  provider: "openai"  # Options: "openai", "voyage", or "ollama"
   model: "text-embedding-3-small"
   openai_api_key: ""  # Set via OPENAI_API_KEY environment variable
 ```
@@ -255,7 +255,7 @@ OpenAI (Cloud):
 - `text-embedding-3-large`: 3072 dimensions (higher quality)
 - `text-embedding-ada-002`: 1536 dimensions (legacy)
 
-Anthropic Voyage (Cloud):
+Voyage AI (Cloud):
 
 - `voyage-3`: 1024 dimensions (recommended)
 - `voyage-3-lite`: 512 dimensions (cost-effective)

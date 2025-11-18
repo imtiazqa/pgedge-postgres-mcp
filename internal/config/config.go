@@ -72,12 +72,12 @@ type DatabaseConfig struct {
 
 // EmbeddingConfig holds embedding generation settings
 type EmbeddingConfig struct {
-	Enabled         bool   `yaml:"enabled"`           // Whether embedding generation is enabled (default: false)
-	Provider        string `yaml:"provider"`          // "anthropic", "openai", or "ollama"
-	Model           string `yaml:"model"`             // Provider-specific model name
-	AnthropicAPIKey string `yaml:"anthropic_api_key"` // API key for Anthropic (required if provider is "anthropic")
-	OpenAIAPIKey    string `yaml:"openai_api_key"`    // API key for OpenAI (required if provider is "openai")
-	OllamaURL       string `yaml:"ollama_url"`        // URL for Ollama service (default: http://localhost:11434)
+	Enabled      bool   `yaml:"enabled"`        // Whether embedding generation is enabled (default: false)
+	Provider     string `yaml:"provider"`       // "voyage", "openai", or "ollama"
+	Model        string `yaml:"model"`          // Provider-specific model name
+	VoyageAPIKey string `yaml:"voyage_api_key"` // API key for Voyage AI (required if provider is "voyage")
+	OpenAIAPIKey string `yaml:"openai_api_key"` // API key for OpenAI (required if provider is "openai")
+	OllamaURL    string `yaml:"ollama_url"`     // URL for Ollama service (default: http://localhost:11434)
 }
 
 // LoadConfig loads configuration with proper priority:
@@ -193,11 +193,11 @@ func defaultConfig() *Config {
 			PoolMaxConnIdleTime: "30m",    // Default idle timeout
 		},
 		Embedding: EmbeddingConfig{
-			Enabled:         false,                    // Disabled by default (opt-in)
-			Provider:        "ollama",                 // Default provider
-			Model:           "nomic-embed-text",       // Default Ollama model
-			AnthropicAPIKey: "",                       // Must be provided if using Anthropic
-			OllamaURL:       "http://localhost:11434", // Default Ollama URL
+			Enabled:      false,                    // Disabled by default (opt-in)
+			Provider:     "ollama",                 // Default provider
+			Model:        "nomic-embed-text",       // Default Ollama model
+			VoyageAPIKey: "",                       // Must be provided if using Voyage AI
+			OllamaURL:    "http://localhost:11434", // Default Ollama URL
 		},
 		SecretFile: "", // Will be set to default path if not specified
 	}
@@ -287,8 +287,11 @@ func mergeConfig(dest, src *Config) {
 		if src.Embedding.Model != "" {
 			dest.Embedding.Model = src.Embedding.Model
 		}
-		if src.Embedding.AnthropicAPIKey != "" {
-			dest.Embedding.AnthropicAPIKey = src.Embedding.AnthropicAPIKey
+		if src.Embedding.VoyageAPIKey != "" {
+			dest.Embedding.VoyageAPIKey = src.Embedding.VoyageAPIKey
+		}
+		if src.Embedding.OpenAIAPIKey != "" {
+			dest.Embedding.OpenAIAPIKey = src.Embedding.OpenAIAPIKey
 		}
 		if src.Embedding.OllamaURL != "" {
 			dest.Embedding.OllamaURL = src.Embedding.OllamaURL
@@ -388,7 +391,7 @@ func applyEnvironmentVariables(cfg *Config) {
 	setStringFromEnv(&cfg.Embedding.Provider, "PGEDGE_EMBEDDING_PROVIDER")
 	setStringFromEnv(&cfg.Embedding.Model, "PGEDGE_EMBEDDING_MODEL")
 	// Support both PGEDGE_-prefixed and standard environment variable names for API keys
-	setStringFromEnvWithFallback(&cfg.Embedding.AnthropicAPIKey, "PGEDGE_ANTHROPIC_API_KEY", "ANTHROPIC_API_KEY")
+	setStringFromEnvWithFallback(&cfg.Embedding.VoyageAPIKey, "PGEDGE_VOYAGE_API_KEY", "VOYAGE_API_KEY")
 	setStringFromEnvWithFallback(&cfg.Embedding.OpenAIAPIKey, "PGEDGE_OPENAI_API_KEY", "OPENAI_API_KEY")
 	setStringFromEnv(&cfg.Embedding.OllamaURL, "PGEDGE_OLLAMA_URL")
 

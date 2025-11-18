@@ -20,10 +20,11 @@ The pgEdge MCP Server supports multiple configuration methods with the following
 | `http.auth.enabled` | `-no-auth` | `PGEDGE_AUTH_ENABLED` | Enable API token authentication (default: true) |
 | `http.auth.token_file` | `-token-file` | `PGEDGE_MCP_TOKEN_FILE` | Path to API tokens file |
 | `embedding.enabled` | N/A | N/A | Enable embedding generation (default: false) |
-| `embedding.provider` | N/A | N/A | Embedding provider: "ollama" or "anthropic" |
+| `embedding.provider` | N/A | N/A | Embedding provider: "ollama", "voyage", or "openai" |
 | `embedding.model` | N/A | N/A | Embedding model name (provider-specific) |
 | `embedding.ollama_url` | N/A | `PGEDGE_OLLAMA_URL` | Ollama API URL (default: "http://localhost:11434") |
-| `embedding.anthropic_api_key` | N/A | `PGEDGE_ANTHROPIC_API_KEY` | Anthropic API key for Voyage embeddings |
+| `embedding.voyage_api_key` | N/A | `PGEDGE_VOYAGE_API_KEY` | Voyage AI API key for embeddings |
+| `embedding.openai_api_key` | N/A | `PGEDGE_OPENAI_API_KEY` | OpenAI API key for embeddings |
 | `secret_file` | `-secret-file` | `PGEDGE_SECRET_FILE` | Path to encryption secret file (auto-generated if not present) |
 
 ## Configuration File
@@ -53,10 +54,11 @@ http:
 # Embedding generation (optional)
 embedding:
   enabled: false  # Enable embedding generation from text
-  provider: "ollama"  # Options: "ollama" or "anthropic"
+  provider: "ollama"  # Options: "ollama", "voyage", or "openai"
   model: "nomic-embed-text"  # Model name (provider-specific)
   ollama_url: "http://localhost:11434"  # Ollama API URL (for ollama provider)
-  # anthropic_api_key: "sk-ant-..."  # Anthropic API key (for anthropic provider)
+  # voyage_api_key: "pa-..."  # Voyage AI API key (for voyage provider)
+  # openai_api_key: "sk-..."  # OpenAI API key (for openai provider)
 
 # Encryption secret file path (optional)
 secret_file: ""  # defaults to pgedge-pg-mcp-svr.secret, auto-generated if not present
@@ -129,14 +131,14 @@ Please run: chmod 600 /path/to/pgedge-pg-mcp-svr.secret
 
 ## Embedding Generation Configuration
 
-The server supports generating embeddings from text using three providers: OpenAI (cloud-based), Anthropic Voyage (cloud-based), or Ollama (local, self-hosted). This enables you to convert natural language queries into vector embeddings for semantic search.
+The server supports generating embeddings from text using three providers: OpenAI (cloud-based), Voyage AI (cloud-based), or Ollama (local, self-hosted). This enables you to convert natural language queries into vector embeddings for semantic search.
 
 ### Configuration File
 
 ```yaml
 embedding:
   enabled: true
-  provider: "openai"  # Options: "openai", "anthropic", or "ollama"
+  provider: "openai"  # Options: "openai", "voyage", or "ollama"
   model: "text-embedding-3-small"
   openai_api_key: ""  # Set via OPENAI_API_KEY environment variable
 ```
@@ -178,7 +180,7 @@ export OPENAI_API_KEY="sk-proj-your-key-here"
 - text-embedding-3-small: $0.020 / 1M tokens
 - text-embedding-3-large: $0.130 / 1M tokens
 
-### Using Anthropic Voyage (Cloud Embeddings)
+### Using Voyage AI (Cloud Embeddings)
 
 **Advantages**: High quality, managed service
 
@@ -187,9 +189,9 @@ export OPENAI_API_KEY="sk-proj-your-key-here"
 ```yaml
 embedding:
   enabled: true
-  provider: "anthropic"
+  provider: "voyage"
   model: "voyage-3"  # 1024 dimensions
-  anthropic_api_key: "sk-ant-your-key-here"
+  voyage_api_key: "pa-your-key-here"
 ```
 
 **Supported Models**:
@@ -203,13 +205,13 @@ embedding:
 
 ```bash
 # Use PGEDGE-prefixed environment variable (recommended for isolation)
-export PGEDGE_ANTHROPIC_API_KEY="sk-ant-your-key-here"
+export PGEDGE_VOYAGE_API_KEY="pa-your-key-here"
 
 # Or use standard environment variable (also supported)
-export ANTHROPIC_API_KEY="sk-ant-your-key-here"
+export VOYAGE_API_KEY="pa-your-key-here"
 ```
 
-**Note**: Both `PGEDGE_ANTHROPIC_API_KEY` and `ANTHROPIC_API_KEY` are supported. The prefixed version takes priority if both are set.
+**Note**: Both `PGEDGE_VOYAGE_API_KEY` and `VOYAGE_API_KEY` are supported. The prefixed version takes priority if both are set.
 
 ### Using Ollama (Local Embeddings)
 
@@ -268,7 +270,7 @@ export PGEDGE_LLM_LOG_LEVEL="trace"   # Very detailed: full request/response
 ```
 [LLM] [INFO] Provider initialized: provider=ollama, model=nomic-embed-text, base_url=http://localhost:11434
 [LLM] [INFO] API call succeeded: provider=ollama, model=nomic-embed-text, text_length=245, dimensions=768, duration=156ms
-[LLM] [INFO] RATE LIMIT ERROR: provider=anthropic, model=voyage-3-lite, status_code=429, response={"error":...}
+[LLM] [INFO] RATE LIMIT ERROR: provider=voyage, model=voyage-3-lite, status_code=429, response={"error":...}
 ```
 
 ### Creating a Configuration File
