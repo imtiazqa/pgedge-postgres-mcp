@@ -11,13 +11,15 @@
 package tools
 
 import (
+	"context"
+
 	"pgedge-postgres-mcp/internal/mcp"
 )
 
 // ResourceReader is an interface for reading resources
 type ResourceReader interface {
 	List() []mcp.Resource
-	Read(uri string) (mcp.ResourceContent, error)
+	Read(ctx context.Context, uri string) (mcp.ResourceContent, error)
 }
 
 // ReadResourceTool creates a tool that allows Claude to read MCP resources
@@ -42,6 +44,12 @@ func ReadResourceTool(resourceProvider ResourceReader) Tool {
 			},
 		},
 		Handler: func(args map[string]interface{}) (mcp.ToolResponse, error) {
+			// Extract context from args (injected by registry.Execute)
+			ctx, ok := args["__context"].(context.Context)
+			if !ok {
+				ctx = context.Background()
+			}
+
 			// Check if listing resources was requested
 			if list, ok := args["list"].(bool); ok && list {
 				resources := resourceProvider.List()
@@ -65,7 +73,7 @@ func ReadResourceTool(resourceProvider ResourceReader) Tool {
 				return mcp.NewToolError("Error: 'uri' parameter is required. Provide a resource URI (e.g., 'pg://system_info') or use 'list': true to see all available resources.")
 			}
 
-			resourceContent, err := resourceProvider.Read(uri)
+			resourceContent, err := resourceProvider.Read(ctx, uri)
 			if err != nil {
 				return mcp.NewToolError("Error reading resource: " + err.Error())
 			}

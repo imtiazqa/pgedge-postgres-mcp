@@ -108,8 +108,9 @@ func (r *ContextAwareRegistry) getClient(ctx context.Context) (*database.Client,
 		return nil, fmt.Errorf("no authentication token found in request context")
 	}
 
-	// Get or create client for this token (don't auto-connect)
-	client, err := r.clientManager.GetOrCreateClient(tokenHash, false)
+	// Get or create client for this token
+	// Auto-connect if database is configured (authenticated users get automatic database access)
+	client, err := r.clientManager.GetOrCreateClient(tokenHash, true)
 	if err != nil {
 		return nil, fmt.Errorf("no database connection configured for this token: %w", err)
 	}

@@ -99,10 +99,10 @@ func (a *resourceReaderAdapter) List() []mcp.Resource {
 	return a.registry.List()
 }
 
-func (a *resourceReaderAdapter) Read(uri string) (mcp.ResourceContent, error) {
-	// Use background context for backward compatibility
-	// The ContextAwareRegistry will get the client from the default key
-	return a.registry.Read(context.Background(), uri)
+func (a *resourceReaderAdapter) Read(ctx context.Context, uri string) (mcp.ResourceContent, error) {
+	// Pass the context through to the ContextAwareRegistry
+	// This ensures the authentication token is available for per-token connection isolation
+	return a.registry.Read(ctx, uri)
 }
 
 // createResourceAdapter creates an adapter for the resource registry

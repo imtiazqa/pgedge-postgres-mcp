@@ -11,6 +11,7 @@
 package tools
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"testing"
@@ -21,16 +22,16 @@ import (
 // Mock ResourceReader for testing
 type mockResourceReader struct {
 	resources []mcp.Resource
-	readFunc  func(uri string) (mcp.ResourceContent, error)
+	readFunc  func(ctx context.Context, uri string) (mcp.ResourceContent, error)
 }
 
 func (m *mockResourceReader) List() []mcp.Resource {
 	return m.resources
 }
 
-func (m *mockResourceReader) Read(uri string) (mcp.ResourceContent, error) {
+func (m *mockResourceReader) Read(ctx context.Context, uri string) (mcp.ResourceContent, error) {
 	if m.readFunc != nil {
-		return m.readFunc(uri)
+		return m.readFunc(ctx, uri)
 	}
 	return mcp.ResourceContent{}, fmt.Errorf("resource not found")
 }
@@ -162,7 +163,7 @@ func TestReadResourceTool(t *testing.T) {
 
 	t.Run("read specific resource successfully", func(t *testing.T) {
 		mockReader := &mockResourceReader{
-			readFunc: func(uri string) (mcp.ResourceContent, error) {
+			readFunc: func(ctx context.Context, uri string) (mcp.ResourceContent, error) {
 				if uri == "pg://system_info" {
 					return mcp.ResourceContent{
 						URI:      "pg://system_info",
@@ -202,7 +203,7 @@ func TestReadResourceTool(t *testing.T) {
 
 	t.Run("read resource returns error", func(t *testing.T) {
 		mockReader := &mockResourceReader{
-			readFunc: func(uri string) (mcp.ResourceContent, error) {
+			readFunc: func(ctx context.Context, uri string) (mcp.ResourceContent, error) {
 				return mcp.ResourceContent{}, fmt.Errorf("resource not found: %s", uri)
 			},
 		}
@@ -230,7 +231,7 @@ func TestReadResourceTool(t *testing.T) {
 
 	t.Run("list parameter false uses uri", func(t *testing.T) {
 		mockReader := &mockResourceReader{
-			readFunc: func(uri string) (mcp.ResourceContent, error) {
+			readFunc: func(ctx context.Context, uri string) (mcp.ResourceContent, error) {
 				return mcp.ResourceContent{
 					URI:      uri,
 					MimeType: "application/json",

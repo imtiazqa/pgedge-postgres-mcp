@@ -173,9 +173,10 @@ func TestContextAwareProvider_Execute_WithAuth(t *testing.T) {
 			t.Fatal("Expected non-empty response content")
 		}
 
-		// Note: read_resource is a stateless tool, so no client should be created
-		if count := clientManager.GetClientCount(); count != 0 {
-			t.Errorf("Expected 0 clients for stateless tool, got %d", count)
+		// Note: read_resource now creates a database client for the token
+		// because it needs to read resources from the database
+		if count := clientManager.GetClientCount(); count != 1 {
+			t.Errorf("Expected 1 client for resource access, got %d", count)
 		}
 	})
 
@@ -207,9 +208,12 @@ func TestContextAwareProvider_Execute_WithAuth(t *testing.T) {
 			t.Fatalf("Execute failed for token 3: %v", err)
 		}
 
-		// Note: read_resource is a stateless tool, so no clients should be created
-		if count := clientManager.GetClientCount(); count != 0 {
-			t.Errorf("Expected 0 clients for stateless tool, got %d", count)
+		// Note: read_resource now creates a database client for each token
+		// because it needs to read resources from the database
+		// Each token should get its own isolated client
+		// Total should be 4: 1 from previous subtest + 3 from this subtest
+		if count := clientManager.GetClientCount(); count != 4 {
+			t.Errorf("Expected 4 clients total (1 from previous subtest + 3 from this subtest), got %d", count)
 		}
 	})
 }
