@@ -18,6 +18,7 @@ import {
     CircularProgress,
     Alert,
     Button,
+    useTheme,
 } from '@mui/material';
 import {
     Send as SendIcon,
@@ -26,17 +27,177 @@ import {
     Delete as DeleteIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+
+// PostgreSQL/Elephant themed action words for thinking animation
+const elephantActions = [
+    "Thinking with trunks",
+    "Consulting the herd",
+    "Stampeding through data",
+    "Trumpeting queries",
+    "Migrating thoughts",
+    "Packing memories",
+    "Charging through logic",
+    "Bathing in wisdom",
+    "Roaming the database",
+    "Grazing on metadata",
+    "Herding ideas",
+    "Splashing in pools",
+    "Foraging for answers",
+    "Wandering savannah",
+    "Dusting off schemas",
+    "Pondering profoundly",
+    "Remembering everything",
+    "Trumpeting brilliance",
+    "Stomping bugs",
+    "Tusking through code",
+];
 
 const ChatInterface = () => {
     const { forceLogout } = useAuth();
+    const theme = useTheme();
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [thinkingMessage, setThinkingMessage] = useState('');
     const messagesEndRef = useRef(null);
+    const thinkingIntervalRef = useRef(null);
+
+    // History navigation state
+    const [queryHistory, setQueryHistory] = useState([]);
+    const [historyIndex, setHistoryIndex] = useState(-1);
+    const [tempInput, setTempInput] = useState('');
 
     const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    };
+
+    // Start thinking animation
+    const startThinking = () => {
+        // Set initial random message
+        setThinkingMessage(elephantActions[Math.floor(Math.random() * elephantActions.length)]);
+
+        // Change message every 2 seconds
+        thinkingIntervalRef.current = setInterval(() => {
+            setThinkingMessage(elephantActions[Math.floor(Math.random() * elephantActions.length)]);
+        }, 2000);
+    };
+
+    // Stop thinking animation
+    const stopThinking = () => {
+        if (thinkingIntervalRef.current) {
+            clearInterval(thinkingIntervalRef.current);
+            thinkingIntervalRef.current = null;
+        }
+        setThinkingMessage('');
+    };
+
+    // Cleanup on unmount
+    useEffect(() => {
+        return () => stopThinking();
+    }, []);
+
+    // Custom components for rendering markdown
+    const markdownComponents = {
+        code({ node, inline, className, children, ...props }) {
+            const match = /language-(\w+)/.exec(className || '');
+            const language = match ? match[1] : '';
+
+            return !inline ? (
+                <SyntaxHighlighter
+                    style={vscDarkPlus}
+                    language={language || 'text'}
+                    PreTag="div"
+                    customStyle={{
+                        margin: '1em 0',
+                        borderRadius: '4px',
+                        fontSize: '0.875rem',
+                    }}
+                    {...props}
+                >
+                    {String(children).replace(/\n$/, '')}
+                </SyntaxHighlighter>
+            ) : (
+                <code
+                    style={{
+                        backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                        padding: '2px 6px',
+                        borderRadius: '3px',
+                        fontFamily: 'monospace',
+                        fontSize: '0.875em',
+                    }}
+                    {...props}
+                >
+                    {children}
+                </code>
+            );
+        },
+        pre({ children }) {
+            return <>{children}</>;
+        },
+        p({ children }) {
+            return <Typography variant="body1" sx={{ mb: 1 }}>{children}</Typography>;
+        },
+        h1({ children }) {
+            return <Typography variant="h5" sx={{ mt: 2, mb: 1, fontWeight: 'bold' }}>{children}</Typography>;
+        },
+        h2({ children }) {
+            return <Typography variant="h6" sx={{ mt: 2, mb: 1, fontWeight: 'bold' }}>{children}</Typography>;
+        },
+        h3({ children }) {
+            return <Typography variant="subtitle1" sx={{ mt: 1.5, mb: 1, fontWeight: 'bold' }}>{children}</Typography>;
+        },
+        ul({ children }) {
+            return <Box component="ul" sx={{ pl: 2, my: 1 }}>{children}</Box>;
+        },
+        ol({ children }) {
+            return <Box component="ol" sx={{ pl: 2, my: 1 }}>{children}</Box>;
+        },
+        li({ children }) {
+            return <Typography component="li" variant="body1" sx={{ mb: 0.5 }}>{children}</Typography>;
+        },
+        a({ href, children }) {
+            return (
+                <a href={href} target="_blank" rel="noopener noreferrer" style={{ color: '#1976d2' }}>
+                    {children}
+                </a>
+            );
+        },
+        table({ children }) {
+            return (
+                <Box sx={{ overflowX: 'auto', my: 2 }}>
+                    <table style={{ borderCollapse: 'collapse', width: '100%' }}>{children}</table>
+                </Box>
+            );
+        },
+        th({ children }) {
+            return (
+                <th style={{
+                    border: `1px solid ${theme.palette.mode === 'dark' ? '#555' : '#ddd'}`,
+                    padding: '8px',
+                    backgroundColor: theme.palette.mode === 'dark' ? '#2a2a2a' : '#f5f5f5',
+                    color: theme.palette.mode === 'dark' ? '#fff' : '#000',
+                    fontWeight: 'bold',
+                    textAlign: 'left',
+                }}>
+                    {children}
+                </th>
+            );
+        },
+        td({ children }) {
+            return (
+                <td style={{
+                    border: `1px solid ${theme.palette.mode === 'dark' ? '#555' : '#ddd'}`,
+                    padding: '8px',
+                }}>
+                    {children}
+                </td>
+            );
+        },
     };
 
     useEffect(() => {
@@ -52,10 +213,16 @@ const ChatInterface = () => {
             timestamp: new Date().toISOString(),
         };
 
+        // Add to query history
+        setQueryHistory(prev => [...prev, userMessage.content]);
+        setHistoryIndex(-1);
+        setTempInput('');
+
         setMessages(prev => [...prev, userMessage]);
         setInput('');
         setLoading(true);
         setError('');
+        startThinking();
 
         try {
             const response = await fetch('/api/chat', {
@@ -72,6 +239,7 @@ const ChatInterface = () => {
             // Handle session invalidation
             if (response.status === 401) {
                 console.log('Session invalidated, logging out...');
+                stopThinking();
                 forceLogout();
                 setError('Your session has expired. Please log in again.');
                 return;
@@ -110,14 +278,47 @@ const ChatInterface = () => {
                 setError(err.message || 'Failed to send message');
             }
         } finally {
+            stopThinking();
             setLoading(false);
         }
     };
 
-    const handleKeyPress = (e) => {
+    const handleKeyDown = (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             handleSend();
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (queryHistory.length === 0) return;
+
+            // Save current input if we're starting to navigate history
+            if (historyIndex === -1) {
+                setTempInput(input);
+            }
+
+            // Calculate new index (going backwards in history)
+            const newIndex = historyIndex === -1
+                ? queryHistory.length - 1
+                : Math.max(0, historyIndex - 1);
+
+            setHistoryIndex(newIndex);
+            setInput(queryHistory[newIndex]);
+        } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (historyIndex === -1) return; // Not navigating history
+
+            // Calculate new index (going forwards in history)
+            const newIndex = historyIndex + 1;
+
+            if (newIndex >= queryHistory.length) {
+                // Reached the end, restore temporary input
+                setHistoryIndex(-1);
+                setInput(tempInput);
+                setTempInput('');
+            } else {
+                setHistoryIndex(newIndex);
+                setInput(queryHistory[newIndex]);
+            }
         }
     };
 
@@ -244,15 +445,24 @@ const ChatInterface = () => {
                                             borderRadius: 2,
                                         }}
                                     >
-                                        <Typography
-                                            variant="body1"
-                                            sx={{
-                                                whiteSpace: 'pre-wrap',
-                                                wordBreak: 'break-word',
-                                            }}
-                                        >
-                                            {message.content}
-                                        </Typography>
+                                        {message.role === 'user' ? (
+                                            <Typography
+                                                variant="body1"
+                                                sx={{
+                                                    whiteSpace: 'pre-wrap',
+                                                    wordBreak: 'break-word',
+                                                }}
+                                            >
+                                                {message.content}
+                                            </Typography>
+                                        ) : (
+                                            <ReactMarkdown
+                                                remarkPlugins={[remarkGfm]}
+                                                components={markdownComponents}
+                                            >
+                                                {message.content}
+                                            </ReactMarkdown>
+                                        )}
                                     </Paper>
                                 </Box>
                             </Box>
@@ -280,7 +490,18 @@ const ChatInterface = () => {
                                 >
                                     <BotIcon sx={{ fontSize: 20 }} />
                                 </Box>
-                                <CircularProgress size={20} />
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <CircularProgress size={20} />
+                                    <Typography
+                                        variant="body2"
+                                        sx={{
+                                            color: 'text.secondary',
+                                            fontStyle: 'italic',
+                                        }}
+                                    >
+                                        {thinkingMessage}...
+                                    </Typography>
+                                </Box>
                             </Box>
                         )}
                         <div ref={messagesEndRef} />
@@ -302,7 +523,7 @@ const ChatInterface = () => {
                     p: 2,
                     display: 'flex',
                     gap: 1,
-                    alignItems: 'flex-end',
+                    alignItems: 'center',
                 }}
             >
                 <TextField
@@ -312,8 +533,15 @@ const ChatInterface = () => {
                     variant="outlined"
                     placeholder="Type your message..."
                     value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyPress={handleKeyPress}
+                    onChange={(e) => {
+                        setInput(e.target.value);
+                        // Reset history navigation when user types
+                        if (historyIndex !== -1) {
+                            setHistoryIndex(-1);
+                            setTempInput('');
+                        }
+                    }}
+                    onKeyDown={handleKeyDown}
                     disabled={loading}
                     sx={{
                         '& .MuiOutlinedInput-root': {

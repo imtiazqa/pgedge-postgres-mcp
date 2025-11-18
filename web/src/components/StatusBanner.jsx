@@ -16,6 +16,7 @@ import {
     IconButton,
     Collapse,
     Paper,
+    useTheme,
 } from '@mui/material';
 import {
     CheckCircle as CheckCircleIcon,
@@ -27,6 +28,7 @@ import { useAuth } from '../contexts/AuthContext';
 
 const StatusBanner = () => {
     const { forceLogout } = useAuth();
+    const theme = useTheme();
     const [systemInfo, setSystemInfo] = useState(null);
     const [expanded, setExpanded] = useState(false);
     const [error, setError] = useState('');
@@ -89,7 +91,9 @@ const StatusBanner = () => {
                     justifyContent: 'space-between',
                     px: 2,
                     py: 1,
-                    bgcolor: connected ? 'success.main' : 'error.main',
+                    bgcolor: connected
+                        ? (theme.palette.mode === 'dark' ? '#1b5e20' : 'success.main')
+                        : 'error.main',
                     color: 'white',
                 }}
             >
