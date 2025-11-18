@@ -6,9 +6,7 @@ The pgEdge MCP Server provides five tools that enable SQL database interaction, 
 
 ### query_database
 
-Executes a SQL query against the PostgreSQL database. Supports dynamic connection strings to query different databases.
-
-**IMPORTANT**: Using `AT postgres://...` or `SET DEFAULT DATABASE` for temporary connections does NOT modify saved connections - these are session-only changes.
+Executes a SQL query against the PostgreSQL database. 
 
 **Input Examples**:
 
@@ -16,20 +14,6 @@ Basic query:
 ```json
 {
   "query": "SELECT * FROM users WHERE created_at >= NOW() - INTERVAL '7 days' ORDER BY created_at DESC"
-}
-```
-
-Query with temporary connection:
-```json
-{
-  "query": "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AT postgres://localhost:5433/other_db"
-}
-```
-
-Set new default connection:
-```json
-{
-  "query": "SET DEFAULT DATABASE postgres://localhost/analytics"
 }
 ```
 
