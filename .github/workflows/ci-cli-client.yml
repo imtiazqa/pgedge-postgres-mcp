@@ -1,0 +1,101 @@
+name: CI - CLI Client
+
+on:
+    push:
+        branches: [ main, develop ]
+    pull_request:
+        branches: [ main, develop ]
+
+jobs:
+    cli-client:
+        name: CLI Client
+        runs-on: ubuntu-latest
+        strategy:
+            matrix:
+                go-version: ['1.21', '1.22', '1.23']
+            fail-fast: false
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Set up Go
+              uses: actions/setup-go@v5
+              with:
+                  go-version: ${{ matrix.go-version }}
+                  cache: false
+
+            - name: Cache Go modules
+              uses: actions/cache@v4
+              with:
+                  path: |
+                      ~/go/pkg/mod
+                      ~/.cache/go-build
+                  key: ${{ runner.os }}-go-${{ matrix.go-version }}-${{ hashFiles('**/go.sum') }}
+                  restore-keys: |
+                      ${{ runner.os }}-go-${{ matrix.go-version }}-
+
+            - name: Verify dependencies
+              run: go mod verify
+
+            - name: Download dependencies
+              run: go mod download
+
+            - name: Lint client code
+              if: matrix.go-version == '1.23'
+              run: |
+                  # Install latest v1.x version (config is NOT compatible with v2)
+                  go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+                  echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+                  golangci-lint run ./internal/chat/... ./cmd/pgedge-pg-mcp-cli/...
+
+            - name: Run go vet
+              if: matrix.go-version == '1.23'
+              run: go vet ./internal/chat/... ./cmd/pgedge-pg-mcp-cli/...
+
+            - name: Check formatting
+              if: matrix.go-version == '1.23'
+              run: |
+                  gofmt -l ./internal/chat ./cmd/pgedge-pg-mcp-cli > /tmp/gofmt.out
+                  if [ -s /tmp/gofmt.out ]; then
+                    echo "The following files are not formatted:"
+                    cat /tmp/gofmt.out
+                    exit 1
+                  fi
+
+            - name: Build client
+              run: |
+                  mkdir -p bin
+                  go build -v -o bin/pgedge-pg-mcp-cli ./cmd/pgedge-pg-mcp-cli
+
+            - name: Verify binary
+              run: |
+                  ls -lh bin/pgedge-pg-mcp-cli
+                  file bin/pgedge-pg-mcp-cli
+
+            - name: Run client unit tests
+              run: go test -v -race -coverprofile=coverage.out -covermode=atomic ./internal/chat/... ./cmd/pgedge-pg-mcp-cli/...
+
+            - name: Generate coverage report
+              if: matrix.go-version == '1.23'
+              run: |
+                  go tool cover -html=coverage.out -o coverage-client.html
+                  go tool cover -func=coverage.out
+
+            - name: Upload build artifact
+              if: matrix.go-version == '1.23'
+              uses: actions/upload-artifact@v4
+              with:
+                  name: pgedge-pg-mcp-cli-linux-amd64
+                  path: bin/pgedge-pg-mcp-cli
+                  retention-days: 7
+
+            - name: Upload coverage artifact
+              if: matrix.go-version == '1.23'
+              uses: actions/upload-artifact@v4
+              with:
+                  name: coverage-client
+                  path: |
+                      coverage-client.html
+                      coverage.out
+                  retention-days: 7

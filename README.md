@@ -1,12 +1,9 @@
 # pgEdge MCP Server
 
-[![Build Server](https://github.com/pgEdge/pgedge-postgres-mcp/workflows/Build%20Server/badge.svg)](https://github.com/pgEdge/pgedge-postgres-mcp/actions/workflows/build-server.yml)
-[![Build Client](https://github.com/pgEdge/pgedge-postgres-mcp/workflows/Build%20Client/badge.svg)](https://github.com/pgEdge/pgedge-postgres-mcp/actions/workflows/build-client.yml)
-[![Test Server](https://github.com/pgEdge/pgedge-postgres-mcp/workflows/Test%20Server/badge.svg)](https://github.com/pgEdge/pgedge-postgres-mcp/actions/workflows/test-server.yml)
-[![Test Client](https://github.com/pgEdge/pgedge-postgres-mcp/workflows/Test%20Client/badge.svg)](https://github.com/pgEdge/pgedge-postgres-mcp/actions/workflows/test-client.yml)
-[![Lint Server](https://github.com/pgEdge/pgedge-postgres-mcp/workflows/Lint%20Server/badge.svg)](https://github.com/pgEdge/pgedge-postgres-mcp/actions/workflows/lint-server.yml)
-[![Lint Client](https://github.com/pgEdge/pgedge-postgres-mcp/workflows/Lint%20Client/badge.svg)](https://github.com/pgEdge/pgedge-postgres-mcp/actions/workflows/lint-client.yml)
-[![Docs](https://github.com/pgEdge/pgedge-postgres-mcp/workflows/Docs/badge.svg)](https://github.com/pgEdge/pgedge-postgres-mcp/actions/workflows/docs.yml)
+[![CI - MCP Server](https://github.com/pgEdge/pgedge-postgres-mcp/workflows/CI%20-%20MCP%20Server/badge.svg)](https://github.com/pgEdge/pgedge-postgres-mcp/actions/workflows/ci-server.yml)
+[![CI - CLI Client](https://github.com/pgEdge/pgedge-postgres-mcp/workflows/CI%20-%20CLI%20Client/badge.svg)](https://github.com/pgEdge/pgedge-postgres-mcp/actions/workflows/ci-cli-client.yml)
+[![CI - Web Client](https://github.com/pgEdge/pgedge-postgres-mcp/workflows/CI%20-%20Web%20Client/badge.svg)](https://github.com/pgEdge/pgedge-postgres-mcp/actions/workflows/ci-web-client.yml)
+[![CI - Documentation](https://github.com/pgEdge/pgedge-postgres-mcp/workflows/CI%20-%20Documentation/badge.svg)](https://github.com/pgEdge/pgedge-postgres-mcp/actions/workflows/ci-docs.yml)
 
 A Model Context Protocol (MCP) server that enables **SQL queries** against PostgreSQL databases through MCP-compatible clients like Claude Desktop.
 
