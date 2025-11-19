@@ -137,6 +137,11 @@ func (m *mockLLMClient) Chat(ctx context.Context, messages []Message, tools []mc
 	return resp, nil
 }
 
+func (m *mockLLMClient) ListModels(ctx context.Context) ([]string, error) {
+	// Return a static list of test models
+	return []string{"test-model-1", "test-model-2", "test-model-3"}, nil
+}
+
 func TestClient_ConnectToMCP_HTTPMode(t *testing.T) {
 	// Start mock MCP server
 	server := mockMCPServer(t)

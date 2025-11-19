@@ -36,12 +36,16 @@ const (
 
 // UI handles the user interface
 type UI struct {
-	noColor bool
+	noColor               bool
+	DisplayStatusMessages bool
 }
 
 // NewUI creates a new UI instance
 func NewUI(noColor bool) *UI {
-	return &UI{noColor: noColor}
+	return &UI{
+		noColor:               noColor,
+		DisplayStatusMessages: true, // Default to showing status messages
+	}
 }
 
 // colorize applies color if colors are enabled
@@ -272,12 +276,18 @@ func (ui *UI) PromptForPassword(ctx context.Context) (string, error) {
 func (ui *UI) PrintHelp() {
 	help := `
 Available commands:
-  help     - Show this help message
-  quit     - Exit the chat client
-  exit     - Exit the chat client
-  clear    - Clear the screen
-  tools    - List available MCP tools
+  help      - Show this help message
+  quit      - Exit the chat client
+  exit      - Exit the chat client
+  clear     - Clear the screen
+  tools     - List available MCP tools
   resources - List available MCP resources
+
+Slash commands (type /help for full slash command help):
+  /help                        - Show slash command help
+  /set <setting> <value>       - Change settings (status-messages, llm-provider, llm-model)
+  /show <setting>              - Show current settings
+  /list models                 - List available models from current LLM provider
 
 You can ask questions naturally, and the assistant will use available tools and resources to help you.
 `

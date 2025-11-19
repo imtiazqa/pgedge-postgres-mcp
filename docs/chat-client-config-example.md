@@ -128,6 +128,13 @@ ui:
     # Default: false
     # Command line flag: -no-color
     no_color: false
+
+    # Display status messages during tool execution
+    # Shows messages like "→ Executing tool: query_database" during operations
+    # Can be toggled at runtime with /set status-messages <on|off>
+    # Default: true
+    # Command line flag: (not available, use /set command at runtime)
+    display_status_messages: true
 ```
 
 ## Configuration Examples

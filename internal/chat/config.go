@@ -51,7 +51,8 @@ type LLMConfig struct {
 
 // UIConfig holds UI configuration
 type UIConfig struct {
-	NoColor bool `yaml:"no_color"` // Disable colored output
+	NoColor               bool `yaml:"no_color"`                 // Disable colored output
+	DisplayStatusMessages bool `yaml:"display_status_messages"` // Display status messages during execution
 }
 
 // LoadConfig loads configuration from file, environment variables, and defaults
@@ -77,7 +78,8 @@ func LoadConfig(configPath string) (*Config, error) {
 			Temperature:     0.7,
 		},
 		UI: UIConfig{
-			NoColor: os.Getenv("NO_COLOR") != "",
+			NoColor:               os.Getenv("NO_COLOR") != "",
+			DisplayStatusMessages: true, // Default to showing status messages
 		},
 		HistoryFile: filepath.Join(os.Getenv("HOME"), ".pgedge-pg-mcp-cli-history"),
 	}

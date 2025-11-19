@@ -8,11 +8,13 @@ This is the recommended client for production use and provides significantly mor
 
 - **Dual Mode Support**: Connect via stdio (subprocess) or HTTP
 - **Multiple LLM Providers**: Support for Anthropic Claude, OpenAI, and Ollama
+- **Runtime Configuration**: Switch LLM providers and models without restarting (via slash commands)
 - **Prompt Caching**: Automatic Anthropic prompt caching to reduce costs and latency (up to 90% savings on cached tokens)
 - **Agentic Tool Execution**: Automatically executes database tools based on LLM decisions
 - **PostgreSQL-Themed UI**: Colorful output with elephant-themed animations
 - **Flexible Configuration**: Configure via YAML file, environment variables, or command-line flags
 - **Built-in Commands**: Help, list tools, list resources, clear screen
+- **Slash Commands**: Claude Code-style commands for settings and configuration
 - **Conversation History**: Maintains context across multiple queries
 
 ## Installation
@@ -68,6 +70,7 @@ llm:
 
 ui:
     no_color: false
+    display_status_messages: true  # Show/hide status messages during tool execution
 ```
 
 For a complete configuration file example with all available options and detailed comments, see the [Chat Client Config Example](chat-client-config-example.md).
@@ -270,6 +273,141 @@ Once the chat client is running, you can use these special commands:
 - `clear` - Clear the screen
 - `tools` - List available MCP tools
 - `resources` - List available MCP resources
+
+## Slash Commands
+
+The chat client supports **slash commands** for managing settings and configuration without restarting. Similar to Claude Code, commands starting with `/` are processed locally, while unknown commands are sent to the LLM for interpretation.
+
+### Available Slash Commands
+
+#### Display Help
+
+```
+/help
+```
+
+Shows comprehensive help for all slash commands with examples.
+
+#### Manage Status Messages
+
+```
+/set status-messages <on|off>
+/show status-messages
+```
+
+Control whether status messages are displayed during tool execution. Useful for cleaner output or debugging.
+
+**Examples:**
+
+```
+You: /set status-messages off
+System: Status messages disabled
+
+You: /set status-messages on
+System: Status messages enabled
+```
+
+#### Switch LLM Provider
+
+```
+/set llm-provider <provider>
+/show llm-provider
+```
+
+Change the LLM provider at runtime without restarting the client. Valid providers: `anthropic`, `openai`, `ollama`.
+
+**Examples:**
+
+```
+You: /set llm-provider openai
+System: LLM provider set to: openai (model: gpt-4o)
+
+You: /set llm-provider anthropic
+System: LLM provider set to: anthropic (model: claude-sonnet-4-20250514)
+```
+
+#### Change LLM Model
+
+```
+/set llm-model <model>
+/show llm-model
+```
+
+Switch to a different model from the current provider. Use `/list models` to see available options.
+
+**Examples:**
+
+```
+You: /set llm-model claude-3-opus-20240229
+System: LLM model set to: claude-3-opus-20240229 (provider: anthropic)
+
+You: /set llm-model gpt-4-turbo
+System: LLM model set to: gpt-4-turbo (provider: openai)
+```
+
+#### List Available Models
+
+```
+/list models
+```
+
+Query the current LLM provider for available models. For Anthropic, shows a curated list. For OpenAI and Ollama, queries the provider's API.
+
+**Example:**
+
+```
+You: /list models
+System: Available models from anthropic (7):
+  * claude-sonnet-4-20250514 (current)
+    claude-3-7-sonnet-20250219
+    claude-3-5-sonnet-20241022
+    claude-3-5-sonnet-20240620
+    claude-3-opus-20240229
+    claude-3-sonnet-20240229
+    claude-3-haiku-20240307
+```
+
+#### View Settings
+
+```
+/show settings
+/show <setting>
+```
+
+Display current configuration values. Available settings: `status-messages`, `llm-provider`, `llm-model`, `settings` (all).
+
+**Example:**
+
+```
+You: /show settings
+
+Current Settings:
+─────────────────────────────────────────────────
+UI:
+  Status Messages:  on
+  No Color:         no
+
+LLM:
+  Provider:         anthropic
+  Model:            claude-sonnet-4-20250514
+  Max Tokens:       4096
+  Temperature:      0.70
+
+MCP:
+  Mode:             stdio
+  Server Path:      ./bin/pgedge-pg-mcp-svr
+─────────────────────────────────────────────────
+```
+
+### Unknown Slash Commands
+
+If you use a slash command that doesn't match any built-in command, it will be sent to the LLM for interpretation. This allows natural language commands like:
+
+```
+You: /explain how indexes work in PostgreSQL
+```
+
+The LLM will receive this query and respond with an explanation.
 
 ### Command History
 

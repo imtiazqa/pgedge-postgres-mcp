@@ -33,9 +33,11 @@ type Client struct {
 
 // NewClient creates a new chat client
 func NewClient(cfg *Config) (*Client, error) {
+	ui := NewUI(cfg.UI.NoColor)
+	ui.DisplayStatusMessages = cfg.UI.DisplayStatusMessages
 	return &Client{
 		config:   cfg,
-		ui:       NewUI(cfg.UI.NoColor),
+		ui:       ui,
 		messages: []Message{},
 	}, nil
 }
@@ -308,7 +310,16 @@ func (c *Client) chatLoop(ctx context.Context) error {
 			continue
 		}
 
-		// Handle special commands
+		// Check for slash commands first (e.g., /help, /set, /show, /list)
+		if cmd := ParseSlashCommand(userInput); cmd != nil {
+			if c.HandleSlashCommand(ctx, cmd) {
+				continue // Command was handled
+			}
+			// If HandleSlashCommand returns false, command is unknown
+			// Fall through to send to LLM
+		}
+
+		// Handle special commands (help, clear, tools, resources)
 		if c.handleCommand(ctx, userInput) {
 			continue
 		}
