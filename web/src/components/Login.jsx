@@ -55,12 +55,23 @@ const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [warning, setWarning] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
+
+  // Check for disconnect message on mount
+  React.useEffect(() => {
+    const disconnectMsg = sessionStorage.getItem('disconnectMessage');
+    if (disconnectMsg) {
+      setWarning(disconnectMsg);
+      sessionStorage.removeItem('disconnectMessage');
+    }
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setWarning('');
     setLoading(true);
 
     try {
@@ -296,6 +307,12 @@ const Login = () => {
                 Sign in to continue
               </Typography>
             </Box>
+
+            {warning && (
+              <Alert severity="warning" sx={{ mb: 2 }} onClose={() => setWarning('')}>
+                {warning}
+              </Alert>
+            )}
 
             {error && (
               <Alert severity="error" sx={{ mb: 2 }}>

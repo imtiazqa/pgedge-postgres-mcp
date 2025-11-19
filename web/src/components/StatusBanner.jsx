@@ -61,7 +61,15 @@ const StatusBanner = () => {
             setSystemInfo(data);
             setError('');
         } catch (err) {
+            console.error('System info fetch error:', err);
             setError(err.message || 'Failed to load system information');
+
+            // If this is a network error (server disconnected), log out and show message
+            if (err.message.includes('fetch') || err.message.includes('Failed to fetch')) {
+                console.log('Server appears to be disconnected, logging out...');
+                sessionStorage.setItem('disconnectMessage', 'Your session was ended because the server disconnected. Please try again.');
+                forceLogout();
+            }
         }
     };
 
