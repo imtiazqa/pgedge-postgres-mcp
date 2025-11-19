@@ -8,7 +8,7 @@
  *-------------------------------------------------------------------------
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   AppBar,
   Toolbar,
@@ -26,19 +26,30 @@ import {
   Brightness4 as Brightness4Icon,
   Brightness7 as Brightness7Icon,
   Logout as LogoutIcon,
+  Help as HelpIcon,
 } from '@mui/icons-material';
 import logoLight from '../assets/images/logo-light.png';
 import logoDark from '../assets/images/logo-dark.png';
 import { useAuth } from '../contexts/AuthContext';
 import { useMenu } from '../hooks/useMenu';
+import HelpPanel from './HelpPanel';
 
 const Header = ({ onToggleTheme, mode }) => {
   const { user, logout } = useAuth();
   const userMenu = useMenu();
+  const [helpOpen, setHelpOpen] = useState(false);
 
   const handleLogout = () => {
     userMenu.handleClose();
     logout();
+  };
+
+  const handleHelpOpen = () => {
+    setHelpOpen(true);
+  };
+
+  const handleHelpClose = () => {
+    setHelpOpen(false);
   };
 
   const getInitials = (name) => {
@@ -84,6 +95,13 @@ const Header = ({ onToggleTheme, mode }) => {
               aria-label="toggle theme"
             >
               {mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
+            </IconButton>
+            <IconButton
+              color="inherit"
+              onClick={handleHelpOpen}
+              aria-label="open help"
+            >
+              <HelpIcon />
             </IconButton>
             {user && (
               <IconButton
@@ -134,6 +152,9 @@ const Header = ({ onToggleTheme, mode }) => {
           <ListItemText>Logout</ListItemText>
         </MenuItem>
       </Menu>
+
+      {/* Help Panel */}
+      <HelpPanel open={helpOpen} onClose={handleHelpClose} />
     </>
   );
 };
