@@ -8,7 +8,7 @@
  *-------------------------------------------------------------------------
  */
 
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
     Box,
     Paper,
@@ -33,6 +33,7 @@ import {
     Delete as DeleteIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
+import { MCPClient } from '../lib/mcp-client';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
@@ -63,7 +64,7 @@ const elephantActions = [
 ];
 
 const ChatInterface = () => {
-    const { forceLogout } = useAuth();
+    const { sessionToken, forceLogout } = useAuth();
     const theme = useTheme();
     const [messages, setMessages] = useState(() => {
         // Load saved messages from localStorage
@@ -71,8 +72,12 @@ const ChatInterface = () => {
             const savedMessages = localStorage.getItem('chat-messages');
             if (savedMessages) {
                 const parsed = JSON.parse(savedMessages);
-                // Mark all loaded messages as from previous session
-                return parsed.map(msg => ({ ...msg, fromPreviousSession: true }));
+                // Mark all loaded messages as from previous session and ensure content is a string
+                return parsed.map(msg => ({
+                    ...msg,
+                    content: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content),
+                    fromPreviousSession: true
+                }));
             }
         } catch (error) {
             console.error('Error loading chat messages:', error);
@@ -85,6 +90,10 @@ const ChatInterface = () => {
     const [thinkingMessage, setThinkingMessage] = useState('');
     const messagesEndRef = useRef(null);
     const thinkingIntervalRef = useRef(null);
+
+    // MCP client and tools
+    const [mcpClient, setMcpClient] = useState(null);
+    const [tools, setTools] = useState([]);
 
     // History navigation state
     const [queryHistory, setQueryHistory] = useState(() => {
@@ -240,11 +249,19 @@ const ChatInterface = () => {
 
     // Fetch available providers on mount
     useEffect(() => {
+        if (!sessionToken) {
+            console.log('No session token available, skipping providers fetch');
+            return;
+        }
+
         const fetchProviders = async () => {
             try {
                 console.log('Fetching providers from /api/llm/providers...');
                 const response = await fetch('/api/llm/providers', {
                     credentials: 'include',
+                    headers: {
+                        'Authorization': `Bearer ${sessionToken}`,
+                    },
                 });
 
                 console.log('Providers response status:', response.status);
@@ -284,12 +301,12 @@ const ChatInterface = () => {
         };
 
         fetchProviders();
-    }, []);
+    }, [sessionToken]);
 
     // Fetch available models when provider changes
     useEffect(() => {
-        if (!selectedProvider) {
-            console.log('No provider selected, skipping model fetch');
+        if (!selectedProvider || !sessionToken) {
+            console.log('No provider selected or no session token, skipping model fetch');
             return;
         }
 
@@ -299,6 +316,9 @@ const ChatInterface = () => {
                 console.log('Fetching models for provider:', selectedProvider);
                 const response = await fetch(`/api/llm/models?provider=${selectedProvider}`, {
                     credentials: 'include',
+                    headers: {
+                        'Authorization': `Bearer ${sessionToken}`,
+                    },
                 });
 
                 console.log('Models response status:', response.status);
@@ -332,7 +352,38 @@ const ChatInterface = () => {
         };
 
         fetchModels();
-    }, [selectedProvider]);
+    }, [selectedProvider, sessionToken]);
+
+    // Initialize MCP client and fetch tools when session token is available
+    useEffect(() => {
+        if (!sessionToken) {
+            console.log('No session token available, skipping MCP client initialization');
+            return;
+        }
+
+        const initializeMCP = async () => {
+            try {
+                console.log('Initializing MCP client...');
+                const client = new MCPClient('/mcp/v1', sessionToken);
+
+                // Initialize the client
+                await client.initialize();
+
+                // Fetch available tools
+                console.log('Fetching MCP tools...');
+                const toolsList = await client.listTools();
+                console.log('MCP tools loaded:', toolsList);
+
+                setMcpClient(client);
+                setTools(toolsList);
+            } catch (error) {
+                console.error('Error initializing MCP client:', error);
+                setError('Failed to initialize MCP tools. Please check browser console.');
+            }
+        };
+
+        initializeMCP();
+    }, [sessionToken]);
 
     // Custom components for rendering markdown
     const markdownComponents = {
@@ -438,7 +489,7 @@ const ChatInterface = () => {
     }, [messages]);
 
     const handleSend = async () => {
-        if (!input.trim() || loading) return;
+        if (!input.trim() || loading || !mcpClient) return;
 
         const userMessage = {
             role: 'user',
@@ -458,7 +509,7 @@ const ChatInterface = () => {
             timestamp: new Date().toISOString(),
             provider: selectedProvider,
             model: selectedModel,
-            activity: [], // Will be populated as events arrive
+            activity: [], // Will be populated as tool calls happen
             isThinking: true,
         };
 
@@ -469,124 +520,190 @@ const ChatInterface = () => {
         startThinking();
 
         try {
-            const response = await fetch('/api/chat', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                credentials: 'include',
-                body: JSON.stringify({
-                    message: userMessage.content,
-                    provider: selectedProvider,
-                    model: selectedModel,
-                }),
+            // Build conversation history for LLM
+            const conversationMessages = [];
+
+            // Add all previous messages
+            for (const msg of messages) {
+                if (msg.role === 'user') {
+                    conversationMessages.push({
+                        role: 'user',
+                        content: msg.content
+                    });
+                } else if (msg.role === 'assistant' && msg.content) {
+                    conversationMessages.push({
+                        role: 'assistant',
+                        content: msg.content
+                    });
+                }
+            }
+
+            // Add current user message
+            conversationMessages.push({
+                role: 'user',
+                content: userMessage.content
             });
 
-            // Handle session invalidation
-            if (response.status === 401) {
-                console.log('Session invalidated, logging out...');
-                stopThinking();
-                forceLogout();
-                setError('Your session has expired. Please log in again.');
-                // Remove thinking message
-                setMessages(prev => prev.slice(0, -1));
-                return;
-            }
+            const activity = [];
+            let loopCount = 0;
+            const maxLoops = 10; // Prevent infinite loops
 
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                const errorMsg = errorData.message || 'Failed to send message';
+            // Agentic loop: LLM -> tool calls -> LLM -> ...
+            while (loopCount < maxLoops) {
+                loopCount++;
 
-                // Remove thinking message
-                setMessages(prev => prev.slice(0, -1));
-
-                // Provide helpful error messages
-                if (errorMsg.includes('API key')) {
-                    throw new Error('Backend configuration error: ' + errorMsg);
-                } else if (errorMsg.includes('ECONNREFUSED') || errorMsg.includes('fetch failed')) {
-                    throw new Error('Cannot connect to backend server. Please check that the server is running.');
-                } else {
-                    throw new Error(errorMsg);
-                }
-            }
-
-            // Parse SSE stream
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-            let buffer = '';
-            let finalResponse = null;
-
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-
-                buffer += decoder.decode(value, { stream: true });
-                const lines = buffer.split('\n');
-                buffer = lines.pop() || ''; // Keep incomplete line in buffer
-
-                for (const line of lines) {
-                    if (line.startsWith('event: ')) {
-                        const eventType = line.substring(7).trim();
-                        continue;
-                    }
-
-                    if (line.startsWith('data: ')) {
-                        try {
-                            const data = JSON.parse(line.substring(6));
-
-                            // Handle different event types based on last seen event type
-                            // We'll determine type from the data structure
-                            if (data.type === 'tool' || data.type === 'resource') {
-                                // Activity event - update thinking message
-                                setMessages(prev => {
-                                    const newMessages = [...prev];
-                                    const lastMsg = newMessages[newMessages.length - 1];
-                                    if (lastMsg && lastMsg.isThinking) {
-                                        lastMsg.activity = [...lastMsg.activity, data];
-                                    }
-                                    return newMessages;
-                                });
-                            } else if (data.response !== undefined) {
-                                // Response event - store for later
-                                finalResponse = data;
-                            } else if (data.message) {
-                                // Error event
-                                setMessages(prev => prev.slice(0, -1)); // Remove thinking message
-                                throw new Error(data.message);
-                            }
-                        } catch (parseErr) {
-                            console.error('Error parsing SSE data:', parseErr);
-                        }
-                    }
-                }
-            }
-
-            // Replace thinking message with final response
-            if (finalResponse) {
-                setMessages(prev => {
-                    const thinkingMsg = prev[prev.length - 1];
-                    const newMessages = prev.slice(0, -1); // Remove thinking message
-                    return [...newMessages, {
-                        role: 'assistant',
-                        content: finalResponse.response || 'No response received',
-                        timestamp: new Date().toISOString(),
+                // Call LLM with conversation history and available tools
+                const llmResponse = await fetch('/api/llm/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${sessionToken}`,
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        messages: conversationMessages,
+                        tools: tools,
                         provider: selectedProvider,
                         model: selectedModel,
-                        // Use accumulated activity from thinking message (SSE stream) instead of finalResponse
-                        activity: thinkingMsg?.activity || finalResponse.activity || [],
-                    }];
+                    }),
                 });
-            } else {
-                // No final response - remove thinking message
-                setMessages(prev => prev.slice(0, -1));
-                throw new Error('No response received from server');
+
+                // Handle session invalidation
+                if (llmResponse.status === 401) {
+                    console.log('Session invalidated, logging out...');
+                    stopThinking();
+                    forceLogout();
+                    setError('Your session has expired. Please log in again.');
+                    setMessages(prev => prev.slice(0, -1));
+                    return;
+                }
+
+                if (!llmResponse.ok) {
+                    const errorText = await llmResponse.text();
+                    throw new Error(`LLM request failed: ${llmResponse.status} ${errorText}`);
+                }
+
+                const llmData = await llmResponse.json();
+                console.log('LLM response:', llmData);
+
+                // Check stop reason
+                if (llmData.stop_reason === 'end_turn' || loopCount >= maxLoops) {
+                    // Final response - extract text content
+                    let textContent = '';
+
+                    // Ensure content is an array
+                    const contentArray = Array.isArray(llmData.content) ? llmData.content : [llmData.content];
+
+                    for (const content of contentArray) {
+                        if (content && content.type === 'text') {
+                            // Ensure text is a string
+                            const text = typeof content.text === 'string' ? content.text : String(content.text || '');
+                            textContent += text;
+                        }
+                    }
+
+                    // Ensure we always have a string
+                    const finalContent = textContent || 'No response received';
+
+                    // Replace thinking message with final response
+                    setMessages(prev => {
+                        const newMessages = prev.slice(0, -1); // Remove thinking message
+                        return [...newMessages, {
+                            role: 'assistant',
+                            content: finalContent,
+                            timestamp: new Date().toISOString(),
+                            provider: selectedProvider,
+                            model: selectedModel,
+                            activity: activity,
+                        }];
+                    });
+                    break;
+                }
+
+                // Handle tool use
+                if (llmData.stop_reason === 'tool_use') {
+                    // Extract tool use blocks
+                    const toolUses = llmData.content.filter(c => c.type === 'tool_use');
+
+                    if (toolUses.length === 0) {
+                        throw new Error('LLM indicated tool_use but no tool_use blocks found');
+                    }
+
+                    // Execute tools and collect results
+                    const toolResults = [];
+                    for (const toolUse of toolUses) {
+                        console.log('Executing tool:', toolUse.name, 'with args:', toolUse.input);
+
+                        // Update activity
+                        activity.push({
+                            type: 'tool',
+                            name: toolUse.name,
+                            timestamp: new Date().toISOString(),
+                        });
+
+                        // Update thinking message with new activity
+                        setMessages(prev => {
+                            const newMessages = [...prev];
+                            const lastMsg = newMessages[newMessages.length - 1];
+                            if (lastMsg && lastMsg.isThinking) {
+                                lastMsg.activity = [...activity];
+                            }
+                            return newMessages;
+                        });
+
+                        try {
+                            // Execute tool via MCP
+                            const result = await mcpClient.callTool(toolUse.name, toolUse.input);
+                            console.log('Tool result:', result);
+
+                            toolResults.push({
+                                type: 'tool_result',
+                                tool_use_id: toolUse.id,
+                                content: result.content,
+                            });
+                        } catch (toolError) {
+                            console.error('Tool execution error:', toolError);
+                            toolResults.push({
+                                type: 'tool_result',
+                                tool_use_id: toolUse.id,
+                                content: `Error: ${toolError.message}`,
+                                is_error: true,
+                            });
+                        }
+                    }
+
+                    // Add assistant message with tool uses to conversation
+                    conversationMessages.push({
+                        role: 'assistant',
+                        content: llmData.content,
+                    });
+
+                    // Add user message with tool results to conversation
+                    conversationMessages.push({
+                        role: 'user',
+                        content: toolResults,
+                    });
+
+                    // Continue loop to get LLM's response to tool results
+                    continue;
+                }
+
+                // Unknown stop reason
+                throw new Error(`Unexpected stop reason: ${llmData.stop_reason}`);
+            }
+
+            if (loopCount >= maxLoops) {
+                throw new Error('Maximum tool execution loops reached');
             }
         } catch (err) {
             console.error('Chat error:', err);
 
+            // Remove thinking message
+            setMessages(prev => prev.slice(0, -1));
+
             // Network errors
             if (err.name === 'TypeError' && err.message.includes('fetch')) {
-                setError('Cannot connect to backend server. Please check that the server is running and configured correctly.');
+                setError('Cannot connect to server. Please check that the server is running.');
             } else {
                 setError(err.message || 'Failed to send message');
             }
@@ -635,29 +752,14 @@ const ChatInterface = () => {
         }
     };
 
-    const handleClear = async () => {
+    const handleClear = () => {
         if (!window.confirm('Clear conversation history?')) return;
 
-        try {
-            const response = await fetch('/api/chat/clear', {
-                method: 'POST',
-                credentials: 'include',
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Failed to clear conversation');
-            }
-
-            setMessages([]);
-            setQueryHistory([]);
-            localStorage.removeItem('chat-messages');
-            localStorage.removeItem('query-history');
-            setError('');
-        } catch (err) {
-            setError(err.message || 'Failed to clear conversation');
-            console.error('Clear conversation error:', err);
-        }
+        setMessages([]);
+        setQueryHistory([]);
+        localStorage.removeItem('chat-messages');
+        localStorage.removeItem('query-history');
+        setError('');
     };
 
     return (
@@ -733,7 +835,7 @@ const ChatInterface = () => {
                     </Box>
                 ) : (
                     <Box>
-                        {useMemo(() => messages.map((message, index) => (
+                        {messages.map((message, index) => (
                             <Box
                                 key={index}
                                 sx={{
@@ -854,7 +956,7 @@ const ChatInterface = () => {
                                     </Paper>
                                 </Box>
                             </Box>
-                        )), [messages, showActivity, thinkingMessage, theme, renderMarkdown])}
+                        ))}
                         <div ref={messagesEndRef} />
                     </Box>
                 )}

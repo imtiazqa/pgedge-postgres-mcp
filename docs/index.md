@@ -7,6 +7,7 @@ A Model Context Protocol (MCP) server written in Go that enables natural languag
 ## Quick Links
 
 - **[Configuration Guide](configuration.md)** - Setup and configuration
+- **[Docker Deployment](docker-deployment.md)** - Complete Docker Compose deployment
 - **[Tools Reference](tools.md)** - All 5 MCP tools
 - **[Resources Reference](resources.md)** - All 3 MCP resources
 - **[Query Examples](examples.md)** - Usage examples
@@ -78,6 +79,9 @@ For detailed setup instructions, see **[Configuration Guide](configuration.md)**
 
 #### [Configuration Guide](configuration.md)
 Complete configuration reference covering config files, environment variables, command-line flags, and Claude Desktop setup for Anthropic, OpenAI, and Ollama providers.
+
+#### [Docker Deployment Guide](docker-deployment.md)
+Complete guide for deploying with Docker and Docker Compose. Includes containerized MCP server and web client setup, environment configuration, production deployment with reverse proxy, security hardening, and troubleshooting.
 
 #### [Tools Documentation](tools.md)
 Reference for all 5 MCP tools including `query_database`, `get_schema_info`, `similarity_search`, `generate_embedding`, and `read_resource`.

@@ -24,15 +24,16 @@ import (
 
 // HTTPConfig holds configuration for HTTP/HTTPS server mode
 type HTTPConfig struct {
-	Addr        string           // Server address (e.g., ":8080")
-	TLSEnable   bool             // Enable HTTPS
-	CertFile    string           // Path to TLS certificate file
-	KeyFile     string           // Path to TLS key file
-	ChainFile   string           // Optional path to certificate chain file
-	AuthEnabled bool             // Enable API token authentication
-	TokenStore  *auth.TokenStore // Token store for authentication
-	UserStore   *auth.UserStore  // User store for session token authentication
-	Debug       bool             // Enable debug logging
+	Addr          string                         // Server address (e.g., ":8080")
+	TLSEnable     bool                           // Enable HTTPS
+	CertFile      string                         // Path to TLS certificate file
+	KeyFile       string                         // Path to TLS key file
+	ChainFile     string                         // Optional path to certificate chain file
+	AuthEnabled   bool                           // Enable API token authentication
+	TokenStore    *auth.TokenStore               // Token store for authentication
+	UserStore     *auth.UserStore                // User store for session token authentication
+	SetupHandlers func(mux *http.ServeMux) error // Optional callback to add custom handlers before auth middleware
+	Debug         bool                           // Enable debug logging
 }
 
 // RunHTTP starts the MCP server in HTTP/HTTPS mode
@@ -49,7 +50,14 @@ func (s *Server) RunHTTP(config *HTTPConfig) error {
 	mux.HandleFunc("/mcp/v1", s.handleHTTPRequest)
 	mux.HandleFunc("/health", s.handleHealthCheck)
 
-	// Wrap with authentication middleware if enabled
+	// Call custom handler setup if provided (allows main.go to add LLM proxy endpoints)
+	if config.SetupHandlers != nil {
+		if err := config.SetupHandlers(mux); err != nil {
+			return fmt.Errorf("failed to setup custom handlers: %w", err)
+		}
+	}
+
+	// Wrap with auth middleware if enabled
 	var handler http.Handler = mux
 	if config.AuthEnabled {
 		handler = auth.AuthMiddleware(config.TokenStore, config.UserStore, true)(handler)

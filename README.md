@@ -23,6 +23,7 @@ SELECT tablename, pg_table_size(tablename::regclass) as size FROM pg_tables WHER
 - 💬 **Production Chat Client** - Full-featured Go client with Anthropic prompt caching (90% cost reduction)
 - 🌐 **HTTP/HTTPS Mode** - Direct API access with token authentication
 - 🖥️ **Web Interface** - Modern React-based UI with AI-powered chat for natural language database interaction
+- 🐳 **Docker Support** - Complete containerized deployment with Docker Compose
 - 🔐 **Secure** - TLS support, token auth, read-only enforcement
 
 ## Quick Start
@@ -169,12 +170,47 @@ A web-based management interface is available for monitoring and interacting wit
 
 See [web/README.md](web/README.md) for detailed documentation.
 
+> **Note**: The web client is being migrated to use JSON-RPC direct communication with the MCP server (like the CLI) instead of the Express backend REST APIs. See **[Web Client Architecture Migration Guide](docs/web-client-architecture-migration.md)** for details.
+
+## Docker Deployment
+
+Deploy the entire stack with Docker Compose for production or development:
+
+```bash
+# 1. Copy the example environment file
+cp .env.example .env
+
+# 2. Edit .env with your configuration
+nano .env  # Add your database connection, API keys, etc.
+
+# 3. Build and start all services
+docker-compose up -d
+```
+
+**What gets deployed:**
+- 🐘 **MCP Server** - Backend service on port 8080
+- 🌐 **Web Client** - Browser interface on port 8081
+- 🔐 **Authentication** - Token or user-based auth from config
+- 💾 **Persistent Storage** - User and token data in Docker volumes
+
+**Quick Access:**
+- Web Interface: http://localhost:8081
+- MCP API: http://localhost:8080
+
+See **[Docker Deployment Guide](docs/docker-deployment.md)** for complete documentation including:
+- Individual container builds
+- Production deployment with reverse proxy
+- Security hardening
+- Resource limits and monitoring
+- Troubleshooting
+
 ## Documentation
 
 📚 **[Complete Documentation](docs/index.md)** - Comprehensive guides and references
 
 ### Essential Guides
 - **[Configuration Guide](docs/configuration.md)** - Config file, environment variables, CLI flags
+- **[Docker Deployment Guide](docs/docker-deployment.md)** - Complete Docker Compose deployment
 - **[Go Chat Client](docs/go-chat-client.md)** - Production-ready chat client with prompt caching
 - **[Tools Documentation](docs/tools.md)** - All 5 MCP tools reference
 - **[Resources Documentation](docs/resources.md)** - All 3 MCP resources reference
@@ -186,6 +222,7 @@ See [web/README.md](web/README.md) for detailed documentation.
 - **[MCP Protocol Guide](docs/mcp_protocol.md)** - Protocol implementation details
 - **[Security Guide](docs/security.md)** - Security best practices
 - **[Architecture Guide](docs/architecture.md)** - Code structure and extension
+- **[Web Client Architecture Migration](docs/web-client-architecture-migration.md)** - Migrating web client to JSON-RPC
 - **[Testing Guide](docs/testing.md)** - Unit and integration tests
 - **[Troubleshooting Guide](docs/troubleshooting.md)** - Common issues and solutions
 

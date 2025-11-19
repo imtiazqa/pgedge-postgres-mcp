@@ -63,7 +63,7 @@ type LLMResponse struct {
 // LLMClient provides a unified interface for different LLM providers
 type LLMClient interface {
 	// Chat sends messages and available tools to the LLM and returns the response
-	Chat(ctx context.Context, messages []Message, tools []mcp.Tool) (LLMResponse, error)
+	Chat(ctx context.Context, messages []Message, tools interface{}) (LLMResponse, error)
 
 	// ListModels returns a list of available models from the provider
 	ListModels(ctx context.Context) ([]string, error)
@@ -133,16 +133,28 @@ func extractAnthropicErrorMessage(statusCode int, body []byte) string {
 	return fmt.Sprintf("API error (%d): %s", statusCode, string(body))
 }
 
-func (c *anthropicClient) Chat(ctx context.Context, messages []Message, tools []mcp.Tool) (LLMResponse, error) {
+func (c *anthropicClient) Chat(ctx context.Context, messages []Message, tools interface{}) (LLMResponse, error) {
 	startTime := time.Now()
 	operation := "chat"
 	url := "https://api.anthropic.com/v1/messages"
 
 	embedding.LogLLMCallDetails("anthropic", c.model, operation, url, len(messages))
 
+	// Convert interface{} tools to []mcp.Tool via JSON
+	var mcpTools []mcp.Tool
+	if tools != nil {
+		toolsJSON, err := json.Marshal(tools)
+		if err != nil {
+			return LLMResponse{}, fmt.Errorf("failed to marshal tools: %w", err)
+		}
+		if err := json.Unmarshal(toolsJSON, &mcpTools); err != nil {
+			return LLMResponse{}, fmt.Errorf("failed to unmarshal tools: %w", err)
+		}
+	}
+
 	// Convert MCP tools to Anthropic format with caching
-	anthropicTools := make([]map[string]interface{}, 0, len(tools))
-	for i, tool := range tools {
+	anthropicTools := make([]map[string]interface{}, 0, len(mcpTools))
+	for i, tool := range mcpTools {
 		toolDef := map[string]interface{}{
 			"name":         tool.Name,
 			"description":  tool.Description,
@@ -151,7 +163,7 @@ func (c *anthropicClient) Chat(ctx context.Context, messages []Message, tools []
 
 		// Add cache_control to the last tool definition to cache all tools
 		// This caches the entire tools array (must be on the last item)
-		if i == len(tools)-1 {
+		if i == len(mcpTools)-1 {
 			toolDef["cache_control"] = map[string]interface{}{
 				"type": "ephemeral",
 			}
@@ -360,15 +372,27 @@ func extractOllamaErrorMessage(statusCode int, body []byte) string {
 	return fmt.Sprintf("Ollama error (%d): %s", statusCode, bodyStr)
 }
 
-func (c *ollamaClient) Chat(ctx context.Context, messages []Message, tools []mcp.Tool) (LLMResponse, error) {
+func (c *ollamaClient) Chat(ctx context.Context, messages []Message, tools interface{}) (LLMResponse, error) {
 	startTime := time.Now()
 	operation := "chat"
 	url := c.baseURL + "/api/chat"
 
 	embedding.LogLLMCallDetails("ollama", c.model, operation, url, len(messages))
 
+	// Convert interface{} tools to []mcp.Tool via JSON
+	var mcpTools []mcp.Tool
+	if tools != nil {
+		toolsJSON, err := json.Marshal(tools)
+		if err != nil {
+			return LLMResponse{}, fmt.Errorf("failed to marshal tools: %w", err)
+		}
+		if err := json.Unmarshal(toolsJSON, &mcpTools); err != nil {
+			return LLMResponse{}, fmt.Errorf("failed to unmarshal tools: %w", err)
+		}
+	}
+
 	// Format tools for Ollama
-	toolsContext := c.formatToolsForOllama(tools)
+	toolsContext := c.formatToolsForOllama(mcpTools)
 
 	// Create system message with tool information
 	systemMessage := fmt.Sprintf(`You are a helpful PostgreSQL database assistant. You have access to the following tools:
@@ -708,17 +732,29 @@ func extractTextFromContent(content interface{}) string {
 	return fmt.Sprintf("%v", content)
 }
 
-func (c *openaiClient) Chat(ctx context.Context, messages []Message, tools []mcp.Tool) (LLMResponse, error) {
+func (c *openaiClient) Chat(ctx context.Context, messages []Message, tools interface{}) (LLMResponse, error) {
 	startTime := time.Now()
 	operation := "chat"
 	url := "https://api.openai.com/v1/chat/completions"
 
 	embedding.LogLLMCallDetails("openai", c.model, operation, url, len(messages))
 
+	// Convert interface{} tools to []mcp.Tool via JSON
+	var mcpTools []mcp.Tool
+	if tools != nil {
+		toolsJSON, err := json.Marshal(tools)
+		if err != nil {
+			return LLMResponse{}, fmt.Errorf("failed to marshal tools: %w", err)
+		}
+		if err := json.Unmarshal(toolsJSON, &mcpTools); err != nil {
+			return LLMResponse{}, fmt.Errorf("failed to unmarshal tools: %w", err)
+		}
+	}
+
 	// Convert MCP tools to OpenAI format
 	var openaiTools []map[string]interface{}
-	if len(tools) > 0 {
-		for _, tool := range tools {
+	if len(mcpTools) > 0 {
+		for _, tool := range mcpTools {
 			openaiTools = append(openaiTools, map[string]interface{}{
 				"type": "function",
 				"function": map[string]interface{}{

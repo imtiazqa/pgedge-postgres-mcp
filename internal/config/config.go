@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -28,6 +29,9 @@ type Config struct {
 
 	// Embedding configuration
 	Embedding EmbeddingConfig `yaml:"embedding"`
+
+	// LLM configuration (for web client chat proxy)
+	LLM LLMConfig `yaml:"llm"`
 
 	// Secret file path (for encryption key)
 	SecretFile string `yaml:"secret_file"`
@@ -78,6 +82,20 @@ type EmbeddingConfig struct {
 	VoyageAPIKey string `yaml:"voyage_api_key"` // API key for Voyage AI (required if provider is "voyage")
 	OpenAIAPIKey string `yaml:"openai_api_key"` // API key for OpenAI (required if provider is "openai")
 	OllamaURL    string `yaml:"ollama_url"`     // URL for Ollama service (default: http://localhost:11434)
+}
+
+// LLMConfig holds LLM configuration for web client chat proxy
+type LLMConfig struct {
+	Enabled              bool    `yaml:"enabled"`                 // Whether LLM proxy is enabled (default: false)
+	Provider             string  `yaml:"provider"`                // "anthropic", "openai", or "ollama"
+	Model                string  `yaml:"model"`                   // Provider-specific model name
+	AnthropicAPIKey      string  `yaml:"anthropic_api_key"`       // API key for Anthropic (direct - discouraged, use api_key_file or env var instead)
+	AnthropicAPIKeyFile  string  `yaml:"anthropic_api_key_file"`  // Path to file containing Anthropic API key
+	OpenAIAPIKey         string  `yaml:"openai_api_key"`          // API key for OpenAI (direct - discouraged, use api_key_file or env var instead)
+	OpenAIAPIKeyFile     string  `yaml:"openai_api_key_file"`     // Path to file containing OpenAI API key
+	OllamaURL            string  `yaml:"ollama_url"`              // URL for Ollama service (default: http://localhost:11434)
+	MaxTokens            int     `yaml:"max_tokens"`              // Maximum tokens for LLM response (default: 4096)
+	Temperature          float64 `yaml:"temperature"`             // Temperature for LLM sampling (default: 0.7)
 }
 
 // LoadConfig loads configuration with proper priority:
@@ -199,6 +217,16 @@ func defaultConfig() *Config {
 			VoyageAPIKey: "",                       // Must be provided if using Voyage AI
 			OllamaURL:    "http://localhost:11434", // Default Ollama URL
 		},
+		LLM: LLMConfig{
+			Enabled:         false,                    // Disabled by default (opt-in)
+			Provider:        "anthropic",              // Default provider
+			Model:           "claude-sonnet-4-5",      // Default Anthropic model
+			AnthropicAPIKey: "",                       // Must be provided if using Anthropic
+			OpenAIAPIKey:    "",                       // Must be provided if using OpenAI
+			OllamaURL:       "http://localhost:11434", // Default Ollama URL
+			MaxTokens:       4096,                     // Default max tokens
+			Temperature:     0.7,                      // Default temperature
+		},
 		SecretFile: "", // Will be set to default path if not specified
 	}
 }
@@ -295,6 +323,38 @@ func mergeConfig(dest, src *Config) {
 		}
 		if src.Embedding.OllamaURL != "" {
 			dest.Embedding.OllamaURL = src.Embedding.OllamaURL
+		}
+	}
+
+	// LLM - merge if any LLM fields are set
+	if src.LLM.Provider != "" || src.LLM.Enabled {
+		dest.LLM.Enabled = src.LLM.Enabled
+		if src.LLM.Provider != "" {
+			dest.LLM.Provider = src.LLM.Provider
+		}
+		if src.LLM.Model != "" {
+			dest.LLM.Model = src.LLM.Model
+		}
+		if src.LLM.AnthropicAPIKey != "" {
+			dest.LLM.AnthropicAPIKey = src.LLM.AnthropicAPIKey
+		}
+		if src.LLM.AnthropicAPIKeyFile != "" {
+			dest.LLM.AnthropicAPIKeyFile = src.LLM.AnthropicAPIKeyFile
+		}
+		if src.LLM.OpenAIAPIKey != "" {
+			dest.LLM.OpenAIAPIKey = src.LLM.OpenAIAPIKey
+		}
+		if src.LLM.OpenAIAPIKeyFile != "" {
+			dest.LLM.OpenAIAPIKeyFile = src.LLM.OpenAIAPIKeyFile
+		}
+		if src.LLM.OllamaURL != "" {
+			dest.LLM.OllamaURL = src.LLM.OllamaURL
+		}
+		if src.LLM.MaxTokens != 0 {
+			dest.LLM.MaxTokens = src.LLM.MaxTokens
+		}
+		if src.LLM.Temperature != 0 {
+			dest.LLM.Temperature = src.LLM.Temperature
 		}
 	}
 
@@ -395,6 +455,39 @@ func applyEnvironmentVariables(cfg *Config) {
 	setStringFromEnvWithFallback(&cfg.Embedding.OpenAIAPIKey, "PGEDGE_OPENAI_API_KEY", "OPENAI_API_KEY")
 	setStringFromEnv(&cfg.Embedding.OllamaURL, "PGEDGE_OLLAMA_URL")
 
+	// LLM
+	setBoolFromEnv(&cfg.LLM.Enabled, "PGEDGE_LLM_ENABLED")
+	setStringFromEnv(&cfg.LLM.Provider, "PGEDGE_LLM_PROVIDER")
+	setStringFromEnv(&cfg.LLM.Model, "PGEDGE_LLM_MODEL")
+	// API key loading priority: env vars > api_key_file > direct config value
+	// 1. Try environment variables first (PGEDGE_ prefixed, then standard)
+	setStringFromEnvWithFallback(&cfg.LLM.AnthropicAPIKey, "PGEDGE_ANTHROPIC_API_KEY", "ANTHROPIC_API_KEY")
+	setStringFromEnvWithFallback(&cfg.LLM.OpenAIAPIKey, "PGEDGE_OPENAI_API_KEY", "OPENAI_API_KEY")
+	// 2. If env vars not set and api_key_file is specified, load from file
+	if cfg.LLM.AnthropicAPIKey == "" && cfg.LLM.AnthropicAPIKeyFile != "" {
+		if key, err := readAPIKeyFromFile(cfg.LLM.AnthropicAPIKeyFile); err == nil && key != "" {
+			cfg.LLM.AnthropicAPIKey = key
+		}
+		// Note: errors are silently ignored - file may not exist and that's ok
+	}
+	if cfg.LLM.OpenAIAPIKey == "" && cfg.LLM.OpenAIAPIKeyFile != "" {
+		if key, err := readAPIKeyFromFile(cfg.LLM.OpenAIAPIKeyFile); err == nil && key != "" {
+			cfg.LLM.OpenAIAPIKey = key
+		}
+		// Note: errors are silently ignored - file may not exist and that's ok
+	}
+	// 3. Direct config value (if set) is already in cfg.LLM.AnthropicAPIKey/OpenAIAPIKey from mergeConfig
+	setStringFromEnv(&cfg.LLM.OllamaURL, "PGEDGE_LLM_OLLAMA_URL")
+	setIntFromEnv(&cfg.LLM.MaxTokens, "PGEDGE_LLM_MAX_TOKENS")
+	// Temperature is a float, but we'll handle it specially
+	if val := os.Getenv("PGEDGE_LLM_TEMPERATURE"); val != "" {
+		var floatVal float64
+		_, err := fmt.Sscanf(val, "%f", &floatVal)
+		if err == nil {
+			cfg.LLM.Temperature = floatVal
+		}
+	}
+
 	// Secret file
 	setStringFromEnv(&cfg.SecretFile, "PGEDGE_SECRET_FILE")
 }
@@ -490,6 +583,38 @@ func validateConfig(cfg *Config) error {
 	}
 
 	return nil
+}
+
+// readAPIKeyFromFile reads an API key from a file
+// Returns the key with whitespace trimmed, or empty string if file doesn't exist or is empty
+func readAPIKeyFromFile(filePath string) (string, error) {
+	if filePath == "" {
+		return "", nil
+	}
+
+	// Expand tilde to home directory
+	if len(filePath) > 0 && filePath[0] == '~' {
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			return "", fmt.Errorf("failed to get home directory: %w", err)
+		}
+		filePath = filepath.Join(homeDir, filePath[1:])
+	}
+
+	// Check if file exists
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		return "", nil // File doesn't exist, return empty (not an error)
+	}
+
+	// Read file contents
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return "", fmt.Errorf("failed to read API key file %s: %w", filePath, err)
+	}
+
+	// Return trimmed contents (remove whitespace/newlines)
+	key := strings.TrimSpace(string(data))
+	return key, nil
 }
 
 // GetDefaultConfigPath returns the default config file path

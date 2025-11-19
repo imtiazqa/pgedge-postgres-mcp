@@ -12,14 +12,18 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"pgedge-postgres-mcp/internal/auth"
 	"pgedge-postgres-mcp/internal/config"
 	"pgedge-postgres-mcp/internal/database"
+	"pgedge-postgres-mcp/internal/llmproxy"
 	"pgedge-postgres-mcp/internal/mcp"
 	"pgedge-postgres-mcp/internal/resources"
 	"pgedge-postgres-mcp/internal/tools"
@@ -436,6 +440,7 @@ func main() {
 
 	if cfg.HTTP.Enabled {
 		// HTTP/HTTPS mode
+		// Create HTTP server configuration
 		httpConfig := &mcp.HTTPConfig{
 			Addr:        cfg.HTTP.Address,
 			TLSEnable:   cfg.HTTP.TLS.Enabled,
@@ -446,6 +451,65 @@ func main() {
 			TokenStore:  tokenStore,
 			UserStore:   userStore,
 			Debug:       *debug,
+		}
+
+		// Setup additional HTTP handlers
+		httpConfig.SetupHandlers = func(mux *http.ServeMux) error {
+			// User info endpoint - always available
+			mux.HandleFunc("/api/user/info", func(w http.ResponseWriter, r *http.Request) {
+				// Extract session token from Authorization header
+				authHeader := r.Header.Get("Authorization")
+				if authHeader == "" {
+					http.Error(w, "Missing Authorization header", http.StatusUnauthorized)
+					return
+				}
+
+				// Extract Bearer token
+				token := strings.TrimPrefix(authHeader, "Bearer ")
+				if token == authHeader {
+					http.Error(w, "Invalid Authorization header format", http.StatusUnauthorized)
+					return
+				}
+
+				// Validate session token and get username
+				username, err := userStore.ValidateSessionToken(token)
+				if err != nil {
+					http.Error(w, "Invalid or expired session", http.StatusUnauthorized)
+					return
+				}
+
+				// Return user info as JSON
+				w.Header().Set("Content-Type", "application/json")
+				json.NewEncoder(w).Encode(map[string]string{
+					"username": username,
+				})
+			})
+
+			// Add LLM proxy handlers if enabled
+			if cfg.LLM.Enabled {
+				// Create LLM proxy configuration
+				llmConfig := &llmproxy.Config{
+					Provider:        cfg.LLM.Provider,
+					Model:           cfg.LLM.Model,
+					AnthropicAPIKey: cfg.LLM.AnthropicAPIKey,
+					OpenAIAPIKey:    cfg.LLM.OpenAIAPIKey,
+					OllamaURL:       cfg.LLM.OllamaURL,
+					MaxTokens:       cfg.LLM.MaxTokens,
+					Temperature:     cfg.LLM.Temperature,
+				}
+
+				mux.HandleFunc("/api/llm/providers", func(w http.ResponseWriter, r *http.Request) {
+					llmproxy.HandleProviders(w, r, llmConfig)
+				})
+				mux.HandleFunc("/api/llm/models", func(w http.ResponseWriter, r *http.Request) {
+					llmproxy.HandleModels(w, r, llmConfig)
+				})
+				mux.HandleFunc("/api/llm/chat", func(w http.ResponseWriter, r *http.Request) {
+					llmproxy.HandleChat(w, r, llmConfig)
+				})
+			}
+
+			return nil
 		}
 
 		if cfg.HTTP.TLS.Enabled {
@@ -463,6 +527,12 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Authentication: ENABLED\n")
 		} else {
 			fmt.Fprintf(os.Stderr, "Authentication: DISABLED (warning: server is not secured)\n")
+		}
+
+		if cfg.LLM.Enabled {
+			fmt.Fprintf(os.Stderr, "LLM Proxy: ENABLED (provider: %s, model: %s)\n", cfg.LLM.Provider, cfg.LLM.Model)
+		} else {
+			fmt.Fprintf(os.Stderr, "LLM Proxy: DISABLED\n")
 		}
 
 		if *debug {

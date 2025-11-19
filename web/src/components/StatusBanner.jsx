@@ -25,44 +25,51 @@ import {
     ExpandLess as ExpandLessIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
+import { MCPClient } from '../lib/mcp-client';
+
+const MCP_SERVER_URL = '/mcp/v1';
 
 const StatusBanner = () => {
-    const { forceLogout } = useAuth();
+    const { sessionToken, forceLogout } = useAuth();
     const theme = useTheme();
     const [systemInfo, setSystemInfo] = useState(null);
     const [expanded, setExpanded] = useState(false);
     const [error, setError] = useState('');
 
     useEffect(() => {
-        fetchSystemInfo();
-        // Refresh every 30 seconds
-        const interval = setInterval(fetchSystemInfo, 30000);
-        return () => clearInterval(interval);
-    }, []);
+        if (sessionToken) {
+            fetchSystemInfo();
+            // Refresh every 30 seconds
+            const interval = setInterval(fetchSystemInfo, 30000);
+            return () => clearInterval(interval);
+        }
+    }, [sessionToken]);
 
     const fetchSystemInfo = async () => {
         try {
-            const response = await fetch('/api/mcp/system-info', {
-                credentials: 'include',
-            });
+            // Create MCP client with session token
+            const client = new MCPClient(MCP_SERVER_URL, sessionToken);
 
-            // Handle session invalidation
-            if (response.status === 401) {
-                console.log('Session invalidated during system info fetch, logging out...');
-                forceLogout();
-                return;
+            // Read the pg://system_info resource via JSON-RPC
+            const resource = await client.readResource('pg://system_info');
+
+            // Parse system info from resource content
+            if (!resource.contents || resource.contents.length === 0) {
+                throw new Error('No system information available');
             }
 
-            if (!response.ok) {
-                throw new Error('Failed to fetch system information');
-            }
-
-            const data = await response.json();
-            setSystemInfo(data);
+            const info = JSON.parse(resource.contents[0].text);
+            setSystemInfo(info);
             setError('');
         } catch (err) {
             console.error('System info fetch error:', err);
             setError(err.message || 'Failed to load system information');
+
+            // If this is a 401 error (session expired), log out
+            if (err.message.includes('401') || err.message.includes('Unauthorized')) {
+                console.log('Session invalidated during system info fetch, logging out...');
+                forceLogout();
+            }
 
             // If this is a network error (server disconnected), log out and show message
             if (err.message.includes('fetch') || err.message.includes('Failed to fetch')) {

@@ -2,10 +2,13 @@
 
 #--------------------------------------------------------------------------
 #
-# pgEdge MCP Web Client Startup Script
+# pgEdge MCP Web Client Development Startup Script
 #
 # Copyright (c) 2025, pgEdge, Inc.
 # This software is released under The PostgreSQL License
+#
+# Note: For production deployments, use Docker Compose instead:
+#   docker-compose up
 #
 #--------------------------------------------------------------------------
 
@@ -25,12 +28,10 @@ WEB_DIR="$SCRIPT_DIR/web"
 
 # Configuration files
 SERVER_CONFIG="$BIN_DIR/pgedge-pg-mcp-web.yaml"
-WEB_CONFIG="$BIN_DIR/pgedge-mcp-web-config.json"
 SERVER_BIN="$BIN_DIR/pgedge-pg-mcp-svr"
 
 # PID files for cleanup
 MCP_SERVER_PID=""
-BACKEND_SERVER_PID=""
 WEB_SERVER_PID=""
 
 # Cleanup function
@@ -40,11 +41,6 @@ cleanup() {
     if [ ! -z "$WEB_SERVER_PID" ]; then
         echo "Stopping Vite dev server (PID: $WEB_SERVER_PID)..."
         kill $WEB_SERVER_PID 2>/dev/null || true
-    fi
-
-    if [ ! -z "$BACKEND_SERVER_PID" ]; then
-        echo "Stopping Express backend server (PID: $BACKEND_SERVER_PID)..."
-        kill $BACKEND_SERVER_PID 2>/dev/null || true
     fi
 
     if [ ! -z "$MCP_SERVER_PID" ]; then
@@ -58,11 +54,29 @@ cleanup() {
 # Set up trap for cleanup
 trap cleanup EXIT INT TERM
 
-# Check if binaries exist
+# Build or rebuild server binary if needed
 if [ ! -f "$SERVER_BIN" ]; then
-    echo -e "${RED}Error: MCP server binary not found at $SERVER_BIN${NC}"
-    echo "Please run 'make build-server' first"
-    exit 1
+    echo -e "${BLUE}Building MCP server binary...${NC}"
+    cd "$SCRIPT_DIR"
+    make build-server
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}Error: Failed to build MCP server${NC}"
+        exit 1
+    fi
+else
+    echo -e "${BLUE}Checking if server binary needs rebuilding...${NC}"
+    # Check if any Go source files are newer than the binary
+    if [ -n "$(find "$SCRIPT_DIR/cmd/pgedge-pg-mcp-svr" "$SCRIPT_DIR/internal" -name "*.go" -newer "$SERVER_BIN" 2>/dev/null)" ]; then
+        echo -e "${BLUE}Source files changed, rebuilding MCP server...${NC}"
+        cd "$SCRIPT_DIR"
+        make build-server
+        if [ $? -ne 0 ]; then
+            echo -e "${RED}Error: Failed to build MCP server${NC}"
+            exit 1
+        fi
+    else
+        echo -e "${GREEN}Server binary is up to date${NC}"
+    fi
 fi
 
 # Check if config files exist
@@ -71,15 +85,10 @@ if [ ! -f "$SERVER_CONFIG" ]; then
     exit 1
 fi
 
-if [ ! -f "$WEB_CONFIG" ]; then
-    echo -e "${RED}Error: Web config not found at $WEB_CONFIG${NC}"
-    exit 1
-fi
-
-# Check for OpenAI API key
-if [ -z "$OPENAI_API_KEY" ]; then
-    echo -e "${YELLOW}Warning: OPENAI_API_KEY environment variable not set${NC}"
-    echo "Embedding generation may not work without it"
+# Check for API keys (needed for embeddings and LLM)
+if [ -z "$PGEDGE_ANTHROPIC_API_KEY" ] && [ -z "$PGEDGE_OPENAI_API_KEY" ]; then
+    echo -e "${YELLOW}Warning: Neither PGEDGE_ANTHROPIC_API_KEY nor PGEDGE_OPENAI_API_KEY environment variable is set${NC}"
+    echo "Embedding generation and chat may not work without API keys"
 fi
 
 # Check if web dependencies are installed
@@ -91,14 +100,14 @@ if [ ! -d "$WEB_DIR/node_modules" ]; then
 fi
 
 echo -e "${BLUE}╔════════════════════════════════════════════════════════════╗${NC}"
-echo -e "${BLUE}║         pgEdge MCP Web Client Startup                      ║${NC}"
+echo -e "${BLUE}║     pgEdge MCP Web Client Development Startup              ║${NC}"
 echo -e "${BLUE}╚════════════════════════════════════════════════════════════╝${NC}"
 echo ""
 
 # Start MCP server
-echo -e "${GREEN}[1/4] Starting MCP Server (HTTP mode with auth)...${NC}"
+echo -e "${GREEN}[1/2] Starting MCP Server (HTTP mode with auth and LLM proxy)...${NC}"
 cd "$BIN_DIR"
-PGEDGE_LLM_LOG_LEVEL="trace" "$SERVER_BIN" --config pgedge-pg-mcp-web.yaml > /tmp/pgedge-mcp-server.log 2>&1 &
+"$SERVER_BIN" --config pgedge-pg-mcp-web.yaml > /tmp/pgedge-mcp-server.log 2>&1 &
 MCP_SERVER_PID=$!
 cd "$SCRIPT_DIR"
 
@@ -119,7 +128,7 @@ if ! kill -0 $MCP_SERVER_PID 2>/dev/null; then
 fi
 
 # Wait for MCP server to be ready
-echo -e "${GREEN}[2/4] Waiting for MCP Server to be ready...${NC}"
+echo -e "${GREEN}Waiting for MCP Server to be ready...${NC}"
 MAX_RETRIES=30
 RETRY_COUNT=0
 while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
@@ -147,69 +156,15 @@ if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
     exit 1
 fi
 
-# Start Express backend server
-echo -e "${GREEN}[3/4] Starting Express Backend Server (API)...${NC}"
-cd "$WEB_DIR"
-export CONFIG_FILE="$WEB_CONFIG"
-npm run serve:dev > /tmp/pgedge-mcp-backend.log 2>&1 &
-BACKEND_SERVER_PID=$!
-cd "$SCRIPT_DIR"
-
-echo "      PID: $BACKEND_SERVER_PID"
-echo "      Port: 3001"
-echo "      Config: $WEB_CONFIG"
-echo "      Log: /tmp/pgedge-mcp-backend.log"
-
-# Wait a moment for process to stabilize
-sleep 1
-
-# Check if backend server process is still running (catch immediate failures like port conflicts)
-if ! kill -0 $BACKEND_SERVER_PID 2>/dev/null; then
-    echo -e "${RED}Error: Backend Server process exited immediately${NC}"
-    echo "This usually means port 3001 is already in use or there's a configuration error."
-    echo "Check the log file: /tmp/pgedge-mcp-backend.log"
-    tail -20 /tmp/pgedge-mcp-backend.log
-    exit 1
-fi
-
-# Wait for backend to be ready
-echo -e "${GREEN}Waiting for Backend Server to be ready...${NC}"
-MAX_RETRIES=30
-RETRY_COUNT=0
-while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-    if curl -s http://localhost:3001/api/session > /dev/null 2>&1; then
-        echo "      Backend Server is ready!"
-        break
-    fi
-
-    # Check if process is still running
-    if ! kill -0 $BACKEND_SERVER_PID 2>/dev/null; then
-        echo -e "${RED}Error: Backend Server process died during startup${NC}"
-        echo "Check the log file: /tmp/pgedge-mcp-backend.log"
-        tail -20 /tmp/pgedge-mcp-backend.log
-        exit 1
-    fi
-
-    RETRY_COUNT=$((RETRY_COUNT + 1))
-    sleep 1
-done
-
-if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
-    echo -e "${RED}Error: Backend Server failed to start within 30 seconds${NC}"
-    echo "Check the log file: /tmp/pgedge-mcp-backend.log"
-    tail -20 /tmp/pgedge-mcp-backend.log
-    exit 1
-fi
-
 # Start Vite dev server
-echo -e "${GREEN}[4/4] Starting Vite Dev Server (Frontend)...${NC}"
+echo -e "${GREEN}[2/2] Starting Vite Dev Server (Frontend)...${NC}"
 cd "$WEB_DIR"
 npm run dev > /tmp/pgedge-mcp-vite.log 2>&1 &
 WEB_SERVER_PID=$!
 cd "$SCRIPT_DIR"
 
 echo "      PID: $WEB_SERVER_PID"
-echo "      Port: 3000"
+echo "      Port: 5173 (Vite default)"
 echo "      Log: /tmp/pgedge-mcp-vite.log"
 
 # Wait a moment for process to stabilize
@@ -218,7 +173,7 @@ sleep 1
 # Check if Vite server process is still running (catch immediate failures like port conflicts)
 if ! kill -0 $WEB_SERVER_PID 2>/dev/null; then
     echo -e "${RED}Error: Vite Server process exited immediately${NC}"
-    echo "This usually means port 3000 is already in use or there's a configuration error."
+    echo "This usually means port 5173 is already in use or there's a configuration error."
     echo "Check the log file: /tmp/pgedge-mcp-vite.log"
     tail -20 /tmp/pgedge-mcp-vite.log
     exit 1
@@ -254,27 +209,28 @@ fi
 
 echo ""
 echo -e "${GREEN}╔════════════════════════════════════════════════════════════╗${NC}"
-echo -e "${GREEN}║  ✓ pgEdge MCP Web Client is now running!                  ║${NC}"
+echo -e "${GREEN}║  ✓ pgEdge MCP Web Client Development is now running!       ║${NC}"
 echo -e "${GREEN}╚════════════════════════════════════════════════════════════╝${NC}"
 echo ""
 echo -e "${BLUE}Services:${NC}"
 echo "  • MCP Server:     http://localhost:8080"
-echo "  • Backend API:    http://localhost:3001"
-echo "  • Web Interface:  http://localhost:3000"
+echo "  • Web Interface:  http://localhost:5173"
 echo ""
 echo -e "${BLUE}Logs:${NC}"
 echo "  • MCP Server:     /tmp/pgedge-mcp-server.log"
-echo "  • Backend API:    /tmp/pgedge-mcp-backend.log (includes tool/resource activity)"
 echo "  • Vite Dev:       /tmp/pgedge-mcp-vite.log"
 echo ""
 echo -e "${BLUE}Login Credentials (for web interface):${NC}"
 echo "  • Username: dpage"
 echo "  • Password: (as configured in bin/pgedge-pg-mcp-svr-users.yaml)"
 echo ""
-echo -e "${BLUE}Authentication:${NC}"
-echo "  • MCP Server supports both API tokens and user authentication"
-echo "  • Web interface uses user authentication (username/password)"
-echo "  • API clients can use tokens from pgedge-pg-mcp-svr-tokens.yaml"
+echo -e "${BLUE}Architecture:${NC}"
+echo "  • Web client communicates directly with MCP server via JSON-RPC"
+echo "  • LLM API keys are stored server-side (configured in MCP server YAML)"
+echo "  • MCP server provides tool/resource access and LLM proxy endpoints"
+echo ""
+echo -e "${YELLOW}Note: For production deployments, use Docker Compose:${NC}"
+echo "  docker-compose up"
 echo ""
 echo -e "${YELLOW}Press Ctrl+C to stop all services${NC}"
 echo ""
