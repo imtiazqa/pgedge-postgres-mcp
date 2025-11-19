@@ -241,6 +241,17 @@ golangci-lint run
 ./bin/pgedge-pg-mcp-svr
 ```
 
+#### Web UI Tests
+
+The web UI has a comprehensive test suite. See [web/TEST_SUMMARY.md](web/TEST_SUMMARY.md) for details.
+
+```bash
+cd web
+npm test                # Run all tests
+npm run test:watch      # Watch mode
+npm run test:coverage   # With coverage
+```
+
 ## Security
 
 - ✅ Read-only transaction enforcement

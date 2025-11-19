@@ -17,14 +17,26 @@ describe('AuthContext', () => {
     global.fetch = vi.fn();
   });
 
-  it('provides initial unauthenticated state', () => {
+  it('provides initial unauthenticated state', async () => {
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        authenticated: false,
+      }),
+    });
+
     const { result } = renderHook(() => useAuth(), {
       wrapper: AuthProvider,
     });
 
-    expect(result.current.isAuthenticated).toBe(false);
     expect(result.current.user).toBe(null);
     expect(result.current.loading).toBe(true); // Loading while checking auth status
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(result.current.user).toBe(null);
   });
 
   it('checks authentication status on mount', async () => {
@@ -44,9 +56,8 @@ describe('AuthContext', () => {
       expect(result.current.loading).toBe(false);
     });
 
-    expect(result.current.isAuthenticated).toBe(true);
     expect(result.current.user).toBe('testuser');
-    expect(global.fetch).toHaveBeenCalledWith('/api/auth/status', expect.any(Object));
+    expect(global.fetch).toHaveBeenCalledWith('/api/session', expect.any(Object));
   });
 
   it('handles login successfully', async () => {
@@ -76,8 +87,9 @@ describe('AuthContext', () => {
 
     await result.current.login('testuser', 'testpass');
 
-    expect(result.current.isAuthenticated).toBe(true);
-    expect(result.current.user).toBe('testuser');
+    await waitFor(() => {
+      expect(result.current.user).toBe('testuser');
+    });
   });
 
   it('throws error on login failure', async () => {
@@ -109,7 +121,7 @@ describe('AuthContext', () => {
       'Invalid credentials'
     );
 
-    expect(result.current.isAuthenticated).toBe(false);
+    expect(result.current.user).toBe(null);
   });
 
   it('handles logout successfully', async () => {
@@ -127,7 +139,7 @@ describe('AuthContext', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.isAuthenticated).toBe(true);
+      expect(result.current.user).toBe('testuser');
     });
 
     // Mock logout response
@@ -138,7 +150,8 @@ describe('AuthContext', () => {
 
     await result.current.logout();
 
-    expect(result.current.isAuthenticated).toBe(false);
-    expect(result.current.user).toBe(null);
+    await waitFor(() => {
+      expect(result.current.user).toBe(null);
+    });
   });
 });

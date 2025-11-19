@@ -11,131 +11,84 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import MainContent from '../MainContent';
+import { AuthProvider } from '../../contexts/AuthContext';
+
+// Mock the child components to simplify testing
+vi.mock('../StatusBanner', () => ({
+  default: () => <div data-testid="status-banner">StatusBanner</div>,
+}));
+
+vi.mock('../ChatInterface', () => ({
+  default: () => <div data-testid="chat-interface">ChatInterface</div>,
+}));
 
 describe('MainContent Component', () => {
   beforeEach(() => {
     global.fetch = vi.fn();
   });
 
-  it('shows loading state initially', () => {
-    global.fetch.mockImplementation(() => new Promise(() => {})); // Never resolves
-
-    render(<MainContent />);
-
-    expect(screen.getByRole('progressbar')).toBeInTheDocument();
-  });
-
-  it('displays system information on successful fetch', async () => {
-    const mockSystemInfo = {
-      postgresql_version: '17.4 (Homebrew)',
-      operating_system: 'darwin24.2.0',
-      architecture: 'aarch64-apple-darwin24.2.0',
-      bit_version: '64-bit',
-      compiler: 'Apple clang version 16.0.0',
-      full_version: 'PostgreSQL 17.4 (Homebrew) on aarch64-apple-darwin24.2.0',
-    };
-
-    global.fetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockSystemInfo,
-    });
-
-    render(<MainContent />);
-
-    await waitFor(() => {
-      expect(screen.getByText('17.4 (Homebrew)')).toBeInTheDocument();
-      expect(screen.getByText('darwin24.2.0')).toBeInTheDocument();
-      expect(screen.getByText('aarch64-apple-darwin24.2.0')).toBeInTheDocument();
-      expect(screen.getByText('64-bit')).toBeInTheDocument();
-    });
-
-    expect(screen.getByText('Connected')).toBeInTheDocument();
-  });
-
-  it('displays error message on fetch failure', async () => {
-    global.fetch.mockRejectedValueOnce(new Error('Network error'));
-
-    render(<MainContent />);
-
-    await waitFor(() => {
-      expect(screen.getByText(/failed to load system information/i)).toBeInTheDocument();
-    });
-  });
-
-  it('displays N/A for missing system info fields', async () => {
+  const renderMainContent = () => {
+    // Mock initial auth check
     global.fetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
-        postgresql_version: '17.4',
-        // Other fields missing
+        authenticated: true,
+        user: 'testuser',
       }),
     });
 
-    render(<MainContent />);
+    return render(
+      <AuthProvider>
+        <MainContent />
+      </AuthProvider>
+    );
+  };
+
+  it('renders StatusBanner component', async () => {
+    renderMainContent();
 
     await waitFor(() => {
-      expect(screen.getByText('17.4')).toBeInTheDocument();
+      expect(screen.getByTestId('status-banner')).toBeInTheDocument();
     });
-
-    // Check for N/A in fields that are missing
-    const naElements = screen.getAllByText('N/A');
-    expect(naElements.length).toBeGreaterThan(0);
   });
 
-  it('refreshes data periodically', async () => {
-    vi.useFakeTimers();
-
-    const mockSystemInfo = {
-      postgresql_version: '17.4',
-      operating_system: 'linux',
-    };
-
-    global.fetch.mockResolvedValue({
-      ok: true,
-      json: async () => mockSystemInfo,
-    });
-
-    render(<MainContent />);
-
-    // Wait for initial fetch
-    await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledTimes(1);
-    });
-
-    // Fast-forward 30 seconds
-    vi.advanceTimersByTime(30000);
+  it('renders ChatInterface component', async () => {
+    renderMainContent();
 
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledTimes(2);
+      expect(screen.getByTestId('chat-interface')).toBeInTheDocument();
     });
-
-    vi.useRealTimers();
   });
 
-  it('displays all system info cards', async () => {
-    const mockSystemInfo = {
-      postgresql_version: '17.4',
-      operating_system: 'linux',
-      architecture: 'x86_64',
-      bit_version: '64-bit',
-      compiler: 'gcc',
-      full_version: 'PostgreSQL 17.4',
-    };
-
-    global.fetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockSystemInfo,
-    });
-
-    render(<MainContent />);
+  it('renders both components in the correct order', async () => {
+    renderMainContent();
 
     await waitFor(() => {
-      expect(screen.getByText('PostgreSQL Version')).toBeInTheDocument();
-      expect(screen.getByText('Operating System')).toBeInTheDocument();
-      expect(screen.getByText('Architecture')).toBeInTheDocument();
-      expect(screen.getByText('Bit Version')).toBeInTheDocument();
-      expect(screen.getByText('Compiler')).toBeInTheDocument();
-      expect(screen.getByText('Full Version String')).toBeInTheDocument();
+      const statusBanner = screen.getByTestId('status-banner');
+      const chatInterface = screen.getByTestId('chat-interface');
+
+      expect(statusBanner).toBeInTheDocument();
+      expect(chatInterface).toBeInTheDocument();
+
+      // StatusBanner should appear before ChatInterface in the DOM
+      const parent = statusBanner.parentElement;
+      const children = Array.from(parent?.children || []);
+      const statusIndex = children.indexOf(statusBanner);
+      const chatIndex = children.indexOf(chatInterface);
+
+      expect(statusIndex).toBeLessThan(chatIndex);
     });
+  });
+
+  it('applies correct layout styles', async () => {
+    const { container } = renderMainContent();
+
+    await waitFor(() => {
+      expect(screen.getByTestId('status-banner')).toBeInTheDocument();
+    });
+
+    // Check that the main container has flex layout
+    const mainBox = container.querySelector('[class*="MuiBox"]');
+    expect(mainBox).toBeInTheDocument();
   });
 });

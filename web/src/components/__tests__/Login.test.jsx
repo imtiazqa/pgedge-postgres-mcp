@@ -14,131 +14,239 @@ import userEvent from '@testing-library/user-event';
 import Login from '../Login';
 import { AuthProvider } from '../../contexts/AuthContext';
 
-// Mock useNavigate
-const mockNavigate = vi.fn();
-vi.mock('react-router-dom', () => ({
-  useNavigate: () => mockNavigate,
-}));
-
 describe('Login Component', () => {
-  beforeEach(() => {
-    mockNavigate.mockClear();
-    global.fetch = vi.fn();
-  });
-
-  const renderLogin = () => {
-    return render(
-      <AuthProvider>
-        <Login />
-      </AuthProvider>
-    );
-  };
-
-  it('renders login form', () => {
-    renderLogin();
-
-    expect(screen.getByRole('heading', { name: /sign in/i })).toBeInTheDocument();
-    expect(screen.getByLabelText(/username/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
-  });
-
-  it('disables submit button while loading', async () => {
-    renderLogin();
-
-    const submitButton = screen.getByRole('button', { name: /sign in/i });
-    const usernameInput = screen.getByLabelText(/username/i);
-    const passwordInput = screen.getByLabelText(/password/i);
-
-    // Mock delayed response
-    global.fetch.mockImplementation(() =>
-      new Promise(resolve => setTimeout(resolve, 100))
-    );
-
-    await userEvent.type(usernameInput, 'testuser');
-    await userEvent.type(passwordInput, 'testpass');
-    await userEvent.click(submitButton);
-
-    expect(submitButton).toBeDisabled();
-  });
-
-  it('shows error message on login failure', async () => {
-    renderLogin();
-
-    global.fetch.mockResolvedValueOnce({
-      ok: false,
-      json: async () => ({ message: 'Invalid credentials' }),
+    beforeEach(() => {
+        global.fetch = vi.fn();
+        sessionStorage.clear();
     });
 
-    const usernameInput = screen.getByLabelText(/username/i);
-    const passwordInput = screen.getByLabelText(/password/i);
-    const submitButton = screen.getByRole('button', { name: /sign in/i });
+    const renderLogin = () => {
+        // Mock initial auth check that AuthProvider makes on mount
+        global.fetch.mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({ authenticated: false }),
+        });
 
-    await userEvent.type(usernameInput, 'testuser');
-    await userEvent.type(passwordInput, 'wrongpass');
-    await userEvent.click(submitButton);
+        return render(
+            <AuthProvider>
+                <Login />
+            </AuthProvider>
+        );
+    };
 
-    await waitFor(() => {
-      expect(screen.getByText(/invalid credentials/i)).toBeInTheDocument();
-    });
-  });
+    it('renders login form', async () => {
+        renderLogin();
 
-  it('navigates to dashboard on successful login', async () => {
-    renderLogin();
+        await waitFor(() => {
+            expect(screen.getByRole('heading', { name: /mcp client/i })).toBeInTheDocument();
+        });
 
-    global.fetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ user: 'testuser' }),
-    });
-
-    const usernameInput = screen.getByLabelText(/username/i);
-    const passwordInput = screen.getByLabelText(/password/i);
-    const submitButton = screen.getByRole('button', { name: /sign in/i });
-
-    await userEvent.type(usernameInput, 'testuser');
-    await userEvent.type(passwordInput, 'correctpass');
-    await userEvent.click(submitButton);
-
-    await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('/');
-    });
-  });
-
-  it('validates required fields', async () => {
-    renderLogin();
-
-    const submitButton = screen.getByRole('button', { name: /sign in/i });
-    await userEvent.click(submitButton);
-
-    // Form should not submit with empty fields
-    expect(global.fetch).not.toHaveBeenCalled();
-  });
-
-  it('clears error on input change', async () => {
-    renderLogin();
-
-    // Trigger an error first
-    global.fetch.mockResolvedValueOnce({
-      ok: false,
-      json: async () => ({ message: 'Invalid credentials' }),
+        expect(screen.getByText(/sign in to continue/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/username/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
     });
 
-    const usernameInput = screen.getByLabelText(/username/i);
-    const passwordInput = screen.getByLabelText(/password/i);
-    const submitButton = screen.getByRole('button', { name: /sign in/i });
+    it('disables submit button while loading', async () => {
+        renderLogin();
 
-    await userEvent.type(usernameInput, 'testuser');
-    await userEvent.type(passwordInput, 'wrongpass');
-    await userEvent.click(submitButton);
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
+        });
 
-    await waitFor(() => {
-      expect(screen.getByText(/invalid credentials/i)).toBeInTheDocument();
+        const submitButton = screen.getByRole('button', { name: /sign in/i });
+        const usernameInput = screen.getByLabelText(/username/i);
+        const passwordInput = screen.getByLabelText(/password/i);
+
+        // Mock delayed response for login
+        global.fetch.mockImplementationOnce(() =>
+            new Promise(resolve =>
+                setTimeout(() => {
+                    resolve({
+                        ok: true,
+                        json: async () => ({ user: 'testuser' }),
+                    });
+                }, 100)
+            )
+        );
+
+        await userEvent.type(usernameInput, 'testuser');
+        await userEvent.type(passwordInput, 'testpass');
+        await userEvent.click(submitButton);
+
+        // Button should be disabled and show loading text
+        await waitFor(() => {
+            expect(submitButton).toBeDisabled();
+            expect(screen.getByText(/signing in\.\.\./i)).toBeInTheDocument();
+        });
     });
 
-    // Type in username field
-    await userEvent.type(usernameInput, 'a');
+    it('shows error message on login failure', async () => {
+        renderLogin();
 
-    // Error should be cleared
-    expect(screen.queryByText(/invalid credentials/i)).not.toBeInTheDocument();
-  });
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
+        });
+
+        // Mock login failure
+        global.fetch.mockResolvedValueOnce({
+            ok: false,
+            json: async () => ({ message: 'Invalid credentials' }),
+        });
+
+        const usernameInput = screen.getByLabelText(/username/i);
+        const passwordInput = screen.getByLabelText(/password/i);
+        const submitButton = screen.getByRole('button', { name: /sign in/i });
+
+        await userEvent.type(usernameInput, 'testuser');
+        await userEvent.type(passwordInput, 'wrongpass');
+        await userEvent.click(submitButton);
+
+        await waitFor(() => {
+            expect(screen.getByText(/invalid credentials/i)).toBeInTheDocument();
+        });
+
+        // Button should be re-enabled after login fails
+        expect(submitButton).not.toBeDisabled();
+    });
+
+    it('handles successful login', async () => {
+        renderLogin();
+
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
+        });
+
+        // Mock successful login
+        global.fetch.mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({ user: 'testuser' }),
+        });
+
+        const usernameInput = screen.getByLabelText(/username/i);
+        const passwordInput = screen.getByLabelText(/password/i);
+        const submitButton = screen.getByRole('button', { name: /sign in/i });
+
+        await userEvent.type(usernameInput, 'testuser');
+        await userEvent.type(passwordInput, 'correctpass');
+        await userEvent.click(submitButton);
+
+        // Wait for login to complete
+        await waitFor(() => {
+            expect(submitButton).not.toBeDisabled();
+        });
+
+        // Verify login was called with correct credentials
+        expect(global.fetch).toHaveBeenCalledWith(
+            '/api/login',
+            expect.objectContaining({
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ username: 'testuser', password: 'correctpass' }),
+            })
+        );
+    });
+
+    it('allows submission with empty fields (no client-side validation)', async () => {
+        renderLogin();
+
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
+        });
+
+        // Mock server error for empty credentials
+        global.fetch.mockResolvedValueOnce({
+            ok: false,
+            json: async () => ({ message: 'Username and password are required' }),
+        });
+
+        const submitButton = screen.getByRole('button', { name: /sign in/i });
+        await userEvent.click(submitButton);
+
+        // Form submits even with empty fields (server handles validation)
+        await waitFor(() => {
+            expect(global.fetch).toHaveBeenCalledWith(
+                '/api/login',
+                expect.objectContaining({
+                    method: 'POST',
+                })
+            );
+        });
+    });
+
+    it('displays warning message from sessionStorage on mount', async () => {
+        sessionStorage.setItem('disconnectMessage', 'You have been disconnected');
+
+        global.fetch.mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({ authenticated: false }),
+        });
+
+        render(
+            <AuthProvider>
+                <Login />
+            </AuthProvider>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText(/you have been disconnected/i)).toBeInTheDocument();
+        });
+
+        // Message should be removed from sessionStorage
+        expect(sessionStorage.getItem('disconnectMessage')).toBeNull();
+    });
+
+    it('clears warning and error messages on new submission', async () => {
+        sessionStorage.setItem('disconnectMessage', 'You have been disconnected');
+
+        global.fetch.mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({ authenticated: false }),
+        });
+
+        render(
+            <AuthProvider>
+                <Login />
+            </AuthProvider>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText(/you have been disconnected/i)).toBeInTheDocument();
+        });
+
+        // Now trigger a login failure to show error
+        global.fetch.mockResolvedValueOnce({
+            ok: false,
+            json: async () => ({ message: 'Invalid credentials' }),
+        });
+
+        const usernameInput = screen.getByLabelText(/username/i);
+        const passwordInput = screen.getByLabelText(/password/i);
+        const submitButton = screen.getByRole('button', { name: /sign in/i });
+
+        await userEvent.type(usernameInput, 'test');
+        await userEvent.type(passwordInput, 'test');
+        await userEvent.click(submitButton);
+
+        await waitFor(() => {
+            expect(screen.getByText(/invalid credentials/i)).toBeInTheDocument();
+        });
+
+        // Warning should be cleared, only error should remain
+        expect(screen.queryByText(/you have been disconnected/i)).not.toBeInTheDocument();
+
+        // Now submit again with success
+        global.fetch.mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({ user: 'testuser' }),
+        });
+
+        await userEvent.click(submitButton);
+
+        // Wait for submission and verify error is cleared
+        await waitFor(() => {
+            expect(screen.queryByText(/invalid credentials/i)).not.toBeInTheDocument();
+        });
+    });
 });
