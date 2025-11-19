@@ -15,7 +15,7 @@ import ChatInterface from './ChatInterface';
 
 const MainContent = () => {
     return (
-        <Box>
+        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
             <StatusBanner />
             <ChatInterface />
         </Box>

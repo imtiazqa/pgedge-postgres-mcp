@@ -665,8 +665,8 @@ const ChatInterface = () => {
             sx={{
                 display: 'flex',
                 flexDirection: 'column',
-                height: 'calc(100vh - 200px)',
-                minHeight: '500px',
+                flex: 1,
+                minHeight: 0,
             }}
         >
             {/* Chat Messages Area */}
@@ -676,7 +676,7 @@ const ChatInterface = () => {
                     flex: 1,
                     overflow: 'auto',
                     p: 2,
-                    mb: 2,
+                    mb: 1,
                     bgcolor: 'background.paper',
                     position: 'relative',
                 }}
@@ -862,7 +862,7 @@ const ChatInterface = () => {
 
             {/* Error Display */}
             {error && (
-                <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
+                <Alert severity="error" sx={{ mb: 1 }} onClose={() => setError('')}>
                     {error}
                 </Alert>
             )}
