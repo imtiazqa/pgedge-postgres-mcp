@@ -8,7 +8,7 @@
  *-------------------------------------------------------------------------
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
     Box,
     Paper,
@@ -23,6 +23,8 @@ import {
     InputLabel,
     Select,
     MenuItem,
+    FormControlLabel,
+    Switch,
 } from '@mui/material';
 import {
     Send as SendIcon,
@@ -112,6 +114,11 @@ const ChatInterface = () => {
         return localStorage.getItem('llm-model') || '';
     });
     const [loadingModels, setLoadingModels] = useState(false);
+    const [showActivity, setShowActivity] = useState(() => {
+        // Load saved activity display preference from localStorage (default to true)
+        const saved = localStorage.getItem('show-activity');
+        return saved === null ? true : saved === 'true';
+    });
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -215,6 +222,11 @@ const ChatInterface = () => {
             console.error('Error saving query history:', error);
         }
     }, [queryHistory]);
+
+    // Save activity display preference to localStorage when it changes
+    useEffect(() => {
+        localStorage.setItem('show-activity', showActivity.toString());
+    }, [showActivity]);
 
     // Fetch available providers on mount
     useEffect(() => {
@@ -542,6 +554,7 @@ const ChatInterface = () => {
             // Replace thinking message with final response
             if (finalResponse) {
                 setMessages(prev => {
+                    const thinkingMsg = prev[prev.length - 1];
                     const newMessages = prev.slice(0, -1); // Remove thinking message
                     return [...newMessages, {
                         role: 'assistant',
@@ -549,7 +562,8 @@ const ChatInterface = () => {
                         timestamp: new Date().toISOString(),
                         provider: selectedProvider,
                         model: selectedModel,
-                        activity: finalResponse.activity || [],
+                        // Use accumulated activity from thinking message (SSE stream) instead of finalResponse
+                        activity: thinkingMsg?.activity || finalResponse.activity || [],
                     }];
                 });
             } else {
@@ -691,7 +705,7 @@ const ChatInterface = () => {
                     </Box>
                 ) : (
                     <Box>
-                        {messages.map((message, index) => (
+                        {useMemo(() => messages.map((message, index) => (
                             <Box
                                 key={index}
                                 sx={{
@@ -735,7 +749,7 @@ const ChatInterface = () => {
                                                 : 'Assistant'
                                         }
                                     </Typography>
-                                    {message.role === 'assistant' && message.activity && message.activity.length > 0 && (
+                                    {showActivity && message.role === 'assistant' && message.activity && message.activity.length > 0 && (
                                         <Box sx={{ mb: 1 }}>
                                             {message.activity.map((activity, idx) => (
                                                 <Typography
@@ -802,7 +816,7 @@ const ChatInterface = () => {
                                     </Paper>
                                 </Box>
                             </Box>
-                        ))}
+                        )), [messages, showActivity, thinkingMessage, theme])}
                         <div ref={messagesEndRef} />
                     </Box>
                 )}
@@ -868,7 +882,7 @@ const ChatInterface = () => {
                 </Box>
 
                 {/* Provider and Model Selection Row */}
-                <Box sx={{ display: 'flex', gap: 2 }}>
+                <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
                     <FormControl sx={{ minWidth: 200 }} size="small">
                         <InputLabel id="provider-select-label">Provider</InputLabel>
                         <Select
@@ -905,6 +919,18 @@ const ChatInterface = () => {
                             ))}
                         </Select>
                     </FormControl>
+
+                    <FormControlLabel
+                        control={
+                            <Switch
+                                checked={showActivity}
+                                onChange={(e) => setShowActivity(e.target.checked)}
+                                size="small"
+                            />
+                        }
+                        label="Show Activity"
+                        sx={{ ml: 1, whiteSpace: 'nowrap' }}
+                    />
                 </Box>
             </Paper>
         </Box>
