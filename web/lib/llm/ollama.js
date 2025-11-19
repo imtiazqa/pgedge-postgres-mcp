@@ -184,4 +184,34 @@ IMPORTANT INSTRUCTIONS:
         }
         return JSON.stringify(content);
     }
+
+    /**
+     * List available models from Ollama
+     * @returns {Promise<Array>} Array of model objects with name and details
+     */
+    async listModels() {
+        try {
+            const response = await fetch(`${this.baseURL}/api/tags`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            // Ollama returns { models: [ ... ] }
+            return (data.models || []).map(model => ({
+                name: model.name,
+                size: model.size,
+                modified_at: model.modified_at,
+            }));
+        } catch (error) {
+            console.error('Error listing Ollama models:', error);
+            throw error;
+        }
+    }
 }

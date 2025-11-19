@@ -204,6 +204,65 @@ app.get('/api/session', (req, res) => {
   }
 });
 
+// Get available LLM providers
+app.get('/api/llm/providers', requireAuth, async (req, res) => {
+  try {
+    const providers = [];
+
+    // Check which providers are configured
+    if (config.llm.anthropicAPIKey) {
+      providers.push({
+        name: 'anthropic',
+        display: 'Anthropic Claude',
+        isDefault: config.llm.provider.toLowerCase() === 'anthropic',
+      });
+    }
+
+    if (config.llm.openaiAPIKey) {
+      providers.push({
+        name: 'openai',
+        display: 'OpenAI',
+        isDefault: config.llm.provider.toLowerCase() === 'openai',
+      });
+    }
+
+    if (config.llm.ollamaURL) {
+      providers.push({
+        name: 'ollama',
+        display: 'Ollama',
+        isDefault: config.llm.provider.toLowerCase() === 'ollama',
+      });
+    }
+
+    res.json({ providers, defaultModel: config.llm.model });
+  } catch (error) {
+    console.error('Get providers error:', error);
+    res.status(500).json({ message: error.message || 'Failed to get providers' });
+  }
+});
+
+// Get available models for a provider
+app.get('/api/llm/models', requireAuth, async (req, res) => {
+  try {
+    const { provider } = req.query;
+
+    if (!provider) {
+      return res.status(400).json({ message: 'Provider parameter is required' });
+    }
+
+    // Create temporary LLM client for the requested provider
+    const tempConfig = { ...config.llm, provider };
+    const { createLLMClient } = await import('./lib/llm/index.js');
+    const client = createLLMClient(tempConfig);
+
+    const models = await client.listModels();
+    res.json({ models });
+  } catch (error) {
+    console.error('Get models error:', error);
+    res.status(500).json({ message: error.message || 'Failed to get models' });
+  }
+});
+
 // Get system info from MCP server
 app.get('/api/mcp/system-info', requireAuth, async (req, res) => {
   try {
@@ -241,13 +300,25 @@ app.get('/api/mcp/system-info', requireAuth, async (req, res) => {
 app.post('/api/chat', requireAuth, async (req, res) => {
   console.log('=== CHAT ENDPOINT CALLED ===');
   console.log('Message:', req.body.message);
+  console.log('Provider:', req.body.provider);
+  console.log('Model:', req.body.model);
   try {
-    const { message } = req.body;
+    const { message, provider, model } = req.body;
 
     if (!message || !message.trim()) {
       console.log('ERROR: Message is empty');
       return res.status(400).json({ message: 'Message is required' });
     }
+
+    // Create custom config with selected provider and model, or use defaults
+    const chatConfig = { ...config };
+    if (provider) {
+      chatConfig.llm = { ...chatConfig.llm, provider };
+    }
+    if (model) {
+      chatConfig.llm = { ...chatConfig.llm, model };
+    }
+    console.log('Using provider:', chatConfig.llm.provider, 'model:', chatConfig.llm.model);
 
     // Initialize conversation history in session if not exists
     if (!req.session.conversationHistory) {
@@ -257,11 +328,11 @@ app.post('/api/chat', requireAuth, async (req, res) => {
 
     // Create MCP client
     console.log('Creating MCP client...');
-    const mcpClient = new MCPClient(config.mcpServer.url, req.session.mcpToken);
+    const mcpClient = new MCPClient(chatConfig.mcpServer.url, req.session.mcpToken);
 
-    // Create chat agent
+    // Create chat agent with custom config
     console.log('Creating ChatAgent...');
-    const agent = new ChatAgent(config, mcpClient);
+    const agent = new ChatAgent(chatConfig, mcpClient);
 
     // Initialize agent (fetch tools and resources)
     console.log('Initializing agent...');

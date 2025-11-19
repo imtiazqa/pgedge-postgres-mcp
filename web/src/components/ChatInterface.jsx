@@ -19,6 +19,10 @@ import {
     Alert,
     Button,
     useTheme,
+    FormControl,
+    InputLabel,
+    Select,
+    MenuItem,
 } from '@mui/material';
 import {
     Send as SendIcon,
@@ -72,6 +76,13 @@ const ChatInterface = () => {
     const [historyIndex, setHistoryIndex] = useState(-1);
     const [tempInput, setTempInput] = useState('');
 
+    // Provider and model selection state
+    const [providers, setProviders] = useState([]);
+    const [selectedProvider, setSelectedProvider] = useState('');
+    const [models, setModels] = useState([]);
+    const [selectedModel, setSelectedModel] = useState('');
+    const [loadingModels, setLoadingModels] = useState(false);
+
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     };
@@ -100,6 +111,71 @@ const ChatInterface = () => {
     useEffect(() => {
         return () => stopThinking();
     }, []);
+
+    // Fetch available providers on mount
+    useEffect(() => {
+        const fetchProviders = async () => {
+            try {
+                const response = await fetch('/api/llm/providers', {
+                    credentials: 'include',
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch providers');
+                }
+
+                const data = await response.json();
+                setProviders(data.providers || []);
+
+                // Set default provider and model
+                const defaultProvider = data.providers.find(p => p.isDefault);
+                if (defaultProvider) {
+                    setSelectedProvider(defaultProvider.name);
+                    setSelectedModel(data.defaultModel || '');
+                }
+            } catch (error) {
+                console.error('Error fetching providers:', error);
+            }
+        };
+
+        fetchProviders();
+    }, []);
+
+    // Fetch available models when provider changes
+    useEffect(() => {
+        if (!selectedProvider) return;
+
+        const fetchModels = async () => {
+            setLoadingModels(true);
+            try {
+                const response = await fetch(`/api/llm/models?provider=${selectedProvider}`, {
+                    credentials: 'include',
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch models');
+                }
+
+                const data = await response.json();
+                setModels(data.models || []);
+
+                // Set the first model as selected if current model is not in the list
+                if (data.models.length > 0) {
+                    const currentModelExists = data.models.some(m => m.name === selectedModel);
+                    if (!currentModelExists) {
+                        setSelectedModel(data.models[0].name);
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching models:', error);
+                setModels([]);
+            } finally {
+                setLoadingModels(false);
+            }
+        };
+
+        fetchModels();
+    }, [selectedProvider]);
 
     // Custom components for rendering markdown
     const markdownComponents = {
@@ -233,6 +309,8 @@ const ChatInterface = () => {
                 credentials: 'include',
                 body: JSON.stringify({
                     message: userMessage.content,
+                    provider: selectedProvider,
+                    model: selectedModel,
                 }),
             });
 
@@ -521,52 +599,92 @@ const ChatInterface = () => {
                 elevation={2}
                 sx={{
                     p: 2,
-                    display: 'flex',
-                    gap: 1,
-                    alignItems: 'center',
                 }}
             >
-                <TextField
-                    fullWidth
-                    multiline
-                    maxRows={4}
-                    variant="outlined"
-                    placeholder="Type your message..."
-                    value={input}
-                    onChange={(e) => {
-                        setInput(e.target.value);
-                        // Reset history navigation when user types
-                        if (historyIndex !== -1) {
-                            setHistoryIndex(-1);
-                            setTempInput('');
-                        }
-                    }}
-                    onKeyDown={handleKeyDown}
-                    disabled={loading}
-                    sx={{
-                        '& .MuiOutlinedInput-root': {
-                            borderRadius: 2,
-                        },
-                    }}
-                />
-                <IconButton
-                    color="primary"
-                    onClick={handleSend}
-                    disabled={!input.trim() || loading}
-                    sx={{
-                        bgcolor: 'primary.main',
-                        color: 'white',
-                        '&:hover': {
-                            bgcolor: 'primary.dark',
-                        },
-                        '&.Mui-disabled': {
-                            bgcolor: 'action.disabledBackground',
-                            color: 'action.disabled',
-                        },
-                    }}
-                >
-                    <SendIcon />
-                </IconButton>
+                {/* Text Input Row */}
+                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 2 }}>
+                    <TextField
+                        fullWidth
+                        multiline
+                        maxRows={4}
+                        variant="outlined"
+                        placeholder="Type your message..."
+                        value={input}
+                        onChange={(e) => {
+                            setInput(e.target.value);
+                            // Reset history navigation when user types
+                            if (historyIndex !== -1) {
+                                setHistoryIndex(-1);
+                                setTempInput('');
+                            }
+                        }}
+                        onKeyDown={handleKeyDown}
+                        disabled={loading}
+                        sx={{
+                            '& .MuiOutlinedInput-root': {
+                                borderRadius: 2,
+                            },
+                        }}
+                    />
+                    <IconButton
+                        color="primary"
+                        onClick={handleSend}
+                        disabled={!input.trim() || loading}
+                        sx={{
+                            bgcolor: 'primary.main',
+                            color: 'white',
+                            '&:hover': {
+                                bgcolor: 'primary.dark',
+                            },
+                            '&.Mui-disabled': {
+                                bgcolor: 'action.disabledBackground',
+                                color: 'action.disabled',
+                            },
+                        }}
+                    >
+                        <SendIcon />
+                    </IconButton>
+                </Box>
+
+                {/* Provider and Model Selection Row */}
+                <Box sx={{ display: 'flex', gap: 2 }}>
+                    <FormControl sx={{ minWidth: 200 }} size="small">
+                        <InputLabel id="provider-select-label">Provider</InputLabel>
+                        <Select
+                            labelId="provider-select-label"
+                            id="provider-select"
+                            value={selectedProvider}
+                            label="Provider"
+                            onChange={(e) => setSelectedProvider(e.target.value)}
+                            disabled={loading}
+                        >
+                            {providers.map((provider) => (
+                                <MenuItem key={provider.name} value={provider.name}>
+                                    {provider.display}
+                                </MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
+
+                    <FormControl sx={{ minWidth: 300, flex: 1 }} size="small">
+                        <InputLabel id="model-select-label">Model</InputLabel>
+                        <Select
+                            labelId="model-select-label"
+                            id="model-select"
+                            value={selectedModel}
+                            label="Model"
+                            onChange={(e) => setSelectedModel(e.target.value)}
+                            disabled={loading || loadingModels}
+                        >
+                            {models.map((model) => (
+                                <MenuItem key={model.name} value={model.name}>
+                                    {model.name}
+                                    {model.description && ` - ${model.description}`}
+                                </MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
+                </Box>
             </Paper>
         </Box>
     );

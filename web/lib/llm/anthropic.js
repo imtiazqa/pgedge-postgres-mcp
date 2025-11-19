@@ -106,4 +106,22 @@ export class AnthropicClient {
             usage: data.usage,
         };
     }
+
+    /**
+     * List available Anthropic Claude models
+     * @returns {Promise<Array>} Array of model objects
+     */
+    async listModels() {
+        // Anthropic doesn't have a public API to list models
+        // Return hardcoded list of known Claude models
+        return [
+            { name: 'claude-sonnet-4-5', description: 'Claude Sonnet 4.5 - Best overall model' },
+            { name: 'claude-sonnet-4', description: 'Claude Sonnet 4 - Previous generation' },
+            { name: 'claude-3-7-sonnet-20250219', description: 'Claude 3.7 Sonnet' },
+            { name: 'claude-3-5-sonnet-20241022', description: 'Claude 3.5 Sonnet (Oct 2024)' },
+            { name: 'claude-3-5-sonnet-20240620', description: 'Claude 3.5 Sonnet (June 2024)' },
+            { name: 'claude-3-opus-20240229', description: 'Claude 3 Opus - Most capable' },
+            { name: 'claude-3-haiku-20240307', description: 'Claude 3 Haiku - Fastest' },
+        ];
+    }
 }

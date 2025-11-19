@@ -191,4 +191,50 @@ export class OpenAIClient {
         }
         return JSON.stringify(content);
     }
+
+    /**
+     * List available OpenAI models
+     * @returns {Promise<Array>} Array of model objects
+     */
+    async listModels() {
+        try {
+            const response = await fetch(`${this.baseURL}/models`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${this.apiKey}`,
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            // Filter to only show chat models and sort by ID
+            return (data.data || [])
+                .filter(model =>
+                    model.id.startsWith('gpt-') ||
+                    model.id.startsWith('o1-') ||
+                    model.id.startsWith('o3-')
+                )
+                .map(model => ({
+                    name: model.id,
+                    created: model.created,
+                    owned_by: model.owned_by,
+                }))
+                .sort((a, b) => b.created - a.created); // Sort newest first
+        } catch (error) {
+            console.error('Error listing OpenAI models:', error);
+            // Return hardcoded list as fallback
+            return [
+                { name: 'gpt-5-main', description: 'GPT-5 Main - Latest model' },
+                { name: 'gpt-4o', description: 'GPT-4o - Multimodal flagship' },
+                { name: 'gpt-4-turbo', description: 'GPT-4 Turbo' },
+                { name: 'gpt-4', description: 'GPT-4' },
+                { name: 'gpt-3.5-turbo', description: 'GPT-3.5 Turbo' },
+                { name: 'o1-preview', description: 'O1 Preview - Reasoning model' },
+                { name: 'o1-mini', description: 'O1 Mini - Fast reasoning' },
+            ];
+        }
+    }
 }
