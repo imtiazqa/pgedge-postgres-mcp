@@ -68,7 +68,9 @@ if [ -n "$INIT_TOKENS" ]; then
     echo "Initializing tokens from INIT_TOKENS environment variable..."
 
     # Create tokens.json from INIT_TOKENS (expected format: token1,token2,token3)
+    # Structure must match TokenStore struct: {"tokens": {"token-id": {...}}}
     echo "{" > "$TOKEN_FILE"
+    echo "  \"tokens\": {" >> "$TOKEN_FILE"
     FIRST=true
     IFS=','
     for token in $INIT_TOKENS; do
@@ -77,12 +79,16 @@ if [ -n "$INIT_TOKENS" ]; then
         else
             echo "," >> "$TOKEN_FILE"
         fi
-        echo "  \"$token\": {" >> "$TOKEN_FILE"
-        echo "    \"created_at\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"," >> "$TOKEN_FILE"
-        echo "    \"description\": \"Auto-generated token\"" >> "$TOKEN_FILE"
-        echo -n "  }" >> "$TOKEN_FILE"
+        # Hash the token using SHA256 (same as internal/auth/auth.go:HashToken)
+        token_hash=$(echo -n "$token" | sha256sum | cut -d' ' -f1)
+        echo "    \"$token\": {" >> "$TOKEN_FILE"
+        echo "      \"hash\": \"$token_hash\"," >> "$TOKEN_FILE"
+        echo "      \"created_at\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"," >> "$TOKEN_FILE"
+        echo "      \"annotation\": \"Auto-generated token\"" >> "$TOKEN_FILE"
+        echo -n "    }" >> "$TOKEN_FILE"
     done
     echo "" >> "$TOKEN_FILE"
+    echo "  }" >> "$TOKEN_FILE"
     echo "}" >> "$TOKEN_FILE"
     chown 1001:1001 "$TOKEN_FILE"
 
@@ -91,7 +97,8 @@ if [ -n "$INIT_TOKENS" ]; then
     cat "$TOKEN_FILE"
 else
     # Create empty tokens.json (no tokens initialized)
-    echo "{}" > "$TOKEN_FILE"
+    # Structure must match TokenStore struct: {"tokens": {}}
+    echo "{\"tokens\": {}}" > "$TOKEN_FILE"
     chown 1001:1001 "$TOKEN_FILE"
     echo "Created empty token file (no tokens initialized)"
 fi
