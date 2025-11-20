@@ -53,6 +53,17 @@ export PGUSER="myuser"
 export PGPASSWORD="mypass"  # Or use ~/.pgpass file for better security
 ```
 
+**Alternative:** Use API key file instead of environment variable (more secure):
+
+```bash
+# Create API key file
+echo "sk-ant-..." > ~/.anthropic-api-key
+chmod 600 ~/.anthropic-api-key
+
+# The MCP server (spawned by the chatbot) will automatically read from this file
+# No need to export ANTHROPIC_API_KEY
+```
+
 **Note:** You can also use `PGEDGE_POSTGRES_CONNECTION_STRING` instead:
 ```bash
 export PGEDGE_POSTGRES_CONNECTION_STRING="postgres://myuser:mypass@localhost:5432/mydb"

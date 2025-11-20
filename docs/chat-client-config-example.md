@@ -83,8 +83,21 @@ llm:
     # -------------------------
     # API key for Anthropic
     # Get your API key from: https://console.anthropic.com/
-    # Environment variable: PGEDGE_ANTHROPIC_API_KEY
+    #
+    # Priority (highest to lowest):
+    # 1. Environment variable: PGEDGE_ANTHROPIC_API_KEY or ANTHROPIC_API_KEY
+    # 2. API key file: anthropic_api_key_file
+    # 3. Direct config value: anthropic_api_key (not recommended)
+    #
     # Command line flag: -anthropic-api-key
+    #
+    # Option 1: Environment variable (recommended for development)
+    # export PGEDGE_ANTHROPIC_API_KEY="sk-ant-your-key-here"
+    #
+    # Option 2: API key file (recommended for production)
+    anthropic_api_key_file: ~/.anthropic-api-key
+    #
+    # Option 3: Direct value (not recommended - use env var or file)
     # anthropic_api_key: your-anthropic-api-key-here
 
     # -------------------------
@@ -92,8 +105,21 @@ llm:
     # -------------------------
     # API key for OpenAI
     # Get your API key from: https://platform.openai.com/
-    # Environment variable: PGEDGE_OPENAI_API_KEY
+    #
+    # Priority (highest to lowest):
+    # 1. Environment variable: PGEDGE_OPENAI_API_KEY or OPENAI_API_KEY
+    # 2. API key file: openai_api_key_file
+    # 3. Direct config value: openai_api_key (not recommended)
+    #
     # Command line flag: -openai-api-key
+    #
+    # Option 1: Environment variable (recommended for development)
+    # export PGEDGE_OPENAI_API_KEY="sk-proj-your-key-here"
+    #
+    # Option 2: API key file (recommended for production)
+    openai_api_key_file: ~/.openai-api-key
+    #
+    # Option 3: Direct value (not recommended - use env var or file)
     # openai_api_key: your-openai-api-key-here
 
     # Maximum tokens for LLM response

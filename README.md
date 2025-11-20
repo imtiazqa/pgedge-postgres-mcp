@@ -161,6 +161,55 @@ curl -X POST http://localhost:8080/mcp/v1 \
   }'
 ```
 
+## CLI Client
+
+A production-ready, full-featured command-line chat interface is available for
+interacting with your PostgreSQL database using natural language:
+
+```bash
+# Quick start - Stdio mode (MCP server as subprocess)
+./start_cli_stdio.sh
+
+# Quick start - HTTP mode (MCP server via HTTP with auth)
+./start_cli_http.sh
+```
+
+**Features:**
+- 💬 Natural language database queries powered by Claude, GPT, or Ollama
+- 🔧 Dual mode support (stdio subprocess or HTTP API)
+- 💰 Anthropic prompt caching (90% cost reduction on repeated queries)
+- ⚡ Runtime configuration with slash commands
+- 📝 Persistent command history with readline support
+- 🎨 PostgreSQL-themed UI with animations
+
+**Example queries:**
+- What tables are in my database?
+- Show me the 10 most recent orders
+- Which customers have placed more than 5 orders?
+- Find documents similar to 'PostgreSQL performance tuning'
+
+**API Key Configuration:**
+
+The CLI client supports three ways to provide LLM API keys (in priority order):
+
+1. **Environment variables** (recommended for development):
+   ```bash
+   export ANTHROPIC_API_KEY="sk-ant-..."
+   export OPENAI_API_KEY="sk-proj-..."
+   ```
+
+2. **API key files** (recommended for production):
+   ```bash
+   echo "sk-ant-..." > ~/.anthropic-api-key
+   chmod 600 ~/.anthropic-api-key
+   ```
+
+3. **Configuration file values** (not recommended - use env vars or files
+   instead)
+
+See **[Using the CLI Client](docs/using-cli-client.md)** for detailed
+documentation.
+
 ## Web Client
 
 A web-based management interface is available for monitoring and interacting

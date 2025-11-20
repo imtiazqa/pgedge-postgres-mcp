@@ -27,7 +27,7 @@ BIN_DIR="$SCRIPT_DIR/bin"
 WEB_DIR="$SCRIPT_DIR/web"
 
 # Configuration files
-SERVER_CONFIG="$BIN_DIR/pgedge-pg-mcp-web.yaml"
+SERVER_CONFIG="$BIN_DIR/pgedge-pg-mcp-svr-http.yaml"
 SERVER_BIN="$BIN_DIR/pgedge-pg-mcp-svr"
 
 # PID files for cleanup
@@ -107,7 +107,7 @@ echo ""
 # Start MCP server
 echo -e "${GREEN}[1/2] Starting MCP Server (HTTP mode with auth and LLM proxy)...${NC}"
 cd "$BIN_DIR"
-"$SERVER_BIN" --config pgedge-pg-mcp-web.yaml > /tmp/pgedge-mcp-server.log 2>&1 &
+"$SERVER_BIN" --config "$SERVER_CONFIG" > /tmp/pgedge-mcp-server.log 2>&1 &
 MCP_SERVER_PID=$!
 cd "$SCRIPT_DIR"
 
@@ -228,9 +228,6 @@ echo -e "${BLUE}Architecture:${NC}"
 echo "  • Web client communicates directly with MCP server via JSON-RPC"
 echo "  • LLM API keys are stored server-side (configured in MCP server YAML)"
 echo "  • MCP server provides tool/resource access and LLM proxy endpoints"
-echo ""
-echo -e "${YELLOW}Note: For production deployments, use Docker Compose:${NC}"
-echo "  docker-compose up"
 echo ""
 echo -e "${YELLOW}Press Ctrl+C to stop all services${NC}"
 echo ""

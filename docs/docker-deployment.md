@@ -102,6 +102,8 @@ PGEDGE_EMBEDDING_MODEL=voyage-3
 
 #### API Keys
 
+**Option 1: Environment variables** (suitable for development):
+
 ```bash
 # For Anthropic (Claude + Voyage embeddings)
 PGEDGE_ANTHROPIC_API_KEY=your-anthropic-api-key-here
@@ -112,6 +114,35 @@ PGEDGE_OPENAI_API_KEY=your-openai-api-key-here
 # For Ollama (local models)
 PGEDGE_OLLAMA_URL=http://localhost:11434
 ```
+
+**Option 2: Mount API key files** (recommended for production):
+
+For better security, mount API key files as read-only volumes:
+
+```yaml
+services:
+  mcp-server:
+    volumes:
+      - ~/.anthropic-api-key:/app/.anthropic-api-key:ro
+      - ~/.openai-api-key:/app/.openai-api-key:ro
+      - ~/.voyage-api-key:/app/.voyage-api-key:ro
+```
+
+Then configure the server to use these files:
+
+```bash
+# In your .env file or docker-compose.yml environment section
+PGEDGE_ANTHROPIC_API_KEY_FILE=/app/.anthropic-api-key
+PGEDGE_OPENAI_API_KEY_FILE=/app/.openai-api-key
+PGEDGE_VOYAGE_API_KEY_FILE=/app/.voyage-api-key
+```
+
+**Benefits of using mounted files:**
+
+- API keys not visible in `docker inspect` or environment variable dumps
+- Files can have restricted permissions (600) on the host
+- Easier to rotate keys without rebuilding containers
+- No risk of keys being accidentally committed to version control
 
 #### Authentication
 

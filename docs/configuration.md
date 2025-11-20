@@ -153,26 +153,47 @@ embedding:
   enabled: true
   provider: "openai"
   model: "text-embedding-3-small"  # 1536 dimensions
-  openai_api_key: "sk-proj-your-key-here"
+
+  # API key configuration (priority: env vars > key file > direct value)
+  # Option 1: Environment variable (recommended for development)
+  # Option 2: API key file (recommended for production)
+  openai_api_key_file: "~/.openai-api-key"
+  # Option 3: Direct value (not recommended - use env var or file)
+  # openai_api_key: "sk-proj-your-key-here"
 ```
 
 **Supported Models**:
 
-- `text-embedding-3-small`: 1536 dimensions (recommended, cost-effective, compatible with most existing databases)
+- `text-embedding-3-small`: 1536 dimensions (recommended, cost-effective,
+  compatible with most existing databases)
 - `text-embedding-3-large`: 3072 dimensions (higher quality, larger vectors)
 - `text-embedding-ada-002`: 1536 dimensions (legacy model, still supported)
 
-**Environment Variables**:
+**API Key Configuration**:
 
-```bash
-# Use PGEDGE-prefixed environment variable (recommended for isolation)
-export PGEDGE_OPENAI_API_KEY="sk-proj-your-key-here"
+API keys are loaded in the following priority order (highest to lowest):
 
-# Or use standard environment variable (also supported)
-export OPENAI_API_KEY="sk-proj-your-key-here"
-```
+1. **Environment variables**:
+   ```bash
+   # Use PGEDGE-prefixed environment variable (recommended for isolation)
+   export PGEDGE_OPENAI_API_KEY="sk-proj-your-key-here"
 
-**Note**: Both `PGEDGE_OPENAI_API_KEY` and `OPENAI_API_KEY` are supported. The prefixed version takes priority if both are set.
+   # Or use standard environment variable (also supported)
+   export OPENAI_API_KEY="sk-proj-your-key-here"
+   ```
+
+2. **API key files** (recommended for production):
+   ```bash
+   # Create API key file
+   echo "sk-proj-your-key-here" > ~/.openai-api-key
+   chmod 600 ~/.openai-api-key
+   ```
+
+3. **Direct configuration value** (not recommended - use env vars or files
+   instead)
+
+**Note**: Both `PGEDGE_OPENAI_API_KEY` and `OPENAI_API_KEY` are supported.
+The prefixed version takes priority if both are set.
 
 **Pricing** (as of 2025):
 
@@ -190,7 +211,13 @@ embedding:
   enabled: true
   provider: "voyage"
   model: "voyage-3"  # 1024 dimensions
-  voyage_api_key: "pa-your-key-here"
+
+  # API key configuration (priority: env vars > key file > direct value)
+  # Option 1: Environment variable (recommended for development)
+  # Option 2: API key file (recommended for production)
+  voyage_api_key_file: "~/.voyage-api-key"
+  # Option 3: Direct value (not recommended - use env var or file)
+  # voyage_api_key: "pa-your-key-here"
 ```
 
 **Supported Models**:
@@ -200,17 +227,31 @@ embedding:
 - `voyage-2`: 1024 dimensions
 - `voyage-2-lite`: 1024 dimensions
 
-**Environment Variables**:
+**API Key Configuration**:
 
-```bash
-# Use PGEDGE-prefixed environment variable (recommended for isolation)
-export PGEDGE_VOYAGE_API_KEY="pa-your-key-here"
+API keys are loaded in the following priority order (highest to lowest):
 
-# Or use standard environment variable (also supported)
-export VOYAGE_API_KEY="pa-your-key-here"
-```
+1. **Environment variables**:
+   ```bash
+   # Use PGEDGE-prefixed environment variable (recommended for isolation)
+   export PGEDGE_VOYAGE_API_KEY="pa-your-key-here"
 
-**Note**: Both `PGEDGE_VOYAGE_API_KEY` and `VOYAGE_API_KEY` are supported. The prefixed version takes priority if both are set.
+   # Or use standard environment variable (also supported)
+   export VOYAGE_API_KEY="pa-your-key-here"
+   ```
+
+2. **API key files** (recommended for production):
+   ```bash
+   # Create API key file
+   echo "pa-your-key-here" > ~/.voyage-api-key
+   chmod 600 ~/.voyage-api-key
+   ```
+
+3. **Direct configuration value** (not recommended - use env vars or files
+   instead)
+
+**Note**: Both `PGEDGE_VOYAGE_API_KEY` and `VOYAGE_API_KEY` are supported.
+The prefixed version takes priority if both are set.
 
 ### Using Ollama (Local Embeddings)
 

@@ -30,6 +30,20 @@ export PGPASSWORD="mypass"
 ./bin/pgedge-pg-mcp-svr -http
 ```
 
+**Alternative:** Store API keys in files (recommended for production):
+
+```bash
+# Create API key file with proper permissions
+echo "sk-ant-your-key" > ~/.anthropic-api-key
+chmod 600 ~/.anthropic-api-key
+
+# Start server (will read from file automatically)
+./bin/pgedge-pg-mcp-svr -http
+```
+
+See the [Configuration Guide](configuration.md) for details on API key
+management.
+
 ### With Custom Port
 
 ```bash

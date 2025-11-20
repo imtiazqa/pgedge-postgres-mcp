@@ -34,6 +34,71 @@ make build
 
 The binary will be created at `bin/pgedge-pg-mcp-cli`.
 
+## Quick Start
+
+The easiest way to start the CLI client is using one of the provided startup
+scripts, which handle building binaries, validating configuration, and checking
+for required API keys:
+
+### Stdio Mode (Recommended for Single User)
+
+```bash
+./start_cli_stdio.sh
+```
+
+The MCP server runs as a subprocess. Simpler setup, ideal for local development
+and single-user scenarios.
+
+### HTTP Mode (Recommended for Multi-User or Remote Access)
+
+```bash
+./start_cli_http.sh
+```
+
+The MCP server runs as a separate HTTP service with authentication. Supports
+multiple concurrent users and remote connections. The server automatically shuts
+down when the CLI exits.
+
+Both scripts will:
+
+- **Auto-build**: Build CLI and server binaries if needed or if source files
+  changed
+- **Validate**: Check that configuration files exist
+- **Check environment**: Warn about missing LLM API keys or database
+  configuration
+- **Start client**: Launch the CLI with proper configuration
+
+### Custom Configuration
+
+You can specify a custom CLI configuration file:
+
+```bash
+CONFIG_FILE=/path/to/custom.yaml ./start_cli_stdio.sh
+# or
+CONFIG_FILE=/path/to/custom.yaml ./start_cli_http.sh
+```
+
+### What You Need
+
+Before running the startup script, make sure you have:
+
+1. **LLM Provider** (at least one):
+   - Anthropic: Set `ANTHROPIC_API_KEY` or `PGEDGE_ANTHROPIC_API_KEY`
+     environment variable, OR create `~/.anthropic-api-key` file
+   - OpenAI: Set `OPENAI_API_KEY` or `PGEDGE_OPENAI_API_KEY` environment
+     variable, OR create `~/.openai-api-key` file
+   - Ollama: Set `PGEDGE_OLLAMA_URL` (e.g., `http://localhost:11434`)
+
+2. **Database Connection** (optional, uses defaults if not set):
+   - PostgreSQL variables: `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`,
+     `PGPASSWORD`
+   - Or connection string: `PGEDGE_POSTGRES_CONNECTION_STRING`
+   - Or pgEdge variables: `PGEDGE_DB_HOST`, `PGEDGE_DB_PORT`,
+     `PGEDGE_DB_NAME`, `PGEDGE_DB_USER`, `PGEDGE_DB_PASSWORD`
+
+The script will provide helpful warnings if any of these are missing, allowing
+you to set them up before proceeding.
+
 ## Configuration
 
 The chat client can be configured in three ways (in order of precedence):
@@ -63,8 +128,16 @@ mcp:
 llm:
     provider: anthropic  # Options: anthropic, openai, or ollama
     model: claude-sonnet-4-20250514
-    # anthropic_api_key: your-anthropic-key-here  # Or use PGEDGE_ANTHROPIC_API_KEY env var
-    # openai_api_key: your-openai-key-here        # Or use PGEDGE_OPENAI_API_KEY env var
+
+    # API keys (priority: env vars > key files > direct config values)
+    # Option 1: Environment variables (recommended for development)
+    # Option 2: API key files (recommended for production)
+    anthropic_api_key_file: ~/.anthropic-api-key
+    openai_api_key_file: ~/.openai-api-key
+    # Option 3: Direct values (not recommended - use env vars or files)
+    # anthropic_api_key: your-anthropic-key-here
+    # openai_api_key: your-openai-key-here
+
     max_tokens: 4096
     temperature: 0.7
 
@@ -87,6 +160,14 @@ For a complete configuration file example with all available options and detaile
 - `PGEDGE_OPENAI_API_KEY`: OpenAI API key
 - `PGEDGE_OLLAMA_URL`: Ollama server URL (default: http://localhost:11434)
 - `NO_COLOR`: Disable colored output
+
+**API Key Priority:**
+
+API keys are loaded in the following priority order (highest to lowest):
+
+1. Environment variables (`PGEDGE_ANTHROPIC_API_KEY`, `PGEDGE_OPENAI_API_KEY`)
+2. API key files (`~/.anthropic-api-key`, `~/.openai-api-key`)
+3. Configuration file values (not recommended)
 
 ### Command-Line Flags
 
@@ -181,6 +262,27 @@ The client will:
 2. Connect via stdin/stdout
 3. Use Anthropic Claude for natural language processing
 
+### Example 1b: Stdio Mode with API Key File
+
+For production or when you don't want to use environment variables, store
+your API key in a file:
+
+```bash
+# Create API key file
+echo "sk-ant-your-key-here" > ~/.anthropic-api-key
+chmod 600 ~/.anthropic-api-key
+
+# Run the chat client (will read from file automatically)
+./bin/pgedge-pg-mcp-cli
+```
+
+**Benefits of using API key files:**
+
+- No need to set environment variables in every shell session
+- More secure than hardcoding in configuration files
+- Easy to manage different keys for different environments
+- Proper file permissions (600) prevent unauthorized access
+
 ### Example 2: Stdio Mode with OpenAI
 
 Use OpenAI's GPT models for natural language processing.
@@ -212,7 +314,16 @@ The client automatically handles these differences.
 
 ### Example 3: HTTP Mode with Authentication
 
-Connect to a remote MCP server with authentication.
+**Easiest method** - Use the startup script:
+
+```bash
+./start_cli_http.sh
+```
+
+This automatically starts the MCP server in HTTP mode with authentication and
+connects the CLI to it. The server shuts down when you exit the CLI.
+
+**Manual method** - Connect to a running MCP server:
 
 ```bash
 # Set the server URL and token

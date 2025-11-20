@@ -69,6 +69,17 @@ A Model Context Protocol (MCP) server written in Go that enables natural languag
     }
     ```
 
+    **Alternative:** Store API key in a file (more secure):
+
+    ```bash
+    # Create API key file
+    echo "sk-ant-your-key" > ~/.anthropic-api-key
+    chmod 600 ~/.anthropic-api-key
+    ```
+
+    Then omit `ANTHROPIC_API_KEY` from the config - the server will read from
+    `~/.anthropic-api-key` automatically.
+
 4. **Start using:** Restart Claude Desktop and ask questions about your database!
 
 For detailed setup instructions, see **[Configuration Guide](configuration.md)**.

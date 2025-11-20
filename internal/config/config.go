@@ -76,12 +76,14 @@ type DatabaseConfig struct {
 
 // EmbeddingConfig holds embedding generation settings
 type EmbeddingConfig struct {
-	Enabled      bool   `yaml:"enabled"`        // Whether embedding generation is enabled (default: false)
-	Provider     string `yaml:"provider"`       // "voyage", "openai", or "ollama"
-	Model        string `yaml:"model"`          // Provider-specific model name
-	VoyageAPIKey string `yaml:"voyage_api_key"` // API key for Voyage AI (required if provider is "voyage")
-	OpenAIAPIKey string `yaml:"openai_api_key"` // API key for OpenAI (required if provider is "openai")
-	OllamaURL    string `yaml:"ollama_url"`     // URL for Ollama service (default: http://localhost:11434)
+	Enabled          bool   `yaml:"enabled"`            // Whether embedding generation is enabled (default: false)
+	Provider         string `yaml:"provider"`           // "voyage", "openai", or "ollama"
+	Model            string `yaml:"model"`              // Provider-specific model name
+	VoyageAPIKey     string `yaml:"voyage_api_key"`     // API key for Voyage AI (direct - discouraged, use api_key_file or env var)
+	VoyageAPIKeyFile string `yaml:"voyage_api_key_file"` // Path to file containing Voyage API key
+	OpenAIAPIKey     string `yaml:"openai_api_key"`     // API key for OpenAI (direct - discouraged, use api_key_file or env var)
+	OpenAIAPIKeyFile string `yaml:"openai_api_key_file"` // Path to file containing OpenAI API key
+	OllamaURL        string `yaml:"ollama_url"`         // URL for Ollama service (default: http://localhost:11434)
 }
 
 // LLMConfig holds LLM configuration for web client chat proxy
@@ -318,8 +320,14 @@ func mergeConfig(dest, src *Config) {
 		if src.Embedding.VoyageAPIKey != "" {
 			dest.Embedding.VoyageAPIKey = src.Embedding.VoyageAPIKey
 		}
+		if src.Embedding.VoyageAPIKeyFile != "" {
+			dest.Embedding.VoyageAPIKeyFile = src.Embedding.VoyageAPIKeyFile
+		}
 		if src.Embedding.OpenAIAPIKey != "" {
 			dest.Embedding.OpenAIAPIKey = src.Embedding.OpenAIAPIKey
+		}
+		if src.Embedding.OpenAIAPIKeyFile != "" {
+			dest.Embedding.OpenAIAPIKeyFile = src.Embedding.OpenAIAPIKeyFile
 		}
 		if src.Embedding.OllamaURL != "" {
 			dest.Embedding.OllamaURL = src.Embedding.OllamaURL
@@ -450,9 +458,24 @@ func applyEnvironmentVariables(cfg *Config) {
 	setBoolFromEnv(&cfg.Embedding.Enabled, "PGEDGE_EMBEDDING_ENABLED")
 	setStringFromEnv(&cfg.Embedding.Provider, "PGEDGE_EMBEDDING_PROVIDER")
 	setStringFromEnv(&cfg.Embedding.Model, "PGEDGE_EMBEDDING_MODEL")
-	// Support both PGEDGE_-prefixed and standard environment variable names for API keys
+	// API key loading priority: env vars > api_key_file > direct config value
+	// 1. Try environment variables first (PGEDGE_ prefixed, then standard)
 	setStringFromEnvWithFallback(&cfg.Embedding.VoyageAPIKey, "PGEDGE_VOYAGE_API_KEY", "VOYAGE_API_KEY")
 	setStringFromEnvWithFallback(&cfg.Embedding.OpenAIAPIKey, "PGEDGE_OPENAI_API_KEY", "OPENAI_API_KEY")
+	// 2. If env vars not set and api_key_file is specified, load from file
+	if cfg.Embedding.VoyageAPIKey == "" && cfg.Embedding.VoyageAPIKeyFile != "" {
+		if key, err := readAPIKeyFromFile(cfg.Embedding.VoyageAPIKeyFile); err == nil && key != "" {
+			cfg.Embedding.VoyageAPIKey = key
+		}
+		// Note: errors are silently ignored - file may not exist and that's ok
+	}
+	if cfg.Embedding.OpenAIAPIKey == "" && cfg.Embedding.OpenAIAPIKeyFile != "" {
+		if key, err := readAPIKeyFromFile(cfg.Embedding.OpenAIAPIKeyFile); err == nil && key != "" {
+			cfg.Embedding.OpenAIAPIKey = key
+		}
+		// Note: errors are silently ignored - file may not exist and that's ok
+	}
+	// 3. Direct config value (if set) is already in cfg.Embedding.VoyageAPIKey/OpenAIAPIKey from mergeConfig
 	setStringFromEnv(&cfg.Embedding.OllamaURL, "PGEDGE_OLLAMA_URL")
 
 	// LLM

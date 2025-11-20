@@ -169,9 +169,14 @@ llm:
     provider: "anthropic"  # anthropic, openai, or ollama
     model: "claude-sonnet-4-5"
 
-    # API keys (use env vars or files for production)
-    anthropic_api_key_file: "~/.anthropic-key"
-    openai_api_key_file: "~/.openai-key"
+    # API key configuration (priority: env vars > key files > direct values)
+    # Option 1: Environment variables (recommended for development)
+    # Option 2: API key files (recommended for production)
+    anthropic_api_key_file: "~/.anthropic-api-key"
+    openai_api_key_file: "~/.openai-api-key"
+    # Option 3: Direct values (not recommended - use env vars or files)
+    # anthropic_api_key: "your-key-here"
+    # openai_api_key: "your-key-here"
 
     # Ollama configuration
     ollama_url: "http://localhost:11434"
@@ -180,6 +185,14 @@ llm:
     max_tokens: 4096
     temperature: 0.7
 ```
+
+**API Key Priority:**
+
+API keys are loaded in the following order (highest to lowest):
+
+1. Environment variables (`PGEDGE_ANTHROPIC_API_KEY`, `PGEDGE_OPENAI_API_KEY`)
+2. API key files (`anthropic_api_key_file`, `openai_api_key_file`)
+3. Direct configuration values (not recommended)
 
 **Environment variables:**
 
