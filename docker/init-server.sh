@@ -84,11 +84,15 @@ if [ -n "$INIT_TOKENS" ]; then
     done
     echo "" >> "$TOKEN_FILE"
     echo "}" >> "$TOKEN_FILE"
+    chown 1001:1001 "$TOKEN_FILE"
 
     echo "Created token file with $(echo "$INIT_TOKENS" | tr ',' '\n' | wc -l | tr -d ' ') tokens"
+    echo "Token file contents:"
+    cat "$TOKEN_FILE"
 else
     # Create empty tokens.json (no tokens initialized)
     echo "{}" > "$TOKEN_FILE"
+    chown 1001:1001 "$TOKEN_FILE"
     echo "Created empty token file (no tokens initialized)"
 fi
 

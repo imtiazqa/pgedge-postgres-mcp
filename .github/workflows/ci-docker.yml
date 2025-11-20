@@ -157,6 +157,11 @@ jobs:
             - name: Test MCP server tools/list endpoint (with token)
               run: |
                   echo "Testing MCP server tools/list endpoint with token authentication..."
+
+                  # Debug: Check if token file exists and show contents
+                  echo "Checking token file in container..."
+                  docker compose exec -T mcp-server cat /app/data/tokens.json || echo "Token file not accessible"
+
                   response=$(curl -s -X POST http://localhost:8080/mcp/v1 \
                     -H "Authorization: Bearer test-token-1" \
                     -H "Content-Type: application/json" \
@@ -170,6 +175,7 @@ jobs:
                   else
                     echo "✗ tools/list endpoint response invalid"
                     echo "Full response: $response"
+                    docker compose logs mcp-server | tail -50
                     exit 1
                   fi
 
