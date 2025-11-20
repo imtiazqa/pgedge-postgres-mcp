@@ -74,12 +74,14 @@ func (r *Registry) Execute(ctx context.Context, name string, args map[string]int
 
 	// Inject context into args with a special key for tools that need it
 	// This allows handlers to access the context without changing the Handler signature
-	if args == nil {
-		args = make(map[string]interface{})
+	// Create a copy of args to avoid mutating the caller's map (race condition)
+	argsCopy := make(map[string]interface{}, len(args)+1)
+	for k, v := range args {
+		argsCopy[k] = v
 	}
-	args["__context"] = ctx
+	argsCopy["__context"] = ctx
 
 	// Note: basic registry doesn't use context, it's mainly for stdio mode
 	// ContextAwareProvider uses context for per-token connection isolation in HTTP mode
-	return tool.Handler(args)
+	return tool.Handler(argsCopy)
 }

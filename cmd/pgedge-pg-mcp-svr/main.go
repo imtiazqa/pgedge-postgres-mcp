@@ -29,6 +29,12 @@ import (
 	"pgedge-postgres-mcp/internal/tools"
 )
 
+const (
+	// Token cleanup configuration
+	tokenCleanupInterval = 5 * time.Minute  // How often to check for expired tokens
+	tokenCleanupTimeout  = 30 * time.Second // Max time allowed for cleanup operations
+)
+
 func main() {
 	// Get executable path for default config location
 	execPath, err := os.Executable()
@@ -409,7 +415,7 @@ func main() {
 
 		// Start periodic cleanup goroutine
 		go func() {
-			ticker := time.NewTicker(5 * time.Minute)
+			ticker := time.NewTicker(tokenCleanupInterval)
 			defer ticker.Stop()
 			for {
 				select {
@@ -418,10 +424,28 @@ func main() {
 				case <-ticker.C:
 					if removed, hashes := tokenStore.CleanupExpiredTokens(); removed > 0 {
 						fmt.Fprintf(os.Stderr, "Removed %d expired token(s)\n", removed)
+
+						// Create a timeout context for cleanup operations to prevent indefinite blocking
+						cleanupCtx, cancel := context.WithTimeout(context.Background(), tokenCleanupTimeout)
+
 						// Clean up database connections for expired tokens
-						if err := clientManager.RemoveClients(hashes); err != nil {
-							fmt.Fprintf(os.Stderr, "WARNING: Failed to cleanup connections: %v\n", err)
+						done := make(chan error, 1)
+						go func() {
+							done <- clientManager.RemoveClients(hashes)
+						}()
+
+						select {
+						case err := <-done:
+							if err != nil {
+								fmt.Fprintf(os.Stderr, "WARNING: Failed to cleanup connections: %v\n", err)
+							}
+						case <-cleanupCtx.Done():
+							fmt.Fprintf(os.Stderr, "WARNING: Connection cleanup timed out\n")
 						}
+
+						// Cancel context after cleanup is done
+						cancel()
+
 						// Save the cleaned store
 						if err := auth.SaveTokenStore(cfg.HTTP.Auth.TokenFile, tokenStore); err != nil {
 							fmt.Fprintf(os.Stderr, "WARNING: Failed to save cleaned token file: %v\n", err)

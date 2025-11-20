@@ -22,6 +22,11 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+const (
+	// DefaultSessionExpiration is the default duration for session tokens
+	DefaultSessionExpiration = 24 * time.Hour
+)
+
 // User represents a user account with credentials and metadata
 type User struct {
 	Username       string     `yaml:"username"`      // Unique username
@@ -194,8 +199,8 @@ func (s *UserStore) AuthenticateUser(username, password string) (string, time.Ti
 		return "", time.Time{}, err
 	}
 
-	// Session valid for 24 hours
-	expiration := time.Now().Add(24 * time.Hour)
+	// Session valid for the default duration
+	expiration := time.Now().Add(DefaultSessionExpiration)
 
 	// Update user's session info (in memory only, not persisted)
 	user.SessionToken = token

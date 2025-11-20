@@ -20,6 +20,11 @@ import (
 	"time"
 )
 
+const (
+	// OpenAIHTTPTimeout is the HTTP client timeout for OpenAI API requests
+	OpenAIHTTPTimeout = 30 * time.Second
+)
+
 // OpenAIProvider implements embedding generation using OpenAI's API
 type OpenAIProvider struct {
 	apiKey  string
@@ -88,7 +93,7 @@ func NewOpenAIProvider(apiKey, model string) (*OpenAIProvider, error) {
 		model:   model,
 		baseURL: "https://api.openai.com/v1",
 		client: &http.Client{
-			Timeout: 30 * time.Second,
+			Timeout: OpenAIHTTPTimeout,
 		},
 	}, nil
 }

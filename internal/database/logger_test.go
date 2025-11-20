@@ -337,9 +337,9 @@ func TestSanitizeConnStr(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := sanitizeConnStr(tt.input)
+			got := SanitizeConnStr(tt.input)
 			if got != tt.expected {
-				t.Errorf("sanitizeConnStr(%q) = %q, want %q", tt.input, got, tt.expected)
+				t.Errorf("SanitizeConnStr(%q) = %q, want %q", tt.input, got, tt.expected)
 			}
 		})
 	}

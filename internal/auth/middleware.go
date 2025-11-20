@@ -110,6 +110,16 @@ func AuthMiddleware(tokenStore *TokenStore, userStore *UserStore, enabled bool) 
 // isAuthenticateUserCall checks if the request is a tools/call for authenticate_user
 // This function reads and restores the request body
 func isAuthenticateUserCall(r *http.Request) bool {
+	// Defensive nil check for request
+	if r == nil {
+		return false
+	}
+
+	// Defensive nil check for request body
+	if r.Body == nil {
+		return false
+	}
+
 	// Read the body
 	body, err := io.ReadAll(r.Body)
 	if err != nil {

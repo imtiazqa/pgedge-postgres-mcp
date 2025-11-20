@@ -100,7 +100,7 @@ func (l *Logger) Trace(format string, args ...interface{}) {
 // LogConnection logs a database connection attempt
 func LogConnection(connStr string, duration time.Duration, err error) {
 	// Sanitize connection string to hide password
-	sanitized := sanitizeConnStr(connStr)
+	sanitized := SanitizeConnStr(connStr)
 	if err != nil {
 		globalLogger.Info("Connection failed: connection=%s, duration=%s, error=%v",
 			sanitized, duration, err)
@@ -112,7 +112,7 @@ func LogConnection(connStr string, duration time.Duration, err error) {
 
 // LogConnectionDetails logs detailed connection information
 func LogConnectionDetails(connStr string, poolConfig map[string]interface{}) {
-	sanitized := sanitizeConnStr(connStr)
+	sanitized := SanitizeConnStr(connStr)
 	configStr := ""
 	for k, v := range poolConfig {
 		configStr += fmt.Sprintf("%s=%v ", k, v)
@@ -123,7 +123,7 @@ func LogConnectionDetails(connStr string, poolConfig map[string]interface{}) {
 
 // LogMetadataLoad logs metadata loading operation
 func LogMetadataLoad(connStr string, tableCount int, duration time.Duration, err error) {
-	sanitized := sanitizeConnStr(connStr)
+	sanitized := SanitizeConnStr(connStr)
 	if err != nil {
 		globalLogger.Info("Metadata load failed: connection=%s, duration=%s, error=%v",
 			sanitized, duration, err)
@@ -135,7 +135,7 @@ func LogMetadataLoad(connStr string, tableCount int, duration time.Duration, err
 
 // LogMetadataDetails logs detailed metadata loading information
 func LogMetadataDetails(connStr string, schemaCount, tableCount, columnCount int) {
-	sanitized := sanitizeConnStr(connStr)
+	sanitized := SanitizeConnStr(connStr)
 	globalLogger.Debug("Metadata details: connection=%s, schema_count=%d, table_count=%d, column_count=%d",
 		sanitized, schemaCount, tableCount, columnCount)
 }
@@ -167,13 +167,15 @@ func LogQueryTrace(query string, args []interface{}) {
 
 // LogPoolStats logs connection pool statistics
 func LogPoolStats(connStr string, acquiredConns, idleConns, maxConns int32) {
-	sanitized := sanitizeConnStr(connStr)
+	sanitized := SanitizeConnStr(connStr)
 	globalLogger.Debug("Pool stats: connection=%s, acquired=%d, idle=%d, max=%d",
 		sanitized, acquiredConns, idleConns, maxConns)
 }
 
-// sanitizeConnStr removes password from connection string for logging
-func sanitizeConnStr(connStr string) string {
+// SanitizeConnStr sanitizes a PostgreSQL connection string by replacing the
+// password with "***". This should be used when displaying connection strings
+// to users or in error messages.
+func SanitizeConnStr(connStr string) string {
 	// Handle postgres://user:password@host:port/database?params format
 	// Find the scheme (postgres://)
 	schemeIdx := strings.Index(connStr, "://")

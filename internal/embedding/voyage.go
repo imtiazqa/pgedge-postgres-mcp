@@ -20,6 +20,11 @@ import (
 	"time"
 )
 
+const (
+	// VoyageHTTPTimeout is the HTTP client timeout for Voyage API requests
+	VoyageHTTPTimeout = 30 * time.Second
+)
+
 // VoyageProvider implements embedding generation using Voyage AI's API
 type VoyageProvider struct {
 	apiKey  string
@@ -80,7 +85,7 @@ func NewVoyageProvider(apiKey, model string) (*VoyageProvider, error) {
 		model:   model,
 		baseURL: "https://api.voyageai.com/v1/embeddings",
 		client: &http.Client{
-			Timeout: 30 * time.Second,
+			Timeout: VoyageHTTPTimeout,
 		},
 	}, nil
 }

@@ -56,29 +56,29 @@ func QueryDatabaseTool(dbClient *database.Client) Tool {
 					// User wants to set a new default connection
 					err := dbClient.SetDefaultConnection(queryCtx.ConnectionString)
 					if err != nil {
-						return mcp.NewToolError(fmt.Sprintf("Failed to set default connection to %s: %v", queryCtx.ConnectionString, err))
+						return mcp.NewToolError(fmt.Sprintf("Failed to set default connection to %s: %v", database.SanitizeConnStr(queryCtx.ConnectionString), err))
 					}
 
 					return mcp.NewToolSuccess(fmt.Sprintf("Successfully set default database connection to:\n%s\n\nMetadata loaded: %d tables/views available.",
-						queryCtx.ConnectionString,
+						database.SanitizeConnStr(queryCtx.ConnectionString),
 						len(dbClient.GetMetadata())))
 				} else {
 					// Temporary connection for this query only
 					err := dbClient.ConnectTo(queryCtx.ConnectionString)
 					if err != nil {
-						return mcp.NewToolError(fmt.Sprintf("Failed to connect to %s: %v", queryCtx.ConnectionString, err))
+						return mcp.NewToolError(fmt.Sprintf("Failed to connect to %s: %v", database.SanitizeConnStr(queryCtx.ConnectionString), err))
 					}
 
 					// Load metadata if needed
 					if !dbClient.IsMetadataLoadedFor(queryCtx.ConnectionString) {
 						err = dbClient.LoadMetadataFor(queryCtx.ConnectionString)
 						if err != nil {
-							return mcp.NewToolError(fmt.Sprintf("Failed to load metadata from %s: %v", queryCtx.ConnectionString, err))
+							return mcp.NewToolError(fmt.Sprintf("Failed to load metadata from %s: %v", database.SanitizeConnStr(queryCtx.ConnectionString), err))
 						}
 					}
 
 					connStr = queryCtx.ConnectionString
-					connectionMessage = fmt.Sprintf("Using connection: %s\n\n", connStr)
+					connectionMessage = fmt.Sprintf("Using connection: %s\n\n", database.SanitizeConnStr(connStr))
 				}
 			}
 
@@ -99,7 +99,7 @@ func QueryDatabaseTool(dbClient *database.Client) Tool {
 			ctx := context.Background()
 			pool := dbClient.GetPoolFor(connStr)
 			if pool == nil {
-				return mcp.NewToolError(fmt.Sprintf("Connection pool not found for: %s", connStr))
+				return mcp.NewToolError(fmt.Sprintf("Connection pool not found for: %s", database.SanitizeConnStr(connStr)))
 			}
 
 			// Begin a transaction with read-only protection
@@ -111,6 +111,13 @@ func QueryDatabaseTool(dbClient *database.Client) Tool {
 			// Track whether transaction was committed
 			committed := false
 			defer func() {
+				// Recover from panic to ensure transaction is properly rolled back
+				if r := recover(); r != nil {
+					// Attempt to rollback on panic
+					_ = tx.Rollback(ctx) //nolint:errcheck // Best effort cleanup on panic
+					// Re-panic to propagate the error
+					panic(r)
+				}
 				if !committed {
 					// Only rollback if not committed - prevents idle transactions
 					_ = tx.Rollback(ctx) //nolint:errcheck // rollback in defer after commit is expected to fail

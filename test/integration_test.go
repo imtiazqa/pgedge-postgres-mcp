@@ -818,8 +818,8 @@ func TestReadOnlyProtection(t *testing.T) {
 							// Check if the error message indicates read-only protection
 							textLower := strings.ToLower(text)
 							if strings.Contains(textLower, "read-only") ||
-							   strings.Contains(textLower, "cannot execute") ||
-							   strings.Contains(textLower, "read only") {
+								strings.Contains(textLower, "cannot execute") ||
+								strings.Contains(textLower, "read only") {
 								t.Logf("✓ INSERT query correctly blocked by read-only protection: %s", text)
 								return
 							}

@@ -21,6 +21,12 @@ import (
 	"time"
 )
 
+const (
+	// OllamaHTTPTimeout is the HTTP client timeout for Ollama API requests
+	// Ollama might need time to load models, so this is longer than other providers
+	OllamaHTTPTimeout = 60 * time.Second
+)
+
 // OllamaProvider implements embedding generation using Ollama
 type OllamaProvider struct {
 	baseURL string
@@ -73,7 +79,7 @@ func NewOllamaProvider(baseURL, model string) (*OllamaProvider, error) {
 		baseURL: baseURL,
 		model:   model,
 		client: &http.Client{
-			Timeout: 60 * time.Second, // Ollama might need time to load model
+			Timeout: OllamaHTTPTimeout,
 		},
 	}, nil
 }
