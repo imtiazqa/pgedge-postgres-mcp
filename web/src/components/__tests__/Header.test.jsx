@@ -8,11 +8,12 @@
  *-------------------------------------------------------------------------
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Header from '../Header';
 import { AuthProvider } from '../../contexts/AuthContext';
+import { mockInitialize, mockListTools, mockUserInfo } from '../../test-utils/mcp-mocks';
 
 // Mock the logo imports
 vi.mock('../../assets/images/logo-light.png', () => ({
@@ -32,15 +33,18 @@ describe('Header Component', () => {
         localStorage.clear();
     });
 
+    afterEach(() => {
+        localStorage.clear();
+    });
+
     const renderHeader = (mode = 'light', user = { username: 'testuser' }) => {
-        // Mock authenticated state
-        global.fetch.mockResolvedValueOnce({
-            ok: true,
-            json: async () => ({
-                authenticated: true,
-                user: user.username,
-            }),
-        });
+        // Mock authenticated state via MCP JSON-RPC protocol
+        localStorage.setItem('mcp-session-token', 'test-token');
+
+        // Mock the sequence of calls that checkAuth makes:
+        global.fetch.mockResolvedValueOnce(mockInitialize(1));
+        global.fetch.mockResolvedValueOnce(mockListTools(2));
+        global.fetch.mockResolvedValueOnce(mockUserInfo(user.username));
 
         return render(
             <AuthProvider>
@@ -66,14 +70,10 @@ describe('Header Component', () => {
             expect(logo).toHaveAttribute('src', 'logo-light.png');
         });
 
-        // Re-render with dark mode
-        global.fetch.mockResolvedValueOnce({
-            ok: true,
-            json: async () => ({
-                authenticated: true,
-                user: 'testuser',
-            }),
-        });
+        // Re-render with dark mode (token still in localStorage, need to mock auth check again)
+        global.fetch.mockResolvedValueOnce(mockInitialize(3));
+        global.fetch.mockResolvedValueOnce(mockListTools(4));
+        global.fetch.mockResolvedValueOnce(mockUserInfo('testuser'));
 
         rerender(
             <AuthProvider>
@@ -110,14 +110,10 @@ describe('Header Component', () => {
             expect(themeButton).toBeInTheDocument();
         });
 
-        // Re-render with dark mode
-        global.fetch.mockResolvedValueOnce({
-            ok: true,
-            json: async () => ({
-                authenticated: true,
-                user: 'testuser',
-            }),
-        });
+        // Re-render with dark mode (token still in localStorage, need to mock auth check again)
+        global.fetch.mockResolvedValueOnce(mockInitialize(3));
+        global.fetch.mockResolvedValueOnce(mockListTools(4));
+        global.fetch.mockResolvedValueOnce(mockUserInfo('testuser'));
 
         rerender(
             <AuthProvider>
@@ -191,20 +187,6 @@ describe('Header Component', () => {
     });
 
     it('calls logout when logout menu item is clicked', async () => {
-        global.fetch.mockResolvedValueOnce({
-            ok: true,
-            json: async () => ({
-                authenticated: true,
-                user: 'testuser',
-            }),
-        });
-
-        // Mock logout API call
-        global.fetch.mockResolvedValueOnce({
-            ok: true,
-            json: async () => ({}),
-        });
-
         renderHeader();
         const user = userEvent.setup();
 
@@ -224,27 +206,13 @@ describe('Header Component', () => {
         const logoutButton = screen.getByText('Logout');
         await user.click(logoutButton);
 
-        // Verify logout was called
+        // Logout is local-only, verify localStorage is cleared
         await waitFor(() => {
-            expect(global.fetch).toHaveBeenCalledWith('/api/logout', expect.any(Object));
+            expect(localStorage.getItem('mcp-session-token')).toBe(null);
         });
     });
 
     it('closes user menu after logout', async () => {
-        global.fetch.mockResolvedValueOnce({
-            ok: true,
-            json: async () => ({
-                authenticated: true,
-                user: 'testuser',
-            }),
-        });
-
-        // Mock logout API call
-        global.fetch.mockResolvedValueOnce({
-            ok: true,
-            json: async () => ({}),
-        });
-
         renderHeader();
         const user = userEvent.setup();
 
@@ -264,11 +232,9 @@ describe('Header Component', () => {
         const logoutButton = screen.getByText('Logout');
         await user.click(logoutButton);
 
-        // Menu should close
+        // Logout is local-only, verify localStorage is cleared
         await waitFor(() => {
-            // Menu is still rendered but not visible (MUI keeps it in DOM but hidden)
-            // Just verify the logout was called
-            expect(global.fetch).toHaveBeenCalledWith('/api/logout', expect.any(Object));
+            expect(localStorage.getItem('mcp-session-token')).toBe(null);
         });
     });
 });
