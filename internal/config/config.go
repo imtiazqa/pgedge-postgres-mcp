@@ -616,7 +616,7 @@ func readAPIKeyFromFile(filePath string) (string, error) {
 	}
 
 	// Expand tilde to home directory
-	if len(filePath) > 0 && filePath[0] == '~' {
+	if filePath != "" && filePath[0] == '~' {
 		homeDir, err := os.UserHomeDir()
 		if err != nil {
 			return "", fmt.Errorf("failed to get home directory: %w", err)

@@ -480,6 +480,7 @@ func main() {
 
 				// Return user info as JSON
 				w.Header().Set("Content-Type", "application/json")
+				//nolint:errcheck // Encoding a simple map should never fail
 				json.NewEncoder(w).Encode(map[string]string{
 					"username": username,
 				})

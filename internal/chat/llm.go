@@ -602,7 +602,7 @@ func (c *ollamaClient) ListModels(ctx context.Context) ([]string, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
+		body, _ := io.ReadAll(resp.Body) //nolint:errcheck // Error response body read is best effort
 		return nil, fmt.Errorf("API error (%d): %s", resp.StatusCode, string(body))
 	}
 
@@ -1088,7 +1088,7 @@ func (c *openaiClient) ListModels(ctx context.Context) ([]string, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
+		body, _ := io.ReadAll(resp.Body) //nolint:errcheck // Error response body read is best effort
 		return nil, fmt.Errorf("API error (%d): %s", resp.StatusCode, string(body))
 	}
 
