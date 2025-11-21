@@ -26,7 +26,43 @@ func PGSystemInfoResource(dbClient *database.Client) Resource {
 		Definition: mcp.Resource{
 			URI:         URISystemInfo,
 			Name:        "PostgreSQL System Information",
-			Description: "Returns PostgreSQL version, operating system, and build architecture information. Provides a quick way to check server version and platform details.",
+			Description: `PostgreSQL server metadata: version, OS, architecture, connection details.
+
+<usecase>
+Use for:
+- Version compatibility checks before using features
+- Platform verification (Linux, macOS, Windows)
+- Connection debugging and troubleshooting
+- System architecture discovery (x86_64, ARM, etc.)
+- Determining database capabilities
+</usecase>
+
+<provided_info>
+Returns JSON with:
+- postgresql_version: Major.minor.patch version string
+- version_number: Numeric version for comparisons
+- full_version: Complete version string with build details
+- operating_system: OS name (linux, darwin, windows)
+- architecture: CPU architecture (x86_64, aarch64, etc.)
+- compiler: Compiler used to build PostgreSQL
+- bit_version: 32-bit or 64-bit
+- database: Currently connected database name
+- user: Current database user
+- host: Connection host (or "unix socket")
+- port: Connection port number
+</provided_info>
+
+<caching>
+This resource is highly cacheable - system info rarely changes during a session. Safe to call multiple times without performance concern.
+</caching>
+
+<examples>
+Use before:
+- Checking if pgvector is supported (version >= 12)
+- Using version-specific SQL syntax
+- Debugging connection issues
+- Verifying deployment environment
+</examples>`,
 			MimeType:    "application/json",
 		},
 		Handler: func() (mcp.ResourceContent, error) {

@@ -27,7 +27,48 @@ func ReadResourceTool(resourceProvider ResourceReader) Tool {
 	return Tool{
 		Definition: mcp.Tool{
 			Name:        "read_resource",
-			Description: "Read the contents of an MCP resource by its URI. Resources provide read-only access to PostgreSQL system information. Available resource: System Info (pg://system_info). Use list=true to see all resources with full descriptions.",
+			Description: `Read MCP resources via tool interface (backward compatibility).
+
+<important>
+This tool provides backward compatibility with older MCP clients. Modern MCP clients should use the native resources/read endpoint instead, which is more efficient and follows MCP standards.
+</important>
+
+<usecase>
+Use read_resource when:
+- Your MCP client doesn't support native resources/read endpoint
+- You need resource content as tool output (not native resource format)
+- Building tool-only workflows without resource support
+- Testing or debugging resource access
+</usecase>
+
+<available_resources>
+1. pg://database-schema
+   - Lightweight table listing (schema, table name, owner only)
+   - Quick overview without column details
+
+2. pg://system-info
+   - PostgreSQL version, OS, architecture
+   - Connection details (host, port, user, database)
+   - Platform information for compatibility checks
+</available_resources>
+
+<alternatives>
+For better results, consider these tools instead:
+- get_schema_info tool: Much more detailed than pg://database-schema
+  - Shows columns, types, constraints, descriptions
+  - Supports filtering (schema_name, vector_tables_only)
+  - Better for query writing and schema exploration
+
+- Native resources/read: Use if your client supports it
+  - More efficient (pull model)
+  - Better caching
+  - Standard MCP approach
+</alternatives>
+
+<usage>
+- List all resources: read_resource(list=true)
+- Read specific resource: read_resource(uri="pg://system-info")
+</usage>`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]interface{}{

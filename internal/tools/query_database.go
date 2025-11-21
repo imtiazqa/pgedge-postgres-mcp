@@ -25,13 +25,55 @@ func QueryDatabaseTool(dbClient *database.Client) Tool {
 	return Tool{
 		Definition: mcp.Tool{
 			Name:        "query_database",
-			Description: "Execute a SQL query against the PostgreSQL database in a read-only transaction. All queries run in read-only mode to prevent data modifications. You can temporarily query a different database by including 'at postgres://...' in your query (e.g., 'SELECT * FROM users at postgres://user@host/other_database'), or set a new default connection with 'set default database to postgres://...'. IMPORTANT: These connection changes are temporary and do NOT modify saved connections.",
+			Description: `Execute SQL queries for STRUCTURED, EXACT data retrieval.
+
+<usecase>
+Use query_database when you need:
+- Exact matches by ID, status, date ranges, or specific column values
+- Aggregations: COUNT, SUM, AVG, GROUP BY, HAVING
+- Joins across tables using foreign keys
+- Sorting or filtering by structured columns
+- Transaction data, user records, system logs with known schema
+- Checking existence, counts, or specific field values
+</usecase>
+
+<when_not_to_use>
+DO NOT use for:
+- Natural language content search → use similarity_search instead
+- Finding topics, themes, or concepts in text → use similarity_search
+- "Documents about X" queries → use similarity_search
+- Semantic similarity or meaning-based queries → use similarity_search
+</when_not_to_use>
+
+<examples>
+✓ "How many orders were placed last week?"
+✓ "Show all users with status = 'active' and created_at > '2024-01-01'"
+✓ "Average order value grouped by region"
+✓ "Get user details for ID 12345"
+✗ "Find documents about database performance" → use similarity_search
+✗ "Show tickets related to connection issues" → use similarity_search
+</examples>
+
+<important>
+- All queries run in READ-ONLY transactions (no data modifications possible)
+- Connection switching: 'SELECT * FROM table at postgres://user@host/db'
+- Set new default: 'set default database to postgres://user@host/db'
+- Connection changes are temporary and do NOT modify saved connections
+- Results are limited to prevent excessive token usage
+</important>`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]interface{}{
 					"query": map[string]interface{}{
 						"type":        "string",
 						"description": "SQL query to execute against the database. All queries run in read-only transactions. Can include connection strings like 'SELECT * FROM users at postgres://host/db' or 'set default database to postgres://host/db'.",
+					},
+					"limit": map[string]interface{}{
+						"type":        "integer",
+						"description": "Maximum number of rows to return (default: 100, max: 1000). Automatically appended to query if not already present. Use higher limits only when necessary to avoid excessive token usage.",
+						"default":     100,
+						"minimum":     1,
+						"maximum":     1000,
 					},
 				},
 				Required: []string{"query"},
@@ -94,6 +136,22 @@ func QueryDatabaseTool(dbClient *database.Client) Tool {
 
 			// Use the cleaned query as SQL
 			sqlQuery := strings.TrimSpace(queryCtx.CleanedQuery)
+
+			// Auto-inject LIMIT if specified and not already present in query
+			if limitVal, ok := args["limit"]; ok {
+				var limit int
+				switch v := limitVal.(type) {
+				case float64:
+					limit = int(v)
+				case int:
+					limit = v
+				}
+
+				// Only inject LIMIT if query doesn't already have one
+				if limit > 0 && !strings.Contains(strings.ToUpper(sqlQuery), "LIMIT") {
+					sqlQuery = fmt.Sprintf("%s LIMIT %d", sqlQuery, limit)
+				}
+			}
 
 			// Execute the SQL query on the appropriate connection in a read-only transaction
 			ctx := context.Background()

@@ -25,7 +25,37 @@ func PGDatabaseSchemaResource(dbClient *database.Client) Resource {
 		Definition: mcp.Resource{
 			URI:         URIDatabaseSchema,
 			Name:        "PostgreSQL Database Schema",
-			Description: "Returns a lightweight overview of all tables in the database. Lists schema names, table names, and table owners. Use get_schema_info tool for detailed column information.",
+			Description: `Lightweight table listing: schema names, table names, and owners only.
+
+<usecase>
+Use this resource for:
+- Quick overview of database structure
+- Finding all schemas and tables
+- Checking table ownership
+- Initial database discovery
+</usecase>
+
+<limitations>
+Does NOT include:
+- Column details (use get_schema_info tool instead)
+- Data types, constraints, indexes
+- Primary/foreign key relationships
+- Table descriptions from pg_description
+- Vector column detection
+</limitations>
+
+<when_to_use_tools>
+For detailed schema exploration, use get_schema_info tool which provides:
+- All columns with data types and nullable status
+- Primary/foreign key constraints
+- Table and column descriptions
+- Vector column detection for similarity_search
+- Much more comprehensive information
+</when_to_use_tools>
+
+<recommendation>
+This resource is best for quick table discovery. For actual query writing or schema analysis, prefer the get_schema_info tool.
+</recommendation>`,
 			MimeType:    "application/json",
 		},
 		Handler: func() (mcp.ResourceContent, error) {

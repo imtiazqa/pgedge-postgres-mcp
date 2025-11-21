@@ -23,7 +23,53 @@ func GetSchemaInfoTool(dbClient *database.Client) Tool {
 	return Tool{
 		Definition: mcp.Tool{
 			Name:        "get_schema_info",
-			Description: "PRIMARY TOOL for discovering database tables and schema information. Lists all tables, views, columns, data types, constraints (primary/foreign keys), and descriptions from pg_description. ALWAYS use this tool first when you need to know what tables exist in the database. Optional parameters: schema_name to filter by schema, vector_tables_only=true to reduce output for semantic search workflows.",
+			Description: `PRIMARY TOOL for discovering database structure and available tables.
+
+<usecase>
+Use get_schema_info when you need to:
+- Discover what tables exist in the database
+- Understand table structure (columns, types, constraints)
+- Find tables with specific capabilities (e.g., vector columns)
+- Learn column names before writing queries
+- Check data types and nullable constraints
+- Understand primary/foreign key relationships
+</usecase>
+
+<why_use_this_first>
+ALWAYS call this tool FIRST when:
+- User asks to query data but doesn't specify table names
+- You need to write a SQL query and don't know the schema
+- User asks "what data is available?"
+- Before using similarity_search (to find vector-enabled tables)
+- You're unsure about column names or data types
+</why_use_this_first>
+
+<key_features>
+Returns comprehensive information:
+- All tables and views in the database
+- Column names, data types, nullable status
+- Primary keys and foreign key relationships
+- Table and column descriptions from pg_description
+- Vector column detection (pgvector extension)
+- Schema organization
+</key_features>
+
+<filtering_options>
+- No parameters: Returns ALL tables across all schemas (comprehensive)
+- schema_name="public": Filter to specific schema only
+- vector_tables_only=true: Show only tables with pgvector columns (reduces output 10x, perfect for similarity_search preparation)
+</filtering_options>
+
+<examples>
+✓ "What tables are available?" → get_schema_info()
+✓ "Show me tables with vector columns" → get_schema_info(vector_tables_only=true)
+✓ "What's in the public schema?" → get_schema_info(schema_name="public")
+✓ Before writing: "SELECT * FROM users..." → get_schema_info() first to confirm 'users' table exists
+</examples>
+
+<important>
+This tool provides MORE detail than the pg://database-schema resource, which only shows table names and owners. Use this tool for comprehensive schema exploration.
+</important>`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]interface{}{

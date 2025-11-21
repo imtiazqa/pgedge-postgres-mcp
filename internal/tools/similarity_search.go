@@ -27,7 +27,56 @@ func SimilaritySearchTool(dbClient *database.Client, cfg *config.Config) Tool {
 	return Tool{
 		Definition: mcp.Tool{
 			Name:        "similarity_search",
-			Description: "Advanced hybrid search combining vector similarity with BM25 lexical matching and MMR diversity filtering. IMPORTANT: If you don't know the exact table name, call get_schema_info first to discover available tables with vector columns (use vector_tables_only=true to reduce output). Automatically discovers vector columns, generates query embeddings, chunks results intelligently, and returns the most relevant excerpts within token limits. Ideal for searching through large documents like Wikipedia articles.",
+			Description: `Semantic search for NATURAL LANGUAGE and CONCEPT-BASED queries.
+
+<usecase>
+Use similarity_search when you need:
+- Finding content by meaning, not exact keywords
+- "Documents about X" or "Similar to Y" queries
+- Topic/theme discovery in unstructured text
+- When user language may differ from stored text
+- Searching Wikipedia articles, documentation, support tickets, reviews
+- Content that benefits from semantic understanding
+</usecase>
+
+<technical_details>
+- Hybrid: Vector similarity (pgvector) + BM25 lexical ranking
+- MMR diversity filtering (λ parameter: 0.0=max diversity, 1.0=max relevance)
+- Automatic intelligent chunking with token budgets
+- Smart column weighting (title columns vs content columns)
+- Configurable distance metrics (cosine, L2, inner product)
+</technical_details>
+
+<when_not_to_use>
+DO NOT use for:
+- Structured filters (status, dates, IDs) → use query_database
+- Aggregations (COUNT, SUM, AVG) or joins → use query_database
+- Exact keyword matching → use query_database with LIKE/ILIKE
+- When you need all matching records → use query_database
+</when_not_to_use>
+
+<important>
+ALWAYS call get_schema_info with vector_tables_only=true FIRST if you don't know the table name. This tool requires:
+- A valid table name with pgvector columns
+- Embedding generation must be enabled in server config
+- Table must have at least one vector column
+</important>
+
+<examples>
+✓ "Find tickets about connection timeouts"
+✓ "Documents similar to article ID 123"
+✓ "Wikipedia articles related to quantum computing"
+✓ "Support requests mentioning performance issues"
+✗ "Count tickets by status" → use query_database
+✗ "Users created last week" → use query_database
+✗ "Show order with ID 12345" → use query_database
+</examples>
+
+<token_management>
+Default budget: 1000 tokens (~10 chunks of ~100 tokens each)
+Increase max_output_tokens if more context needed, but beware rate limits.
+Consider using output_format parameter to control verbosity.
+</token_management>`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]interface{}{
@@ -58,6 +107,12 @@ func SimilaritySearchTool(dbClient *database.Client, cfg *config.Config) Tool {
 					"distance_metric": map[string]interface{}{
 						"type":        "string",
 						"description": "Distance metric: 'cosine', 'l2', or 'inner_product' (default: 'cosine')",
+					},
+					"output_format": map[string]interface{}{
+						"type":        "string",
+						"enum":        []string{"full", "summary", "ids_only"},
+						"description": "Output format: 'full'=complete chunks (default), 'summary'=titles+snippets only (~50 tokens total, 10x more results), 'ids_only'=just row IDs for progressive disclosure",
+						"default":     "full",
 					},
 				},
 				Required: []string{"table_name", "query_text"},
@@ -96,6 +151,12 @@ func SimilaritySearchTool(dbClient *database.Client, cfg *config.Config) Tool {
 			}
 			if metric, ok := args["distance_metric"].(string); ok {
 				searchCfg.DistanceMetric = metric
+			}
+
+			// Get output format (default: "full")
+			outputFormat := "full"
+			if format, ok := args["output_format"].(string); ok {
+				outputFormat = format
 			}
 
 			// Step 2: Get table metadata and discover columns
@@ -173,8 +234,16 @@ func SimilaritySearchTool(dbClient *database.Client, cfg *config.Config) Tool {
 				return mcp.NewToolSuccess("Search completed but no chunks fit within token budget.")
 			}
 
-			// Step 10: Format output
-			output := formatSearchResults(finalChunks, queryText, columnWeights, searchCfg)
+			// Step 10: Format output based on requested format
+			var output string
+			switch outputFormat {
+			case "ids_only":
+				output = formatSearchResultsIDsOnly(results, queryText, searchCfg)
+			case "summary":
+				output = formatSearchResultsSummary(finalChunks, queryText, columnWeights, searchCfg)
+			default: // "full"
+				output = formatSearchResults(finalChunks, queryText, columnWeights, searchCfg)
+			}
 
 			return mcp.NewToolSuccess(output)
 		},
@@ -570,6 +639,73 @@ func formatSearchResults(
 
 	sb.WriteString(strings.Repeat("=", 80))
 	sb.WriteString(fmt.Sprintf("\nTotal: %d chunks, ~%d tokens\n", len(chunks), totalTokens))
+
+	return sb.String()
+}
+
+// formatSearchResultsSummary returns a compact summary with titles/snippets only
+func formatSearchResultsSummary(
+	chunks []search.ScoredChunk,
+	queryText string,
+	columnWeights []search.ColumnWeight,
+	cfg search.SearchConfig,
+) string {
+	var sb strings.Builder
+
+	sb.WriteString(fmt.Sprintf("Similarity Search Results (Summary): %q\n", queryText))
+	sb.WriteString(strings.Repeat("=", 80))
+	sb.WriteString("\n\n")
+
+	sb.WriteString(fmt.Sprintf("Found %d relevant chunks. Showing summaries:\n\n", len(chunks)))
+
+	// Show compact results
+	for i, chunk := range chunks {
+		// Create snippet (first 100 chars)
+		snippet := chunk.Text
+		if len(snippet) > 100 {
+			snippet = snippet[:100] + "..."
+		}
+
+		sb.WriteString(fmt.Sprintf("%d. Score: %.3f | Source: %s.%s (rank #%d)\n",
+			i+1, chunk.Score, chunk.SourceTable, chunk.SourceColumn, chunk.OriginalRank+1))
+		sb.WriteString(fmt.Sprintf("   %s\n\n", snippet))
+	}
+
+	sb.WriteString(strings.Repeat("=", 80))
+	sb.WriteString(fmt.Sprintf("\nTotal: %d results shown in summary mode\n", len(chunks)))
+	sb.WriteString("Use output_format='full' to see complete content\n")
+
+	return sb.String()
+}
+
+// formatSearchResultsIDsOnly returns just the row IDs for progressive disclosure
+func formatSearchResultsIDsOnly(
+	results []search.VectorSearchResult,
+	queryText string,
+	cfg search.SearchConfig,
+) string {
+	var sb strings.Builder
+
+	sb.WriteString(fmt.Sprintf("Similarity Search Results (IDs Only): %q\n", queryText))
+	sb.WriteString(strings.Repeat("=", 80))
+	sb.WriteString("\n\n")
+
+	sb.WriteString(fmt.Sprintf("Found %d matching rows. Row IDs and distances:\n\n", len(results)))
+
+	// Show just IDs and distances
+	for i, result := range results {
+		var rowID interface{} = i
+		if id, ok := result.RowData["id"]; ok {
+			rowID = id
+		}
+
+		sb.WriteString(fmt.Sprintf("%d. ID: %v | Distance: %.4f\n", i+1, rowID, result.Distance))
+	}
+
+	sb.WriteString("\n")
+	sb.WriteString(strings.Repeat("=", 80))
+	sb.WriteString(fmt.Sprintf("\nTotal: %d results\n", len(results)))
+	sb.WriteString("Use output_format='summary' for snippets or 'full' for complete content\n")
 
 	return sb.String()
 }
