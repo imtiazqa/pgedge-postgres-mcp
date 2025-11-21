@@ -2,7 +2,7 @@
  *
  * pgEdge Postgres MCP Server
  *
- * Copyright (c) 2025, pgEdge, Inc.
+ * Portions copyright (c) 2025, pgEdge, Inc.
  * This software is released under The PostgreSQL License
  *
  *-------------------------------------------------------------------------
@@ -17,8 +17,9 @@ import (
 	"strings"
 	"syscall"
 
-	"golang.org/x/term"
 	"pgedge-postgres-mcp/internal/auth"
+
+	"golang.org/x/term"
 )
 
 // addUserCommand handles the add-user command

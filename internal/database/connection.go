@@ -2,7 +2,7 @@
  *
  * pgEdge Postgres MCP Server
  *
- * Copyright (c) 2025, pgEdge, Inc.
+ * Portions copyright (c) 2025, pgEdge, Inc.
  * This software is released under The PostgreSQL License
  *
  *-------------------------------------------------------------------------
@@ -21,8 +21,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgxpool"
 	"pgedge-postgres-mcp/internal/config"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // ConnectionInfo holds a connection pool and its metadata

@@ -2,7 +2,7 @@
  *
  * Chat Client - Main agentic chat loop
  *
- * Copyright (c) 2025, pgEdge, Inc.
+ * Portions copyright (c) 2025, pgEdge, Inc.
  * This software is released under The PostgreSQL License
  *
  *-------------------------------------------------------------------------
@@ -18,8 +18,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/chzyer/readline"
 	"pgedge-postgres-mcp/internal/mcp"
+
+	"github.com/chzyer/readline"
 )
 
 // Client is the main chat client
