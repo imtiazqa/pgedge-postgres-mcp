@@ -82,12 +82,14 @@ type ChatRequest struct {
 	Tools    []Tool    `json:"tools"`
 	Provider string    `json:"provider,omitempty"` // Override default provider
 	Model    string    `json:"model,omitempty"`    // Override default model
+	Debug    bool      `json:"debug,omitempty"`    // Enable debug mode for token usage
 }
 
 // ChatResponse represents the response body for POST /api/llm/chat
 type ChatResponse struct {
-	Content    []interface{} `json:"content"`
-	StopReason string        `json:"stop_reason"`
+	Content    []interface{}      `json:"content"`
+	StopReason string             `json:"stop_reason"`
+	TokenUsage *chat.TokenUsage `json:"token_usage,omitempty"` // Optional token usage (when debug enabled)
 }
 
 // HandleProviders handles GET /api/llm/providers
@@ -148,7 +150,7 @@ func HandleModels(w http.ResponseWriter, r *http.Request, config *Config) {
 		return
 	}
 
-	// Create LLM client for the provider
+	// Create LLM client for the provider (debug mode always false for models listing)
 	var client chat.LLMClient
 	switch provider {
 	case "anthropic":
@@ -231,7 +233,7 @@ func HandleChat(w http.ResponseWriter, r *http.Request, config *Config) {
 		model = config.Model
 	}
 
-	// Create LLM client
+	// Create LLM client with debug mode from request
 	var client chat.LLMClient
 	switch provider {
 	case "anthropic":
@@ -239,19 +241,19 @@ func HandleChat(w http.ResponseWriter, r *http.Request, config *Config) {
 			http.Error(w, "Anthropic API key not configured", http.StatusBadRequest)
 			return
 		}
-		client = chat.NewAnthropicClient(config.AnthropicAPIKey, model, config.MaxTokens, config.Temperature, false)
+		client = chat.NewAnthropicClient(config.AnthropicAPIKey, model, config.MaxTokens, config.Temperature, req.Debug)
 	case "openai":
 		if config.OpenAIAPIKey == "" {
 			http.Error(w, "OpenAI API key not configured", http.StatusBadRequest)
 			return
 		}
-		client = chat.NewOpenAIClient(config.OpenAIAPIKey, model, config.MaxTokens, config.Temperature, false)
+		client = chat.NewOpenAIClient(config.OpenAIAPIKey, model, config.MaxTokens, config.Temperature, req.Debug)
 	case "ollama":
 		if config.OllamaURL == "" {
 			http.Error(w, "Ollama URL not configured", http.StatusBadRequest)
 			return
 		}
-		client = chat.NewOllamaClient(config.OllamaURL, model, false)
+		client = chat.NewOllamaClient(config.OllamaURL, model, req.Debug)
 	default:
 		http.Error(w, fmt.Sprintf("Unsupported provider: %s", provider), http.StatusBadRequest)
 		return
@@ -280,6 +282,7 @@ func HandleChat(w http.ResponseWriter, r *http.Request, config *Config) {
 	response := ChatResponse{
 		Content:    llmResponse.Content,
 		StopReason: llmResponse.StopReason,
+		TokenUsage: llmResponse.TokenUsage,
 	}
 
 	w.Header().Set("Content-Type", "application/json")

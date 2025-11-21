@@ -35,6 +35,7 @@ const PreferencesPopover = React.memo(({
             open={open}
             anchorEl={anchorEl}
             onClose={onClose}
+            disableScrollLock
             anchorOrigin={{
                 vertical: 'top',
                 horizontal: 'right',

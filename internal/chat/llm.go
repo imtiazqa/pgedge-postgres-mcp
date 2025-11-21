@@ -58,6 +58,18 @@ type ToolResult struct {
 type LLMResponse struct {
 	Content    []interface{} // Can be TextContent or ToolUse
 	StopReason string
+	TokenUsage *TokenUsage `json:"token_usage,omitempty"` // Optional token usage information (only when debug enabled)
+}
+
+// TokenUsage holds token usage information for debug purposes
+type TokenUsage struct {
+	Provider               string `json:"provider"`
+	PromptTokens           int    `json:"prompt_tokens,omitempty"`
+	CompletionTokens       int    `json:"completion_tokens,omitempty"`
+	TotalTokens            int    `json:"total_tokens,omitempty"`
+	CacheCreationTokens    int    `json:"cache_creation_tokens,omitempty"`
+	CacheReadTokens        int    `json:"cache_read_tokens,omitempty"`
+	CacheSavingsPercentage float64 `json:"cache_savings_percentage,omitempty"`
 }
 
 // LLMClient provides a unified interface for different LLM providers
@@ -281,14 +293,27 @@ func (c *anthropicClient) Chat(ctx context.Context, messages []Message, tools in
 	embedding.LogLLMResponseTrace("anthropic", c.model, operation, resp.StatusCode, anthropicResp.StopReason)
 	embedding.LogLLMCall("anthropic", c.model, operation, anthropicResp.Usage.InputTokens, anthropicResp.Usage.OutputTokens, duration, nil)
 
-	// Log cache usage and token usage if debug enabled
+	// Build token usage for debug
+	var tokenUsage *TokenUsage
 	if c.debug {
+		totalInput := anthropicResp.Usage.InputTokens + anthropicResp.Usage.CacheReadInputTokens
+		savePercent := 0.0
+		if totalInput > 0 {
+			savePercent = float64(anthropicResp.Usage.CacheReadInputTokens) / float64(totalInput) * 100
+		}
+
+		tokenUsage = &TokenUsage{
+			Provider:               "anthropic",
+			PromptTokens:           anthropicResp.Usage.InputTokens,
+			CompletionTokens:       anthropicResp.Usage.OutputTokens,
+			TotalTokens:            anthropicResp.Usage.InputTokens + anthropicResp.Usage.OutputTokens,
+			CacheCreationTokens:    anthropicResp.Usage.CacheCreationInputTokens,
+			CacheReadTokens:        anthropicResp.Usage.CacheReadInputTokens,
+			CacheSavingsPercentage: savePercent,
+		}
+
+		// Log to stderr for CLI
 		if anthropicResp.Usage.CacheCreationInputTokens > 0 || anthropicResp.Usage.CacheReadInputTokens > 0 {
-			totalInput := anthropicResp.Usage.InputTokens + anthropicResp.Usage.CacheReadInputTokens
-			savePercent := 0.0
-			if totalInput > 0 {
-				savePercent = float64(anthropicResp.Usage.CacheReadInputTokens) / float64(totalInput) * 100
-			}
 			fmt.Fprintf(os.Stderr, "\n[LLM] [DEBUG] Anthropic - Prompt Cache: Created %d tokens, Read %d tokens (saved ~%.0f%% on input)\n",
 				anthropicResp.Usage.CacheCreationInputTokens,
 				anthropicResp.Usage.CacheReadInputTokens,
@@ -311,6 +336,7 @@ func (c *anthropicClient) Chat(ctx context.Context, messages []Message, tools in
 	return LLMResponse{
 		Content:    content,
 		StopReason: anthropicResp.StopReason,
+		TokenUsage: tokenUsage,
 	}, nil
 }
 
@@ -543,7 +569,14 @@ IMPORTANT INSTRUCTIONS:
 		embedding.LogLLMResponseTrace("ollama", c.model, operation, resp.StatusCode, "tool_use")
 		embedding.LogLLMCall("ollama", c.model, operation, 0, 0, duration, nil) // Ollama doesn't provide token counts
 
+		// Build token usage for debug (Ollama doesn't provide counts)
+		var tokenUsage *TokenUsage
 		if c.debug {
+			tokenUsage = &TokenUsage{
+				Provider: "ollama",
+			}
+
+			// Log to stderr for CLI
 			fmt.Fprintf(os.Stderr, "\n[LLM] [DEBUG] Ollama - Response: tool_use (Ollama does not provide token counts)\n")
 		}
 
@@ -557,6 +590,7 @@ IMPORTANT INSTRUCTIONS:
 				},
 			},
 			StopReason: "tool_use",
+			TokenUsage: tokenUsage,
 		}, nil
 	}
 
@@ -565,7 +599,14 @@ IMPORTANT INSTRUCTIONS:
 	embedding.LogLLMResponseTrace("ollama", c.model, operation, resp.StatusCode, "end_turn")
 	embedding.LogLLMCall("ollama", c.model, operation, 0, 0, duration, nil) // Ollama doesn't provide token counts
 
+	// Build token usage for debug (Ollama doesn't provide counts)
+	var tokenUsage *TokenUsage
 	if c.debug {
+		tokenUsage = &TokenUsage{
+			Provider: "ollama",
+		}
+
+		// Log to stderr for CLI
 		fmt.Fprintf(os.Stderr, "\n[LLM] [DEBUG] Ollama - Response: end_turn (Ollama does not provide token counts)\n")
 	}
 
@@ -577,6 +618,7 @@ IMPORTANT INSTRUCTIONS:
 			},
 		},
 		StopReason: "end_turn",
+		TokenUsage: tokenUsage,
 	}, nil
 }
 
@@ -1028,7 +1070,17 @@ func (c *openaiClient) Chat(ctx context.Context, messages []Message, tools inter
 			embedding.LogLLMResponseTrace("openai", c.model, operation, resp.StatusCode, "tool_calls")
 			embedding.LogLLMCall("openai", c.model, operation, openaiResp.Usage.PromptTokens, openaiResp.Usage.CompletionTokens, duration, nil)
 
+			// Build token usage for debug
+			var tokenUsage *TokenUsage
 			if c.debug {
+				tokenUsage = &TokenUsage{
+					Provider:         "openai",
+					PromptTokens:     openaiResp.Usage.PromptTokens,
+					CompletionTokens: openaiResp.Usage.CompletionTokens,
+					TotalTokens:      openaiResp.Usage.TotalTokens,
+				}
+
+				// Log to stderr for CLI
 				fmt.Fprintf(os.Stderr, "\n[LLM] [DEBUG] OpenAI - Tokens: Prompt %d, Completion %d, Total %d\n",
 					openaiResp.Usage.PromptTokens,
 					openaiResp.Usage.CompletionTokens,
@@ -1079,6 +1131,7 @@ func (c *openaiClient) Chat(ctx context.Context, messages []Message, tools inter
 			return LLMResponse{
 				Content:    content,
 				StopReason: "tool_use",
+				TokenUsage: tokenUsage,
 			}, nil
 		}
 	}
@@ -1094,7 +1147,17 @@ func (c *openaiClient) Chat(ctx context.Context, messages []Message, tools inter
 	embedding.LogLLMResponseTrace("openai", c.model, operation, resp.StatusCode, choice.FinishReason)
 	embedding.LogLLMCall("openai", c.model, operation, openaiResp.Usage.PromptTokens, openaiResp.Usage.CompletionTokens, duration, nil)
 
+	// Build token usage for debug
+	var tokenUsage *TokenUsage
 	if c.debug {
+		tokenUsage = &TokenUsage{
+			Provider:         "openai",
+			PromptTokens:     openaiResp.Usage.PromptTokens,
+			CompletionTokens: openaiResp.Usage.CompletionTokens,
+			TotalTokens:      openaiResp.Usage.TotalTokens,
+		}
+
+		// Log to stderr for CLI
 		fmt.Fprintf(os.Stderr, "\n[LLM] [DEBUG] OpenAI - Tokens: Prompt %d, Completion %d, Total %d\n",
 			openaiResp.Usage.PromptTokens,
 			openaiResp.Usage.CompletionTokens,
@@ -1110,6 +1173,7 @@ func (c *openaiClient) Chat(ctx context.Context, messages []Message, tools inter
 			},
 		},
 		StopReason: "end_turn",
+		TokenUsage: tokenUsage,
 	}, nil
 }
 

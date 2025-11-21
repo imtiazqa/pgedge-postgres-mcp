@@ -47,7 +47,7 @@ const getShortModelName = (modelName) => {
     return firstPart.length <= 15 ? firstPart : modelName.substring(0, 15) + '...';
 };
 
-const Message = React.memo(({ message, showActivity, renderMarkdown }) => {
+const Message = React.memo(({ message, showActivity, renderMarkdown, debug }) => {
     const theme = useTheme();
     const markdownComponents = createMarkdownComponents(theme);
 
@@ -125,6 +125,41 @@ const Message = React.memo(({ message, showActivity, renderMarkdown }) => {
                     </Box>
                 )}
 
+                {/* Token Usage Debug Info */}
+                {debug && message.role === 'assistant' && message.tokenUsage && (
+                    <Box sx={{ mb: 1 }}>
+                        <Typography
+                            variant="caption"
+                            sx={{
+                                display: 'block',
+                                color: 'info.main',
+                                fontFamily: 'monospace',
+                                fontSize: '0.7rem',
+                                mb: 0.2,
+                            }}
+                        >
+                            {message.tokenUsage.provider === 'anthropic' && (
+                                <>
+                                    {message.tokenUsage.cache_creation_tokens > 0 || message.tokenUsage.cache_read_tokens > 0 ? (
+                                        <>
+                                            <div>📊 Prompt Cache: Created {message.tokenUsage.cache_creation_tokens}, Read {message.tokenUsage.cache_read_tokens} (saved ~{message.tokenUsage.cache_savings_percentage?.toFixed(0)}%)</div>
+                                            <div>🔢 Tokens: Input {message.tokenUsage.prompt_tokens}, Output {message.tokenUsage.completion_tokens}, Total {message.tokenUsage.total_tokens}</div>
+                                        </>
+                                    ) : (
+                                        <div>🔢 Tokens: Input {message.tokenUsage.prompt_tokens}, Output {message.tokenUsage.completion_tokens}, Total {message.tokenUsage.total_tokens}</div>
+                                    )}
+                                </>
+                            )}
+                            {message.tokenUsage.provider === 'openai' && (
+                                <div>🔢 Tokens: Prompt {message.tokenUsage.prompt_tokens}, Completion {message.tokenUsage.completion_tokens}, Total {message.tokenUsage.total_tokens}</div>
+                            )}
+                            {message.tokenUsage.provider === 'ollama' && (
+                                <div>ℹ️ Ollama does not provide token counts</div>
+                            )}
+                        </Typography>
+                    </Box>
+                )}
+
                 {/* Message Body */}
                 <Paper
                     elevation={0}
@@ -187,9 +222,19 @@ Message.propTypes = {
         })),
         isThinking: PropTypes.bool,
         fromPreviousSession: PropTypes.bool,
+        tokenUsage: PropTypes.shape({
+            provider: PropTypes.string,
+            prompt_tokens: PropTypes.number,
+            completion_tokens: PropTypes.number,
+            total_tokens: PropTypes.number,
+            cache_creation_tokens: PropTypes.number,
+            cache_read_tokens: PropTypes.number,
+            cache_savings_percentage: PropTypes.number,
+        }),
     }).isRequired,
     showActivity: PropTypes.bool.isRequired,
     renderMarkdown: PropTypes.bool.isRequired,
+    debug: PropTypes.bool.isRequired,
 };
 
 export default Message;

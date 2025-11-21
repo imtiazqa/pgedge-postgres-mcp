@@ -145,6 +145,7 @@ const ChatInterface = () => {
                         tools: tools,
                         provider: llmProviders.selectedProvider,
                         model: llmProviders.selectedModel,
+                        debug: debug,
                     }),
                 });
 
@@ -198,6 +199,7 @@ const ChatInterface = () => {
                             provider: llmProviders.selectedProvider,
                             model: llmProviders.selectedModel,
                             activity: activity,
+                            tokenUsage: llmData.token_usage,
                         }];
                     });
                     break;
@@ -350,6 +352,7 @@ const ChatInterface = () => {
                 messages={messages}
                 showActivity={showActivity}
                 renderMarkdown={renderMarkdown}
+                debug={debug}
                 onClear={handleClear}
             />
 
