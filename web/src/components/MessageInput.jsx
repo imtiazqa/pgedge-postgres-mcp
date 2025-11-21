@@ -8,15 +8,29 @@
  *-------------------------------------------------------------------------
  */
 
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { Box, TextField, IconButton } from '@mui/material';
 import { Send as SendIcon } from '@mui/icons-material';
 
 const MessageInput = React.memo(({ value, onChange, onSend, onKeyDown, disabled }) => {
+    const inputRef = useRef(null);
+
+    // Auto-focus input when it becomes enabled
+    useEffect(() => {
+        if (!disabled && inputRef.current) {
+            // Use setTimeout to ensure the focus happens after the disabled state update
+            const timer = setTimeout(() => {
+                inputRef.current?.focus();
+            }, 0);
+            return () => clearTimeout(timer);
+        }
+    }, [disabled]);
+
     return (
         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 2 }}>
             <TextField
+                inputRef={inputRef}
                 fullWidth
                 multiline
                 maxRows={4}
@@ -26,6 +40,7 @@ const MessageInput = React.memo(({ value, onChange, onSend, onKeyDown, disabled 
                 onChange={onChange}
                 onKeyDown={onKeyDown}
                 disabled={disabled}
+                autoFocus
                 sx={{
                     '& .MuiOutlinedInput-root': {
                         borderRadius: 2,
