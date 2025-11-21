@@ -415,6 +415,37 @@ func extractOllamaErrorMessage(statusCode int, body []byte) string {
 	return fmt.Sprintf("Ollama error (%d): %s", statusCode, bodyStr)
 }
 
+// extractJSONFromText attempts to extract a JSON object from text that may contain
+// additional explanation or commentary around the JSON
+func extractJSONFromText(text string) string {
+	// Find the first '{' and last '}' to extract the JSON object
+	firstBrace := strings.Index(text, "{")
+	if firstBrace == -1 {
+		return ""
+	}
+
+	// Find the matching closing brace by counting braces
+	braceCount := 0
+	lastBrace := -1
+	for i := firstBrace; i < len(text); i++ {
+		if text[i] == '{' {
+			braceCount++
+		} else if text[i] == '}' {
+			braceCount--
+			if braceCount == 0 {
+				lastBrace = i
+				break
+			}
+		}
+	}
+
+	if lastBrace == -1 {
+		return ""
+	}
+
+	return text[firstBrace : lastBrace+1]
+}
+
 func (c *ollamaClient) Chat(ctx context.Context, messages []Message, tools interface{}) (LLMResponse, error) {
 	startTime := time.Now()
 	operation := "chat"
@@ -562,6 +593,7 @@ IMPORTANT INSTRUCTIONS:
 	content := ollamaResp.Message.Content
 
 	// Try to parse as tool call
+	// First try direct parsing (if the model behaved correctly)
 	var toolCall toolCallRequest
 	if err := json.Unmarshal([]byte(strings.TrimSpace(content)), &toolCall); err == nil && toolCall.Tool != "" {
 		// It's a tool call
@@ -592,6 +624,41 @@ IMPORTANT INSTRUCTIONS:
 			StopReason: "tool_use",
 			TokenUsage: tokenUsage,
 		}, nil
+	}
+
+	// If direct parsing failed, try to extract JSON from surrounding text
+	// This handles cases where the model adds explanation around the JSON
+	if extractedJSON := extractJSONFromText(content); extractedJSON != "" {
+		if err := json.Unmarshal([]byte(extractedJSON), &toolCall); err == nil && toolCall.Tool != "" {
+			// Successfully extracted and parsed tool call
+			duration := time.Since(startTime)
+			embedding.LogLLMResponseTrace("ollama", c.model, operation, resp.StatusCode, "tool_use")
+			embedding.LogLLMCall("ollama", c.model, operation, 0, 0, duration, nil)
+
+			// Build token usage for debug
+			var tokenUsage *TokenUsage
+			if c.debug {
+				tokenUsage = &TokenUsage{
+					Provider: "ollama",
+				}
+
+				// Log to stderr for CLI
+				fmt.Fprintf(os.Stderr, "\n[LLM] [DEBUG] Ollama - Response: tool_use (Ollama does not provide token counts)\n")
+			}
+
+			return LLMResponse{
+				Content: []interface{}{
+					ToolUse{
+						Type:  "tool_use",
+						ID:    "ollama-tool-1",
+						Name:  toolCall.Tool,
+						Input: toolCall.Arguments,
+					},
+				},
+				StopReason: "tool_use",
+				TokenUsage: tokenUsage,
+			}, nil
+		}
 	}
 
 	// It's a text response
