@@ -142,7 +142,7 @@ const Message = React.memo(({ message, showActivity, renderMarkdown, debug }) =>
                                 <>
                                     {message.tokenUsage.cache_creation_tokens > 0 || message.tokenUsage.cache_read_tokens > 0 ? (
                                         <>
-                                            <div>📊 Prompt Cache: Created {message.tokenUsage.cache_creation_tokens}, Read {message.tokenUsage.cache_read_tokens} (saved ~{message.tokenUsage.cache_savings_percentage?.toFixed(0)}%)</div>
+                                            <div>📊 Prompt Cache: Created {message.tokenUsage.cache_creation_tokens || 0}, Read {message.tokenUsage.cache_read_tokens || 0} (saved ~{message.tokenUsage.cache_savings_percentage?.toFixed(0)}%)</div>
                                             <div>🔢 Tokens: Input {message.tokenUsage.prompt_tokens}, Output {message.tokenUsage.completion_tokens}, Total {message.tokenUsage.total_tokens}</div>
                                         </>
                                     ) : (
