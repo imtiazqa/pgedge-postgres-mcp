@@ -58,6 +58,7 @@ type UIConfig struct {
 	NoColor               bool `yaml:"no_color"`                // Disable colored output
 	DisplayStatusMessages bool `yaml:"display_status_messages"` // Display status messages during execution
 	RenderMarkdown        bool `yaml:"render_markdown"`         // Render markdown with formatting and syntax highlighting
+	Debug                 bool `yaml:"debug"`                   // Display debug messages (e.g., LLM token usage)
 }
 
 // LoadConfig loads configuration from file, environment variables, and defaults

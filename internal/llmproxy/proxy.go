@@ -156,19 +156,19 @@ func HandleModels(w http.ResponseWriter, r *http.Request, config *Config) {
 			http.Error(w, "Anthropic API key not configured", http.StatusBadRequest)
 			return
 		}
-		client = chat.NewAnthropicClient(config.AnthropicAPIKey, config.Model, config.MaxTokens, config.Temperature)
+		client = chat.NewAnthropicClient(config.AnthropicAPIKey, config.Model, config.MaxTokens, config.Temperature, false)
 	case "openai":
 		if config.OpenAIAPIKey == "" {
 			http.Error(w, "OpenAI API key not configured", http.StatusBadRequest)
 			return
 		}
-		client = chat.NewOpenAIClient(config.OpenAIAPIKey, config.Model, config.MaxTokens, config.Temperature)
+		client = chat.NewOpenAIClient(config.OpenAIAPIKey, config.Model, config.MaxTokens, config.Temperature, false)
 	case "ollama":
 		if config.OllamaURL == "" {
 			http.Error(w, "Ollama URL not configured", http.StatusBadRequest)
 			return
 		}
-		client = chat.NewOllamaClient(config.OllamaURL, config.Model)
+		client = chat.NewOllamaClient(config.OllamaURL, config.Model, false)
 	default:
 		http.Error(w, fmt.Sprintf("Unsupported provider: %s", provider), http.StatusBadRequest)
 		return
@@ -239,19 +239,19 @@ func HandleChat(w http.ResponseWriter, r *http.Request, config *Config) {
 			http.Error(w, "Anthropic API key not configured", http.StatusBadRequest)
 			return
 		}
-		client = chat.NewAnthropicClient(config.AnthropicAPIKey, model, config.MaxTokens, config.Temperature)
+		client = chat.NewAnthropicClient(config.AnthropicAPIKey, model, config.MaxTokens, config.Temperature, false)
 	case "openai":
 		if config.OpenAIAPIKey == "" {
 			http.Error(w, "OpenAI API key not configured", http.StatusBadRequest)
 			return
 		}
-		client = chat.NewOpenAIClient(config.OpenAIAPIKey, model, config.MaxTokens, config.Temperature)
+		client = chat.NewOpenAIClient(config.OpenAIAPIKey, model, config.MaxTokens, config.Temperature, false)
 	case "ollama":
 		if config.OllamaURL == "" {
 			http.Error(w, "Ollama URL not configured", http.StatusBadRequest)
 			return
 		}
-		client = chat.NewOllamaClient(config.OllamaURL, model)
+		client = chat.NewOllamaClient(config.OllamaURL, model, false)
 	default:
 		http.Error(w, fmt.Sprintf("Unsupported provider: %s", provider), http.StatusBadRequest)
 		return

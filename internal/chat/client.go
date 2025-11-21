@@ -46,6 +46,7 @@ func NewClient(cfg *Config) (*Client, error) {
 	// Apply preferences to config
 	cfg.UI.DisplayStatusMessages = prefs.UI.DisplayStatusMessages
 	cfg.UI.RenderMarkdown = prefs.UI.RenderMarkdown
+	cfg.UI.Debug = prefs.UI.Debug
 
 	// If user has a preferred model for the current provider, use it
 	if preferredModel := prefs.GetModelForProvider(cfg.LLM.Provider); preferredModel != "" {
@@ -262,6 +263,7 @@ func (c *Client) initializeLLM() error {
 			c.config.LLM.Model,
 			c.config.LLM.MaxTokens,
 			c.config.LLM.Temperature,
+			c.config.UI.Debug,
 		)
 	} else if c.config.LLM.Provider == "openai" {
 		c.llm = NewOpenAIClient(
@@ -269,11 +271,13 @@ func (c *Client) initializeLLM() error {
 			c.config.LLM.Model,
 			c.config.LLM.MaxTokens,
 			c.config.LLM.Temperature,
+			c.config.UI.Debug,
 		)
 	} else if c.config.LLM.Provider == "ollama" {
 		c.llm = NewOllamaClient(
 			c.config.LLM.OllamaURL,
 			c.config.LLM.Model,
+			c.config.UI.Debug,
 		)
 	} else {
 		return fmt.Errorf("unsupported LLM provider: %s", c.config.LLM.Provider)

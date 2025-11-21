@@ -75,16 +75,18 @@ type anthropicClient struct {
 	model       string
 	maxTokens   int
 	temperature float64
+	debug       bool
 	client      *http.Client
 }
 
 // NewAnthropicClient creates a new Anthropic client
-func NewAnthropicClient(apiKey, model string, maxTokens int, temperature float64) LLMClient {
+func NewAnthropicClient(apiKey, model string, maxTokens int, temperature float64, debug bool) LLMClient {
 	return &anthropicClient{
 		apiKey:      apiKey,
 		model:       model,
 		maxTokens:   maxTokens,
 		temperature: temperature,
+		debug:       debug,
 		client:      &http.Client{},
 	}
 }
@@ -279,17 +281,24 @@ func (c *anthropicClient) Chat(ctx context.Context, messages []Message, tools in
 	embedding.LogLLMResponseTrace("anthropic", c.model, operation, resp.StatusCode, anthropicResp.StopReason)
 	embedding.LogLLMCall("anthropic", c.model, operation, anthropicResp.Usage.InputTokens, anthropicResp.Usage.OutputTokens, duration, nil)
 
-	// Log cache usage if present
-	if anthropicResp.Usage.CacheCreationInputTokens > 0 || anthropicResp.Usage.CacheReadInputTokens > 0 {
-		totalInput := anthropicResp.Usage.InputTokens + anthropicResp.Usage.CacheReadInputTokens
-		savePercent := 0.0
-		if totalInput > 0 {
-			savePercent = float64(anthropicResp.Usage.CacheReadInputTokens) / float64(totalInput) * 100
+	// Log cache usage and token usage if debug enabled
+	if c.debug {
+		if anthropicResp.Usage.CacheCreationInputTokens > 0 || anthropicResp.Usage.CacheReadInputTokens > 0 {
+			totalInput := anthropicResp.Usage.InputTokens + anthropicResp.Usage.CacheReadInputTokens
+			savePercent := 0.0
+			if totalInput > 0 {
+				savePercent = float64(anthropicResp.Usage.CacheReadInputTokens) / float64(totalInput) * 100
+			}
+			fmt.Fprintf(os.Stderr, "[LLM] [DEBUG] Anthropic - Prompt Cache: Created %d tokens, Read %d tokens (saved ~%.0f%% on input)\n",
+				anthropicResp.Usage.CacheCreationInputTokens,
+				anthropicResp.Usage.CacheReadInputTokens,
+				savePercent,
+			)
 		}
-		fmt.Fprintf(os.Stderr, "[LLM] [INFO] Prompt Cache - Created: %d tokens, Read: %d tokens (saved ~%.0f%% on input)\n",
-			anthropicResp.Usage.CacheCreationInputTokens,
-			anthropicResp.Usage.CacheReadInputTokens,
-			savePercent,
+		fmt.Fprintf(os.Stderr, "[LLM] [DEBUG] Anthropic - Tokens: Input %d, Output %d, Total %d\n",
+			anthropicResp.Usage.InputTokens,
+			anthropicResp.Usage.OutputTokens,
+			anthropicResp.Usage.InputTokens+anthropicResp.Usage.OutputTokens,
 		)
 	}
 
@@ -318,14 +327,16 @@ func (c *anthropicClient) ListModels(ctx context.Context) ([]string, error) {
 type ollamaClient struct {
 	baseURL string
 	model   string
+	debug   bool
 	client  *http.Client
 }
 
 // NewOllamaClient creates a new Ollama client
-func NewOllamaClient(baseURL, model string) LLMClient {
+func NewOllamaClient(baseURL, model string, debug bool) LLMClient {
 	return &ollamaClient{
 		baseURL: baseURL,
 		model:   model,
+		debug:   debug,
 		client:  &http.Client{},
 	}
 }
@@ -526,6 +537,10 @@ IMPORTANT INSTRUCTIONS:
 		embedding.LogLLMResponseTrace("ollama", c.model, operation, resp.StatusCode, "tool_use")
 		embedding.LogLLMCall("ollama", c.model, operation, 0, 0, duration, nil) // Ollama doesn't provide token counts
 
+		if c.debug {
+			fmt.Fprintf(os.Stderr, "[LLM] [DEBUG] Ollama - Response: tool_use (Ollama does not provide token counts)\n")
+		}
+
 		return LLMResponse{
 			Content: []interface{}{
 				ToolUse{
@@ -543,6 +558,10 @@ IMPORTANT INSTRUCTIONS:
 	duration := time.Since(startTime)
 	embedding.LogLLMResponseTrace("ollama", c.model, operation, resp.StatusCode, "end_turn")
 	embedding.LogLLMCall("ollama", c.model, operation, 0, 0, duration, nil) // Ollama doesn't provide token counts
+
+	if c.debug {
+		fmt.Fprintf(os.Stderr, "[LLM] [DEBUG] Ollama - Response: end_turn (Ollama does not provide token counts)\n")
+	}
 
 	return LLMResponse{
 		Content: []interface{}{
@@ -631,16 +650,18 @@ type openaiClient struct {
 	model       string
 	maxTokens   int
 	temperature float64
+	debug       bool
 	client      *http.Client
 }
 
 // NewOpenAIClient creates a new OpenAI client
-func NewOpenAIClient(apiKey, model string, maxTokens int, temperature float64) LLMClient {
+func NewOpenAIClient(apiKey, model string, maxTokens int, temperature float64, debug bool) LLMClient {
 	return &openaiClient{
 		apiKey:      apiKey,
 		model:       model,
 		maxTokens:   maxTokens,
 		temperature: temperature,
+		debug:       debug,
 		client:      &http.Client{},
 	}
 }
@@ -1001,6 +1022,14 @@ func (c *openaiClient) Chat(ctx context.Context, messages []Message, tools inter
 			embedding.LogLLMResponseTrace("openai", c.model, operation, resp.StatusCode, "tool_calls")
 			embedding.LogLLMCall("openai", c.model, operation, openaiResp.Usage.PromptTokens, openaiResp.Usage.CompletionTokens, duration, nil)
 
+			if c.debug {
+				fmt.Fprintf(os.Stderr, "[LLM] [DEBUG] OpenAI - Tokens: Prompt %d, Completion %d, Total %d\n",
+					openaiResp.Usage.PromptTokens,
+					openaiResp.Usage.CompletionTokens,
+					openaiResp.Usage.TotalTokens,
+				)
+			}
+
 			// Convert tool calls to our format
 			content := make([]interface{}, 0, len(toolCalls))
 			for _, tc := range toolCalls {
@@ -1058,6 +1087,14 @@ func (c *openaiClient) Chat(ctx context.Context, messages []Message, tools inter
 
 	embedding.LogLLMResponseTrace("openai", c.model, operation, resp.StatusCode, choice.FinishReason)
 	embedding.LogLLMCall("openai", c.model, operation, openaiResp.Usage.PromptTokens, openaiResp.Usage.CompletionTokens, duration, nil)
+
+	if c.debug {
+		fmt.Fprintf(os.Stderr, "[LLM] [DEBUG] OpenAI - Tokens: Prompt %d, Completion %d, Total %d\n",
+			openaiResp.Usage.PromptTokens,
+			openaiResp.Usage.CompletionTokens,
+			openaiResp.Usage.TotalTokens,
+		)
+	}
 
 	return LLMResponse{
 		Content: []interface{}{
