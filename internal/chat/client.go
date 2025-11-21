@@ -40,7 +40,7 @@ func NewClient(cfg *Config) (*Client, error) {
 	if err != nil {
 		// Log error but don't fail - use defaults
 		fmt.Fprintf(os.Stderr, "Warning: Failed to load preferences: %v\n", err)
-		prefs = &Preferences{}
+		prefs = getDefaultPreferences()
 	}
 
 	// Apply preferences to config
