@@ -42,10 +42,10 @@ type User struct {
 
 // UserStore manages user accounts
 type UserStore struct {
-	mu      sync.RWMutex       // Protects concurrent access to Users
-	Users   map[string]*User   `yaml:"users"` // key is username
-	path    string             // File path for auto-reloading
-	watcher *FileWatcher       // File watcher for auto-reloading
+	mu      sync.RWMutex     // Protects concurrent access to Users
+	Users   map[string]*User `yaml:"users"` // key is username
+	path    string           // File path for auto-reloading
+	watcher *FileWatcher     // File watcher for auto-reloading
 }
 
 // HashPassword creates a bcrypt hash of the password

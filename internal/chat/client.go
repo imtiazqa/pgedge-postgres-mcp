@@ -288,7 +288,6 @@ func (c *Client) initializeLLM() error {
 
 // PrefixCompleter implements readline.AutoCompleter for prefix-based history
 type PrefixCompleter struct {
-	rl *readline.Instance
 }
 
 // Do implements the AutoCompleter interface for prefix-based history completion

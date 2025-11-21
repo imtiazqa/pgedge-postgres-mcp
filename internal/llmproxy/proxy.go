@@ -87,8 +87,8 @@ type ChatRequest struct {
 
 // ChatResponse represents the response body for POST /api/llm/chat
 type ChatResponse struct {
-	Content    []interface{}      `json:"content"`
-	StopReason string             `json:"stop_reason"`
+	Content    []interface{}    `json:"content"`
+	StopReason string           `json:"stop_reason"`
 	TokenUsage *chat.TokenUsage `json:"token_usage,omitempty"` // Optional token usage (when debug enabled)
 }
 

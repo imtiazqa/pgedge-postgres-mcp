@@ -34,10 +34,10 @@ type Token struct {
 
 // TokenStore manages API tokens
 type TokenStore struct {
-	mu      sync.RWMutex          // Protects concurrent access to Tokens
-	Tokens  map[string]*Token     `yaml:"tokens"` // key is a unique identifier
-	path    string                // File path for auto-reloading
-	watcher *FileWatcher          // File watcher for auto-reloading
+	mu      sync.RWMutex      // Protects concurrent access to Tokens
+	Tokens  map[string]*Token `yaml:"tokens"` // key is a unique identifier
+	path    string            // File path for auto-reloading
+	watcher *FileWatcher      // File watcher for auto-reloading
 }
 
 // GenerateToken creates a new random API token

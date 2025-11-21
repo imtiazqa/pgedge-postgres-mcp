@@ -63,12 +63,12 @@ type LLMResponse struct {
 
 // TokenUsage holds token usage information for debug purposes
 type TokenUsage struct {
-	Provider               string `json:"provider"`
-	PromptTokens           int    `json:"prompt_tokens,omitempty"`
-	CompletionTokens       int    `json:"completion_tokens,omitempty"`
-	TotalTokens            int    `json:"total_tokens,omitempty"`
-	CacheCreationTokens    int    `json:"cache_creation_tokens,omitempty"`
-	CacheReadTokens        int    `json:"cache_read_tokens,omitempty"`
+	Provider               string  `json:"provider"`
+	PromptTokens           int     `json:"prompt_tokens,omitempty"`
+	CompletionTokens       int     `json:"completion_tokens,omitempty"`
+	TotalTokens            int     `json:"total_tokens,omitempty"`
+	CacheCreationTokens    int     `json:"cache_creation_tokens,omitempty"`
+	CacheReadTokens        int     `json:"cache_read_tokens,omitempty"`
 	CacheSavingsPercentage float64 `json:"cache_savings_percentage,omitempty"`
 }
 
