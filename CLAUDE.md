@@ -1,5 +1,8 @@
 * Always use 4 spaces for indentation of code.
 
+* Always store any plan documents generated in planning mode or similar to
+    document long tasks in /.claude
+
 * Always update documentation where necessary:
 
     * When editing markdown files, always leave a blank line before the first 
