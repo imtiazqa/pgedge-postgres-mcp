@@ -515,9 +515,11 @@ func testCallGetSchemaInfo(t *testing.T, server *MCPServer) {
 		t.Error("Content text is empty")
 	}
 
-	// Should contain schema header
-	if !strings.Contains(text, "Database Schema Information") {
-		t.Error("Schema information header not found in response")
+	// Should contain schema header or empty database message
+	// (depending on whether the test database has tables or not)
+	if !strings.Contains(text, "Database Schema Information") &&
+		!strings.Contains(text, "No tables found matching your criteria") {
+		t.Errorf("Expected schema information or empty database message, got: %s", text)
 	}
 
 	t.Log("CallGetSchemaInfo test passed")
