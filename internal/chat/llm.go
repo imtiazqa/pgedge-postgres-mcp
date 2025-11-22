@@ -186,12 +186,30 @@ func (c *anthropicClient) Chat(ctx context.Context, messages []Message, tools in
 		anthropicTools = append(anthropicTools, toolDef)
 	}
 
+	// Create system message for better UX
+	systemContent := `You are a helpful PostgreSQL database assistant with access to MCP tools.
+
+When executing tools:
+- Be concise and direct
+- Show results without explaining your methodology unless specifically asked
+- Base responses ONLY on actual tool results - never make up or guess data
+- Format results clearly for the user
+- Only use tools when necessary to answer the question`
+
+	systemMessage := []map[string]interface{}{
+		{
+			"type": "text",
+			"text": systemContent,
+		},
+	}
+
 	req := anthropicRequest{
 		Model:       c.model,
 		MaxTokens:   c.maxTokens,
 		Messages:    messages,
 		Tools:       anthropicTools,
 		Temperature: c.temperature,
+		System:      systemMessage,
 	}
 
 	reqData, err := json.Marshal(req)
@@ -486,7 +504,8 @@ IMPORTANT INSTRUCTIONS:
 2. After calling a tool, you will receive actual results from the database.
 3. You MUST base your response ONLY on the actual tool results provided - never make up or guess data.
 4. If you receive tool results, format them clearly for the user.
-5. Only use tools when necessary to answer the user's question.`, toolsContext)
+5. Only use tools when necessary to answer the user's question.
+6. Be concise and direct - show results without explaining your methodology unless specifically asked.`, toolsContext)
 
 	// Convert messages to Ollama format
 	ollamaMessages := []ollamaMessage{
@@ -903,7 +922,22 @@ func (c *openaiClient) Chat(ctx context.Context, messages []Message, tools inter
 	}
 
 	// Convert messages to OpenAI format
-	openaiMessages := make([]openaiMessage, 0, len(messages))
+	// Start with system message
+	systemContent := `You are a helpful PostgreSQL database assistant with access to MCP tools.
+
+When executing tools:
+- Be concise and direct
+- Show results without explaining your methodology unless specifically asked
+- Base responses ONLY on actual tool results - never make up or guess data
+- Format results clearly for the user
+- Only use tools when necessary to answer the question`
+
+	openaiMessages := make([]openaiMessage, 0, len(messages)+1)
+	openaiMessages = append(openaiMessages, openaiMessage{
+		Role:    "system",
+		Content: systemContent,
+	})
+
 	for _, msg := range messages {
 		openaiMsg := openaiMessage{
 			Role: msg.Role,

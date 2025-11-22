@@ -18,6 +18,7 @@ import (
 	"pgedge-postgres-mcp/internal/config"
 	"pgedge-postgres-mcp/internal/database"
 	"pgedge-postgres-mcp/internal/embedding"
+	"pgedge-postgres-mcp/internal/logging"
 	"pgedge-postgres-mcp/internal/mcp"
 	"pgedge-postgres-mcp/internal/search"
 )
@@ -396,6 +397,23 @@ To avoid rate limits (30,000 input tokens/minute):
 			connStr := dbClient.GetDefaultConnection()
 			sanitizedConn := database.SanitizeConnStr(connStr)
 			result := fmt.Sprintf("Database: %s\nTable: %s\n\n%s", sanitizedConn, tableName, output)
+
+			// Log execution metrics
+			totalTokens := 0
+			for _, chunk := range finalChunks {
+				// Estimate tokens: ~4 characters per token
+				totalTokens += len(chunk.Text) / 4
+			}
+			logging.Info("similarity_search_executed",
+				"table", tableName,
+				"query_length", len(queryText),
+				"output_format", outputFormat,
+				"results_count", len(finalChunks),
+				"total_tokens", totalTokens,
+				"token_budget", searchCfg.MaxOutputTokens,
+				"top_n", searchCfg.TopN,
+				"lambda", searchCfg.Lambda,
+			)
 
 			return mcp.NewToolSuccess(result)
 		},

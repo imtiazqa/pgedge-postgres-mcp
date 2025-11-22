@@ -17,6 +17,7 @@ import (
 	"strings"
 
 	"pgedge-postgres-mcp/internal/database"
+	"pgedge-postgres-mcp/internal/logging"
 	"pgedge-postgres-mcp/internal/mcp"
 )
 
@@ -253,6 +254,13 @@ To avoid rate limits (30,000 input tokens/minute):
 
 			sb.WriteString(fmt.Sprintf("SQL Query:\n%s\n\n", sqlQuery))
 			sb.WriteString(fmt.Sprintf("Results (%d rows):\n%s", len(results), string(resultsJSON)))
+
+			// Log execution metrics
+			logging.Info("query_database_executed",
+				"query_length", len(sqlQuery),
+				"rows_returned", len(results),
+				"estimated_tokens", len(resultsJSON)/4,
+			)
 
 			return mcp.NewToolSuccess(sb.String())
 		},

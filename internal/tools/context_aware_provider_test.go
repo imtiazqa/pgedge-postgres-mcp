@@ -75,6 +75,7 @@ func TestContextAwareProvider_List(t *testing.T) {
 			"query_database",
 			"get_schema_info",
 			"similarity_search",
+			"execute_explain",
 		}
 
 		if len(tools) != len(expectedTools) {
