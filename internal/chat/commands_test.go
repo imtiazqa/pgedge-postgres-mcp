@@ -230,3 +230,157 @@ func TestHandleSetLLMModel(t *testing.T) {
 		t.Errorf("Expected model %q, got %q", newModel, client.config.LLM.Model)
 	}
 }
+
+func TestParseQuotedArgs(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected []string
+	}{
+		{
+			name:     "simple args",
+			input:    "arg1 arg2 arg3",
+			expected: []string{"arg1", "arg2", "arg3"},
+		},
+		{
+			name:     "double quoted arg",
+			input:    `query_text="What is pgAgent?"`,
+			expected: []string{`query_text=What is pgAgent?`},
+		},
+		{
+			name:     "single quoted arg",
+			input:    `query_text='What is pgAgent?'`,
+			expected: []string{`query_text=What is pgAgent?`},
+		},
+		{
+			name:     "mixed quotes",
+			input:    `query_text="How does PostgreSQL work?" table_name='users'`,
+			expected: []string{`query_text=How does PostgreSQL work?`, `table_name=users`},
+		},
+		{
+			name:     "arg with spaces in quotes",
+			input:    `query_text="PostgreSQL vector search capabilities"`,
+			expected: []string{`query_text=PostgreSQL vector search capabilities`},
+		},
+		{
+			name:     "multiple args with and without quotes",
+			input:    `setup-semantic-search query_text="What is pgAgent?" table_name=docs`,
+			expected: []string{`setup-semantic-search`, `query_text=What is pgAgent?`, `table_name=docs`},
+		},
+		{
+			name:     "escaped quotes",
+			input:    `query_text="She said \"hello\""`,
+			expected: []string{`query_text=She said "hello"`},
+		},
+		{
+			name:     "empty string",
+			input:    "",
+			expected: []string{},
+		},
+		{
+			name:     "only spaces",
+			input:    "   ",
+			expected: []string{},
+		},
+		{
+			name:     "extra spaces between args",
+			input:    "arg1   arg2    arg3",
+			expected: []string{"arg1", "arg2", "arg3"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := parseQuotedArgs(tt.input)
+
+			if len(result) != len(tt.expected) {
+				t.Errorf("Expected %d args, got %d\nExpected: %v\nGot: %v",
+					len(tt.expected), len(result), tt.expected, result)
+				return
+			}
+
+			for i := range result {
+				if result[i] != tt.expected[i] {
+					t.Errorf("Arg %d: expected %q, got %q", i, tt.expected[i], result[i])
+				}
+			}
+		})
+	}
+}
+
+func TestParsePromptCommand(t *testing.T) {
+	tests := []struct {
+		name         string
+		input        string
+		expectedCmd  string
+		expectedArgs []string
+		shouldBeNil  bool
+	}{
+		{
+			name:         "prompt with quoted args",
+			input:        `/prompt setup-semantic-search query_text="What is pgAgent?"`,
+			expectedCmd:  "prompt",
+			expectedArgs: []string{"setup-semantic-search", `query_text=What is pgAgent?`},
+		},
+		{
+			name:         "prompt with single quotes",
+			input:        `/prompt setup-semantic-search query_text='PostgreSQL vector search'`,
+			expectedCmd:  "prompt",
+			expectedArgs: []string{"setup-semantic-search", `query_text=PostgreSQL vector search`},
+		},
+		{
+			name:         "prompt with multiple quoted args",
+			input:        `/prompt setup-semantic-search query_text="vector search" table_name="docs"`,
+			expectedCmd:  "prompt",
+			expectedArgs: []string{"setup-semantic-search", `query_text=vector search`, `table_name=docs`},
+		},
+		{
+			name:         "prompt without args",
+			input:        "/prompt explore-database",
+			expectedCmd:  "prompt",
+			expectedArgs: []string{"explore-database"},
+		},
+		{
+			name:         "prompt with unquoted args",
+			input:        "/prompt diagnose-query-issue issue_description=no-results",
+			expectedCmd:  "prompt",
+			expectedArgs: []string{"diagnose-query-issue", "issue_description=no-results"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cmd := ParseSlashCommand(tt.input)
+
+			if tt.shouldBeNil {
+				if cmd != nil {
+					t.Errorf("Expected nil, got command: %+v", cmd)
+				}
+				return
+			}
+
+			if cmd == nil {
+				t.Fatal("Expected command, got nil")
+			}
+
+			if cmd.Command != tt.expectedCmd {
+				t.Errorf("Expected command %q, got %q", tt.expectedCmd, cmd.Command)
+			}
+
+			if len(cmd.Args) != len(tt.expectedArgs) {
+				t.Errorf("Expected %d args, got %d\nExpected: %v\nGot: %v",
+					len(tt.expectedArgs), len(cmd.Args), tt.expectedArgs, cmd.Args)
+				return
+			}
+
+			for i, arg := range cmd.Args {
+				if i >= len(tt.expectedArgs) {
+					break
+				}
+				if arg != tt.expectedArgs[i] {
+					t.Errorf("Expected arg[%d] = %q, got %q", i, tt.expectedArgs[i], arg)
+				}
+			}
+		})
+	}
+}

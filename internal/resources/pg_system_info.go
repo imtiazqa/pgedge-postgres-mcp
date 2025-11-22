@@ -24,8 +24,8 @@ import (
 func PGSystemInfoResource(dbClient *database.Client) Resource {
 	return Resource{
 		Definition: mcp.Resource{
-			URI:         URISystemInfo,
-			Name:        "PostgreSQL System Information",
+			URI:  URISystemInfo,
+			Name: "PostgreSQL System Information",
 			Description: `PostgreSQL server metadata: version, OS, architecture, connection details.
 
 <usecase>
@@ -63,7 +63,7 @@ Use before:
 - Debugging connection issues
 - Verifying deployment environment
 </examples>`,
-			MimeType:    "application/json",
+			MimeType: "application/json",
 		},
 		Handler: func() (mcp.ResourceContent, error) {
 			query := `

@@ -215,6 +215,13 @@ func (ui *UI) getTerminalWidth() int {
 	return 80
 }
 
+// ClearThinkingLine clears the thinking animation line
+func (ui *UI) ClearThinkingLine() {
+	maxWidth := ui.getThinkingMaxWidth()
+	// Clear the line by printing spaces and moving back to the start
+	fmt.Print("\r" + strings.Repeat(" ", maxWidth) + "\r")
+}
+
 // ShowThinking displays an animated "thinking" indicator
 func (ui *UI) ShowThinking(ctx context.Context, done chan struct{}) {
 	ticker := time.NewTicker(500 * time.Millisecond)
@@ -232,10 +239,12 @@ func (ui *UI) ShowThinking(ctx context.Context, done chan struct{}) {
 	for {
 		select {
 		case <-done:
-			// Just stop animating, don't clear (let caller decide what to print next)
+			// Clear the thinking line before returning
+			ui.ClearThinkingLine()
 			return
 		case <-ctx.Done():
-			// Just stop animating, don't clear (let caller decide what to print next)
+			// Clear the thinking line before returning
+			ui.ClearThinkingLine()
 			return
 		case <-ticker.C:
 			frameIndex = (frameIndex + 1) % len(frames)

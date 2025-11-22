@@ -19,6 +19,7 @@ import { MCPClient } from '../lib/mcp-client';
 export const useMCPClient = (sessionToken) => {
     const [mcpClient, setMcpClient] = useState(null);
     const [tools, setTools] = useState([]);
+    const [prompts, setPrompts] = useState([]);
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
 
@@ -44,6 +45,18 @@ export const useMCPClient = (sessionToken) => {
                 const toolsList = await client.listTools();
                 console.log('MCP tools loaded:', toolsList);
 
+                // Fetch available prompts
+                console.log('Fetching MCP prompts...');
+                try {
+                    const promptsList = await client.listPrompts();
+                    console.log('MCP prompts loaded:', promptsList);
+                    setPrompts(promptsList);
+                } catch (promptErr) {
+                    // Prompts might not be supported by older servers
+                    console.log('Prompts not available:', promptErr.message);
+                    setPrompts([]);
+                }
+
                 setMcpClient(client);
                 setTools(toolsList);
             } catch (err) {
@@ -68,11 +81,24 @@ export const useMCPClient = (sessionToken) => {
         }
     };
 
+    const refreshPrompts = async () => {
+        if (!mcpClient) return;
+
+        try {
+            const promptsList = await mcpClient.listPrompts();
+            setPrompts(promptsList);
+        } catch (err) {
+            console.error('Error refreshing prompts:', err);
+        }
+    };
+
     return {
         mcpClient,
         tools,
+        prompts,
         error,
         loading,
         refreshTools,
+        refreshPrompts,
     };
 };

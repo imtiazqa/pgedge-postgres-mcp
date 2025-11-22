@@ -188,6 +188,10 @@ func (s *Server) handleRequestHTTP(ctx context.Context, req JSONRPCRequest) JSON
 		return s.handleResourcesListHTTP(req)
 	case "resources/read":
 		return s.handleResourceReadHTTP(ctx, req)
+	case "prompts/list":
+		return s.handlePromptsListHTTP(req)
+	case "prompts/get":
+		return s.handlePromptGetHTTP(req)
 	default:
 		return createErrorResponse(req.ID, -32601, "Method not found", nil)
 	}
@@ -196,12 +200,23 @@ func (s *Server) handleRequestHTTP(ctx context.Context, req JSONRPCRequest) JSON
 // HTTP-specific handlers that return responses instead of sending them
 
 func (s *Server) handleInitializeHTTP(req JSONRPCRequest) JSONRPCResponse {
+	capabilities := map[string]interface{}{
+		"tools": map[string]interface{}{},
+	}
+
+	// Add resources capability if resource provider is set
+	if s.resources != nil {
+		capabilities["resources"] = map[string]interface{}{}
+	}
+
+	// Add prompts capability if prompt provider is set
+	if s.prompts != nil {
+		capabilities["prompts"] = map[string]interface{}{}
+	}
+
 	result := InitializeResult{
 		ProtocolVersion: ProtocolVersion,
-		Capabilities: map[string]interface{}{
-			"resources": map[string]interface{}{},
-			"tools":     map[string]interface{}{},
-		},
+		Capabilities:    capabilities,
 		ServerInfo: Implementation{
 			Name:    ServerName,
 			Version: ServerVersion,
@@ -293,6 +308,50 @@ func (s *Server) handleResourceReadHTTP(ctx context.Context, req JSONRPCRequest)
 		JSONRPC: "2.0",
 		ID:      req.ID,
 		Result:  content,
+	}
+}
+
+func (s *Server) handlePromptsListHTTP(req JSONRPCRequest) JSONRPCResponse {
+	if s.prompts == nil {
+		return createErrorResponse(req.ID, -32601, "Prompts not supported", nil)
+	}
+
+	prompts := s.prompts.List()
+	result := PromptsListResult{Prompts: prompts}
+
+	return JSONRPCResponse{
+		JSONRPC: "2.0",
+		ID:      req.ID,
+		Result:  result,
+	}
+}
+
+func (s *Server) handlePromptGetHTTP(req JSONRPCRequest) JSONRPCResponse {
+	if s.prompts == nil {
+		return createErrorResponse(req.ID, -32601, "Prompts not supported", nil)
+	}
+
+	var params PromptGetParams
+
+	// Convert interface{} to JSON bytes first
+	paramsJSON, err := json.Marshal(req.Params)
+	if err != nil {
+		return createErrorResponse(req.ID, -32602, "Invalid params", err.Error())
+	}
+
+	if err := json.Unmarshal(paramsJSON, &params); err != nil {
+		return createErrorResponse(req.ID, -32602, "Invalid params", err.Error())
+	}
+
+	result, err := s.prompts.Execute(params.Name, params.Arguments)
+	if err != nil {
+		return createErrorResponse(req.ID, -32603, "Prompt execution error", err.Error())
+	}
+
+	return JSONRPCResponse{
+		JSONRPC: "2.0",
+		ID:      req.ID,
+		Result:  result,
 	}
 }
 

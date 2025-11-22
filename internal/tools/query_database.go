@@ -24,7 +24,7 @@ import (
 func QueryDatabaseTool(dbClient *database.Client) Tool {
 	return Tool{
 		Definition: mcp.Tool{
-			Name:        "query_database",
+			Name: "query_database",
 			Description: `Execute SQL queries for STRUCTURED, EXACT data retrieval.
 
 <usecase>
@@ -60,7 +60,16 @@ DO NOT use for:
 - Set new default: 'set default database to postgres://user@host/db'
 - Connection changes are temporary and do NOT modify saved connections
 - Results are limited to prevent excessive token usage
-</important>`,
+</important>
+
+<rate_limit_awareness>
+To avoid rate limits (30,000 input tokens/minute):
+- ALWAYS use the 'limit' parameter - it defaults to 100 rows
+- Start with limit=10 for exploration queries, increase only if needed
+- Filter results in WHERE clauses rather than fetching everything
+- Use get_schema_info(schema_name="specific") to reduce metadata size
+- If rate limited, wait 60 seconds before retrying
+</rate_limit_awareness>`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]interface{}{
@@ -233,9 +242,15 @@ DO NOT use for:
 			committed = true
 
 			var sb strings.Builder
-			if connectionMessage != "" {
+
+			// Always show current database context (unless already shown via connection message)
+			if connectionMessage == "" {
+				sanitizedConn := database.SanitizeConnStr(connStr)
+				sb.WriteString(fmt.Sprintf("Database: %s\n\n", sanitizedConn))
+			} else {
 				sb.WriteString(connectionMessage)
 			}
+
 			sb.WriteString(fmt.Sprintf("SQL Query:\n%s\n\n", sqlQuery))
 			sb.WriteString(fmt.Sprintf("Results (%d rows):\n%s", len(results), string(resultsJSON)))
 

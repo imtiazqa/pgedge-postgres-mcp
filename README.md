@@ -24,6 +24,8 @@ SELECT tablename, pg_table_size(tablename::regclass) as size FROM pg_tables WHER
 - 📊 **3 Resources** - Access PostgreSQL statistics
 - 🛠️ **5 Tools** - Query execution, schema analysis, advanced hybrid search
   (BM25+MMR), embedding generation, resource reading
+- 🧠 **3 Prompts** - Guided workflows for semantic search setup, database
+  exploration, and query diagnostics
 - 💬 **Production Chat Client** - Full-featured Go client with Anthropic
   prompt caching (90% cost reduction)
 - 🌐 **HTTP/HTTPS Mode** - Direct API access with token authentication
@@ -283,6 +285,7 @@ references
 - **[Tools Documentation](docs/tools.md)** - All 5 MCP tools reference
 - **[Resources Documentation](docs/resources.md)** - All 3 MCP resources
   reference
+- **[Prompts Documentation](docs/prompts.md)** - All 3 MCP prompts reference
 - **[Query Examples](docs/examples.md)** - Comprehensive usage examples
 - **[Deployment Guide](docs/deployment.md)** - HTTP/HTTPS production
   deployment

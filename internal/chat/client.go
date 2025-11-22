@@ -17,6 +17,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"time"
 
 	"pgedge-postgres-mcp/internal/mcp"
 
@@ -31,6 +32,8 @@ type Client struct {
 	llm         LLMClient
 	messages    []Message
 	tools       []mcp.Tool
+	resources   []mcp.Resource
+	prompts     []mcp.Prompt
 	preferences *Preferences
 }
 
@@ -87,6 +90,32 @@ func (c *Client) Run(ctx context.Context) error {
 	}
 	c.tools = tools
 
+	// Get available resources
+	resources, err := c.mcp.ListResources(ctx)
+	if err != nil {
+		// Don't fail if resources are not supported by the server
+		// Just log the error and continue
+		if c.config.UI.Debug {
+			fmt.Fprintf(os.Stderr, "Warning: Failed to list resources: %v\n", err)
+		}
+		c.resources = []mcp.Resource{}
+	} else {
+		c.resources = resources
+	}
+
+	// Get available prompts
+	prompts, err := c.mcp.ListPrompts(ctx)
+	if err != nil {
+		// Don't fail if prompts are not supported by the server
+		// Just log the error and continue
+		if c.config.UI.Debug {
+			fmt.Fprintf(os.Stderr, "Warning: Failed to list prompts: %v\n", err)
+		}
+		c.prompts = []mcp.Prompt{}
+	} else {
+		c.prompts = prompts
+	}
+
 	// Initialize LLM client
 	if err := c.initializeLLM(); err != nil {
 		return fmt.Errorf("failed to initialize LLM: %w", err)
@@ -94,7 +123,7 @@ func (c *Client) Run(ctx context.Context) error {
 
 	// Print welcome message
 	c.ui.PrintWelcome()
-	c.ui.PrintSystemMessage(fmt.Sprintf("Connected to MCP server (%d tools available)", len(c.tools)))
+	c.ui.PrintSystemMessage(fmt.Sprintf("Connected to MCP server (%d tools, %d resources, %d prompts available)", len(c.tools), len(c.resources), len(c.prompts)))
 	c.ui.PrintSystemMessage(fmt.Sprintf("Using LLM: %s (%s)", c.config.LLM.Provider, c.config.LLM.Model))
 	c.ui.PrintSeparator()
 
@@ -410,14 +439,26 @@ func (c *Client) handleCommand(ctx context.Context, input string) bool {
 		return true
 
 	case "resources":
-		resources, err := c.mcp.ListResources(ctx)
-		if err != nil {
-			c.ui.PrintError(fmt.Sprintf("Failed to list resources: %v", err))
-			return true
-		}
-		c.ui.PrintSystemMessage(fmt.Sprintf("Available resources (%d):", len(resources)))
-		for _, resource := range resources {
+		c.ui.PrintSystemMessage(fmt.Sprintf("Available resources (%d):", len(c.resources)))
+		for _, resource := range c.resources {
 			fmt.Printf("  - %s: %s\n", resource.Name, resource.Description)
+		}
+		return true
+
+	case "prompts":
+		c.ui.PrintSystemMessage(fmt.Sprintf("Available prompts (%d):", len(c.prompts)))
+		for _, prompt := range c.prompts {
+			fmt.Printf("  - %s: %s\n", prompt.Name, prompt.Description)
+			if len(prompt.Arguments) > 0 {
+				fmt.Printf("    Arguments:\n")
+				for _, arg := range prompt.Arguments {
+					required := ""
+					if arg.Required {
+						required = " (required)"
+					}
+					fmt.Printf("      - %s: %s%s\n", arg.Name, arg.Description, required)
+				}
+			}
 		}
 		return true
 
@@ -427,12 +468,49 @@ func (c *Client) handleCommand(ctx context.Context, input string) bool {
 }
 
 // processQuery processes a user query through the agentic loop
+// compactMessages reduces the message history to prevent token overflow
+// by keeping only the most recent messages while preserving the initial context
+func (c *Client) compactMessages(messages []Message) []Message {
+	// Configuration: keep the last N messages
+	const maxRecentMessages = 10
+
+	// If we have fewer messages than the limit, return all
+	if len(messages) <= maxRecentMessages {
+		return messages
+	}
+
+	// Strategy: Keep the first user message and the last N messages
+	// This preserves the original query context while maintaining recent conversation flow
+	compacted := make([]Message, 0, maxRecentMessages+1)
+
+	// Keep the first user message (original query)
+	if len(messages) > 0 && messages[0].Role == "user" {
+		compacted = append(compacted, messages[0])
+	}
+
+	// Keep the last N messages
+	startIdx := len(messages) - maxRecentMessages
+	if startIdx < 1 {
+		startIdx = 1 // Skip first message since we already added it
+	}
+	compacted = append(compacted, messages[startIdx:]...)
+
+	if c.config.UI.Debug {
+		fmt.Fprintf(os.Stderr, "[DEBUG] Compacted messages: %d -> %d (kept first + last %d)\n",
+			len(messages), len(compacted), maxRecentMessages)
+	}
+
+	return compacted
+}
+
 func (c *Client) processQuery(ctx context.Context, query string) error {
-	// Add user message to conversation history
-	c.messages = append(c.messages, Message{
-		Role:    "user",
-		Content: query,
-	})
+	// Add user message to conversation history (skip if empty, used for prompts)
+	if query != "" {
+		c.messages = append(c.messages, Message{
+			Role:    "user",
+			Content: query,
+		})
+	}
 
 	// Start thinking animation
 	thinkingDone := make(chan struct{})
@@ -440,8 +518,11 @@ func (c *Client) processQuery(ctx context.Context, query string) error {
 
 	// Agentic loop (max 10 iterations to prevent infinite loops)
 	for iteration := 0; iteration < 10; iteration++ {
-		// Get response from LLM
-		response, err := c.llm.Chat(ctx, c.messages, c.tools)
+		// Compact message history to prevent token overflow
+		compactedMessages := c.compactMessages(c.messages)
+
+		// Get response from LLM with compacted history
+		response, err := c.llm.Chat(ctx, compactedMessages, c.tools)
 		if err != nil {
 			close(thinkingDone)
 			return fmt.Errorf("LLM error: %w", err)
@@ -472,6 +553,8 @@ func (c *Client) processQuery(ctx context.Context, query string) error {
 			toolResults := []ToolResult{}
 			for _, toolUse := range toolUses {
 				close(thinkingDone)
+				// Give the thinking animation goroutine time to clear the line
+				time.Sleep(50 * time.Millisecond)
 				c.ui.PrintToolExecution(toolUse.Name, toolUse.Input)
 				thinkingDone = make(chan struct{})
 				go c.ui.ShowThinking(ctx, thinkingDone)

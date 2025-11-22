@@ -61,8 +61,16 @@ func TestGetSchemaInfoTool(t *testing.T) {
 			t.Fatal("Expected content in response")
 		}
 		content := response.Content[0].Text
-		if !strings.Contains(content, "Database Schema Information") {
-			t.Error("Expected schema information header")
+		// Updated to check for new empty result handling message
+		if !strings.Contains(content, "No tables found matching your criteria") {
+			t.Error("Expected empty result message with guidance")
+		}
+		// Should include diagnosis and next steps
+		if !strings.Contains(content, "<diagnosis>") {
+			t.Error("Expected diagnosis section in empty result")
+		}
+		if !strings.Contains(content, "<next_steps>") {
+			t.Error("Expected next steps section in empty result")
 		}
 	})
 

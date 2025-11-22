@@ -37,11 +37,17 @@ type MCPClient interface {
 	// ListResources returns available resources from the server
 	ListResources(ctx context.Context) ([]mcp.Resource, error)
 
+	// ListPrompts returns available prompts from the server
+	ListPrompts(ctx context.Context) ([]mcp.Prompt, error)
+
 	// CallTool executes a tool with the given arguments
 	CallTool(ctx context.Context, name string, args map[string]interface{}) (mcp.ToolResponse, error)
 
 	// ReadResource reads a resource by URI
 	ReadResource(ctx context.Context, uri string) (mcp.ResourceContent, error)
+
+	// GetPrompt executes a prompt with the given arguments
+	GetPrompt(ctx context.Context, name string, args map[string]string) (mcp.PromptResult, error)
 
 	// Close cleans up resources
 	Close() error
@@ -168,6 +174,27 @@ func (c *stdioClient) ReadResource(ctx context.Context, uri string) (mcp.Resourc
 	var result mcp.ResourceContent
 	if err := c.sendRequest(ctx, "resources/read", params, &result); err != nil {
 		return mcp.ResourceContent{}, err
+	}
+	return result, nil
+}
+
+func (c *stdioClient) ListPrompts(ctx context.Context) ([]mcp.Prompt, error) {
+	var result mcp.PromptsListResult
+	if err := c.sendRequest(ctx, "prompts/list", nil, &result); err != nil {
+		return nil, err
+	}
+	return result.Prompts, nil
+}
+
+func (c *stdioClient) GetPrompt(ctx context.Context, name string, args map[string]string) (mcp.PromptResult, error) {
+	params := mcp.PromptGetParams{
+		Name:      name,
+		Arguments: args,
+	}
+
+	var result mcp.PromptResult
+	if err := c.sendRequest(ctx, "prompts/get", params, &result); err != nil {
+		return mcp.PromptResult{}, err
 	}
 	return result, nil
 }
@@ -310,6 +337,27 @@ func (c *httpClient) ReadResource(ctx context.Context, uri string) (mcp.Resource
 	var result mcp.ResourceContent
 	if err := c.sendRequest(ctx, "resources/read", params, &result); err != nil {
 		return mcp.ResourceContent{}, err
+	}
+	return result, nil
+}
+
+func (c *httpClient) ListPrompts(ctx context.Context) ([]mcp.Prompt, error) {
+	var result mcp.PromptsListResult
+	if err := c.sendRequest(ctx, "prompts/list", nil, &result); err != nil {
+		return nil, err
+	}
+	return result.Prompts, nil
+}
+
+func (c *httpClient) GetPrompt(ctx context.Context, name string, args map[string]string) (mcp.PromptResult, error) {
+	params := mcp.PromptGetParams{
+		Name:      name,
+		Arguments: args,
+	}
+
+	var result mcp.PromptResult
+	if err := c.sendRequest(ctx, "prompts/get", params, &result); err != nil {
+		return mcp.PromptResult{}, err
 	}
 	return result, nil
 }

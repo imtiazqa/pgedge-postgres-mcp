@@ -25,6 +25,7 @@ import (
 	"pgedge-postgres-mcp/internal/database"
 	"pgedge-postgres-mcp/internal/llmproxy"
 	"pgedge-postgres-mcp/internal/mcp"
+	"pgedge-postgres-mcp/internal/prompts"
 	"pgedge-postgres-mcp/internal/resources"
 	"pgedge-postgres-mcp/internal/tools"
 )
@@ -417,6 +418,13 @@ func main() {
 	// Create MCP server with context-aware providers
 	server := mcp.NewServer(contextAwareToolProvider)
 	server.SetResourceProvider(contextAwareResourceProvider)
+
+	// Register prompts
+	promptRegistry := prompts.NewRegistry()
+	promptRegistry.Register("explore-database", prompts.ExploreDatabase())
+	promptRegistry.Register("setup-semantic-search", prompts.SetupSemanticSearch())
+	promptRegistry.Register("diagnose-query-issue", prompts.DiagnoseQueryIssue())
+	server.SetPromptProvider(promptRegistry)
 
 	// Start periodic cleanup of expired tokens if auth is enabled
 	if cfg.HTTP.Enabled && cfg.HTTP.Auth.Enabled {

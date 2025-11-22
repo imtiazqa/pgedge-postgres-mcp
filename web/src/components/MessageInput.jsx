@@ -10,10 +10,10 @@
 
 import React, { useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { Box, TextField, IconButton } from '@mui/material';
-import { Send as SendIcon } from '@mui/icons-material';
+import { Box, TextField, IconButton, Tooltip } from '@mui/material';
+import { Send as SendIcon, Psychology as PsychologyIcon } from '@mui/icons-material';
 
-const MessageInput = React.memo(({ value, onChange, onSend, onKeyDown, disabled }) => {
+const MessageInput = React.memo(({ value, onChange, onSend, onKeyDown, disabled, onPromptClick, hasPrompts = false }) => {
     const inputRef = useRef(null);
 
     // Auto-focus input when it becomes enabled
@@ -47,6 +47,22 @@ const MessageInput = React.memo(({ value, onChange, onSend, onKeyDown, disabled 
                     },
                 }}
             />
+            {hasPrompts && (
+                <Tooltip title="Execute Prompt">
+                    <IconButton
+                        onClick={onPromptClick}
+                        disabled={disabled}
+                        sx={{
+                            color: 'text.secondary',
+                            '&:hover': {
+                                color: 'primary.main',
+                            },
+                        }}
+                    >
+                        <PsychologyIcon />
+                    </IconButton>
+                </Tooltip>
+            )}
             <IconButton
                 color="primary"
                 onClick={onSend}
@@ -77,6 +93,8 @@ MessageInput.propTypes = {
     onSend: PropTypes.func.isRequired,
     onKeyDown: PropTypes.func.isRequired,
     disabled: PropTypes.bool.isRequired,
+    onPromptClick: PropTypes.func,
+    hasPrompts: PropTypes.bool,
 };
 
 export default MessageInput;

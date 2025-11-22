@@ -22,7 +22,7 @@ import (
 func GetSchemaInfoTool(dbClient *database.Client) Tool {
 	return Tool{
 		Definition: mcp.Tool{
-			Name:        "get_schema_info",
+			Name: "get_schema_info",
 			Description: `PRIMARY TOOL for discovering database structure and available tables.
 
 <usecase>
@@ -69,7 +69,16 @@ Returns comprehensive information:
 
 <important>
 This tool provides MORE detail than the pg://database-schema resource, which only shows table names and owners. Use this tool for comprehensive schema exploration.
-</important>`,
+</important>
+
+<rate_limit_awareness>
+To avoid rate limits when calling this tool:
+- Use schema_name="specific_schema" to filter output (reduces tokens by 90%)
+- Use vector_tables_only=true when preparing for similarity_search (reduces output 10x)
+- Avoid calling without parameters in large databases (can return 10k+ tokens)
+- Call once and cache results in conversation rather than repeatedly
+- If exploring large schemas, filter by schema_name first
+</rate_limit_awareness>`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]interface{}{
@@ -106,6 +115,7 @@ This tool provides MORE detail than the pg://database-schema resource, which onl
 			sb.WriteString("============================\n")
 
 			metadata := dbClient.GetMetadata()
+			matchedTables := 0
 			for _, table := range metadata {
 				// Filter by schema if requested
 				if schemaName != "" && table.SchemaName != schemaName {
@@ -126,6 +136,7 @@ This tool provides MORE detail than the pg://database-schema resource, which onl
 					}
 				}
 
+				matchedTables++
 				sb.WriteString(fmt.Sprintf("\n%s.%s (%s)\n", table.SchemaName, table.TableName, table.TableType))
 				if table.Description != "" {
 					sb.WriteString(fmt.Sprintf("  Description: %s\n", table.Description))
@@ -144,7 +155,85 @@ This tool provides MORE detail than the pg://database-schema resource, which onl
 				}
 			}
 
-			return mcp.NewToolSuccess(sb.String())
+			// Handle empty results with contextual guidance
+			if matchedTables == 0 {
+				connStr := dbClient.GetDefaultConnection()
+				sanitizedConn := database.SanitizeConnStr(connStr)
+
+				var emptyMsg strings.Builder
+				emptyMsg.WriteString("\nNo tables found matching your criteria.\n\n")
+
+				emptyMsg.WriteString("<current_connection>\n")
+				emptyMsg.WriteString(fmt.Sprintf("Connected to: %s\n", sanitizedConn))
+				emptyMsg.WriteString("</current_connection>\n\n")
+
+				emptyMsg.WriteString("<diagnosis>\n")
+				if schemaName != "" && vectorTablesOnly {
+					emptyMsg.WriteString(fmt.Sprintf("No tables with vector columns found in schema '%s'.\n", schemaName))
+					emptyMsg.WriteString("Possible reasons:\n")
+					emptyMsg.WriteString("1. Schema name is misspelled or doesn't exist\n")
+					emptyMsg.WriteString("2. Schema exists but has no tables with vector columns\n")
+					emptyMsg.WriteString("3. pgvector extension not installed or not used in this schema\n")
+				} else if schemaName != "" {
+					emptyMsg.WriteString(fmt.Sprintf("Schema '%s' not found or has no tables.\n", schemaName))
+					emptyMsg.WriteString("Possible reasons:\n")
+					emptyMsg.WriteString("1. Schema name is misspelled (PostgreSQL is case-sensitive)\n")
+					emptyMsg.WriteString("2. Schema exists but is empty (no tables created yet)\n")
+					emptyMsg.WriteString("3. You don't have permission to view this schema\n")
+				} else if vectorTablesOnly {
+					emptyMsg.WriteString("No tables with vector columns found in any schema.\n")
+					emptyMsg.WriteString("Possible reasons:\n")
+					emptyMsg.WriteString("1. pgvector extension not installed: CREATE EXTENSION vector;\n")
+					emptyMsg.WriteString("2. No vector columns exist yet in this database\n")
+					emptyMsg.WriteString("3. Connected to wrong database (vector tables might be elsewhere)\n")
+				} else {
+					emptyMsg.WriteString("Database appears to be completely empty (no tables in any schema).\n")
+					emptyMsg.WriteString("Possible reasons:\n")
+					emptyMsg.WriteString("1. New database with no tables created yet\n")
+					emptyMsg.WriteString("2. Connected to wrong database\n")
+					emptyMsg.WriteString("3. Permissions prevent you from viewing any tables\n")
+				}
+				emptyMsg.WriteString("</diagnosis>\n\n")
+
+				emptyMsg.WriteString("<next_steps>\n")
+				emptyMsg.WriteString("Recommended actions:\n\n")
+				emptyMsg.WriteString("1. Check current database connection:\n")
+				emptyMsg.WriteString("   → read_resource(uri=\"pg://system-info\")\n\n")
+
+				emptyMsg.WriteString("2. List all databases to find the right one:\n")
+				emptyMsg.WriteString("   → query_database(query=\"SELECT datname FROM pg_database WHERE datistemplate = false\", limit=20)\n\n")
+
+				if schemaName != "" {
+					emptyMsg.WriteString("3. List all available schemas:\n")
+					emptyMsg.WriteString("   → query_database(query=\"SELECT schema_name FROM information_schema.schemata ORDER BY schema_name\", limit=50)\n\n")
+					emptyMsg.WriteString("4. Try without schema filter:\n")
+					emptyMsg.WriteString("   → get_schema_info()\n\n")
+				}
+
+				if vectorTablesOnly {
+					emptyMsg.WriteString("3. Check if pgvector extension is installed:\n")
+					emptyMsg.WriteString("   → query_database(query=\"SELECT * FROM pg_extension WHERE extname = 'vector'\")\n\n")
+					emptyMsg.WriteString("4. Try without vector filter to see all tables:\n")
+					if schemaName != "" {
+						emptyMsg.WriteString(fmt.Sprintf("   → get_schema_info(schema_name=%q)\n\n", schemaName))
+					} else {
+						emptyMsg.WriteString("   → get_schema_info()\n\n")
+					}
+				}
+
+				emptyMsg.WriteString("5. Switch to a different database if needed:\n")
+				emptyMsg.WriteString("   → query_database(query=\"set default database to postgres://user@host/other_db\")\n")
+				emptyMsg.WriteString("</next_steps>\n")
+
+				return mcp.NewToolSuccess(emptyMsg.String())
+			}
+
+			// Prepend database context to the response
+			connStr := dbClient.GetDefaultConnection()
+			sanitizedConn := database.SanitizeConnStr(connStr)
+			result := fmt.Sprintf("Database: %s\n\n%s", sanitizedConn, sb.String())
+
+			return mcp.NewToolSuccess(result)
 		},
 	}
 }

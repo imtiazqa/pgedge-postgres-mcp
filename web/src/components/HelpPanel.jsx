@@ -85,6 +85,43 @@ const HelpPanel = ({ open, onClose }) => {
 
                 <Divider sx={{ my: 3 }} />
 
+                {/* Prompts */}
+                <Typography variant="h6" gutterBottom>
+                    Prompts
+                </Typography>
+                <Typography variant="body2" paragraph>
+                    Prompts are guided workflows that help you perform complex multi-step tasks.
+                    Click the brain icon (next to the send button) to access available prompts.
+                </Typography>
+                <List dense>
+                    <ListItem>
+                        <ListItemText
+                            primary="setup-semantic-search"
+                            secondary="Guides you through setting up semantic search on your database. Discovers vector-capable tables and executes optimized searches."
+                        />
+                    </ListItem>
+                    <ListItem>
+                        <ListItemText
+                            primary="explore-database"
+                            secondary="Systematically explores your database structure, identifying tables, relationships, and capabilities like semantic search."
+                        />
+                    </ListItem>
+                    <ListItem>
+                        <ListItemText
+                            primary="diagnose-query-issue"
+                            secondary="Helps diagnose why queries aren't working. Checks connection, schema, data availability, and common issues."
+                        />
+                    </ListItem>
+                    <ListItem>
+                        <ListItemText
+                            primary="Using Prompts"
+                            secondary="Select a prompt from the dropdown, fill in any required arguments, and click 'Execute Prompt'. The AI will follow the guided workflow."
+                        />
+                    </ListItem>
+                </List>
+
+                <Divider sx={{ my: 3 }} />
+
                 {/* Settings */}
                 <Typography variant="h6" gutterBottom>
                     Settings & Options

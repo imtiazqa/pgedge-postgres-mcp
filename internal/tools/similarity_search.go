@@ -26,7 +26,7 @@ import (
 func SimilaritySearchTool(dbClient *database.Client, cfg *config.Config) Tool {
 	return Tool{
 		Definition: mcp.Tool{
-			Name:        "similarity_search",
+			Name: "similarity_search",
 			Description: `Semantic search for NATURAL LANGUAGE and CONCEPT-BASED queries.
 
 <usecase>
@@ -76,7 +76,17 @@ ALWAYS call get_schema_info with vector_tables_only=true FIRST if you don't know
 Default budget: 1000 tokens (~10 chunks of ~100 tokens each)
 Increase max_output_tokens if more context needed, but beware rate limits.
 Consider using output_format parameter to control verbosity.
-</token_management>`,
+</token_management>
+
+<rate_limit_awareness>
+To avoid rate limits (30,000 input tokens/minute):
+- Use output_format="summary" for initial exploration (50 tokens vs 1000)
+- Use output_format="ids_only" for quick scans (10 tokens vs 1000)
+- Reduce top_n parameter if you don't need many results
+- Keep max_output_tokens at default 1000 unless you truly need more
+- Call get_schema_info(vector_tables_only=true) to find tables efficiently
+- If rate limited, switch to lighter queries or wait 60 seconds
+</rate_limit_awareness>`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]interface{}{
@@ -163,19 +173,82 @@ Consider using output_format parameter to control verbosity.
 			metadataMap := dbClient.GetMetadata()
 			tableInfo, err := findTableInMetadataMap(metadataMap, tableName)
 			if err != nil {
-				return mcp.NewToolError(fmt.Sprintf("Table not found: %v", err))
+				connStr := dbClient.GetDefaultConnection()
+				sanitizedConn := database.SanitizeConnStr(connStr)
+
+				var errMsg strings.Builder
+				errMsg.WriteString(fmt.Sprintf("Table '%s' not found.\n\n", tableName))
+				errMsg.WriteString("<current_connection>\n")
+				errMsg.WriteString(fmt.Sprintf("Connected to: %s\n", sanitizedConn))
+				errMsg.WriteString("</current_connection>\n\n")
+				errMsg.WriteString("<diagnosis>\n")
+				errMsg.WriteString("Possible reasons:\n")
+				errMsg.WriteString("1. Table name is misspelled or doesn't exist\n")
+				errMsg.WriteString("2. Table exists in a different schema (try 'schema.table' format)\n")
+				errMsg.WriteString("3. Connected to wrong database\n")
+				errMsg.WriteString("4. Metadata not loaded yet\n")
+				errMsg.WriteString("</diagnosis>\n\n")
+				errMsg.WriteString("<next_steps>\n")
+				errMsg.WriteString("1. List all tables in the database:\n")
+				errMsg.WriteString("   → get_schema_info()\n\n")
+				errMsg.WriteString("2. List only tables with vector columns:\n")
+				errMsg.WriteString("   → get_schema_info(vector_tables_only=true)\n\n")
+				errMsg.WriteString("3. Check current database connection:\n")
+				errMsg.WriteString("   → read_resource(uri=\"pg://system-info\")\n\n")
+				errMsg.WriteString("4. If table is in a different schema, use qualified name:\n")
+				errMsg.WriteString(fmt.Sprintf("   → similarity_search(table_name=\"schema_name.%s\", query_text=\"...\")\n", tableName))
+				errMsg.WriteString("</next_steps>\n")
+
+				return mcp.NewToolError(errMsg.String())
 			}
 
 			// Discover vector columns
 			vectorCols := discoverVectorColumns(tableInfo)
 			if len(vectorCols) == 0 {
-				return mcp.NewToolError(fmt.Sprintf("No vector columns found in table '%s'. This tool requires at least one pgvector column.", tableName))
+				var errMsg strings.Builder
+				errMsg.WriteString(fmt.Sprintf("No vector columns found in table '%s'.\n\n", tableName))
+				errMsg.WriteString("<diagnosis>\n")
+				errMsg.WriteString("This tool requires tables with pgvector extension columns (vector data type).\n")
+				errMsg.WriteString("Possible reasons:\n")
+				errMsg.WriteString("1. Table exists but has no vector columns\n")
+				errMsg.WriteString("2. pgvector extension not installed\n")
+				errMsg.WriteString("3. Wrong table selected (embeddings stored elsewhere)\n")
+				errMsg.WriteString("</diagnosis>\n\n")
+				errMsg.WriteString("<next_steps>\n")
+				errMsg.WriteString("1. Find tables WITH vector columns:\n")
+				errMsg.WriteString("   → get_schema_info(vector_tables_only=true)\n\n")
+				errMsg.WriteString("2. Check if pgvector extension is installed:\n")
+				errMsg.WriteString("   → query_database(query=\"SELECT * FROM pg_extension WHERE extname = 'vector'\")\n\n")
+				errMsg.WriteString("3. If no vector tables exist, install pgvector:\n")
+				errMsg.WriteString("   → Contact administrator to install: CREATE EXTENSION vector;\n\n")
+				errMsg.WriteString("4. For non-semantic queries, use query_database instead:\n")
+				errMsg.WriteString(fmt.Sprintf("   → query_database(query=\"SELECT * FROM %s WHERE ...\")\n", tableName))
+				errMsg.WriteString("</next_steps>\n")
+
+				return mcp.NewToolError(errMsg.String())
 			}
 
 			// Discover text columns corresponding to vector columns
 			textCols := discoverTextColumns(tableInfo, vectorCols)
 			if len(textCols) == 0 {
-				return mcp.NewToolError(fmt.Sprintf("No text columns found that correspond to vector columns in table '%s'", tableName))
+				var errMsg strings.Builder
+				errMsg.WriteString(fmt.Sprintf("No text columns found corresponding to vector columns in table '%s'.\n\n", tableName))
+				errMsg.WriteString("<diagnosis>\n")
+				errMsg.WriteString("This tool needs text columns to search. Vector columns store embeddings, but the original text must be in companion text columns.\n")
+				errMsg.WriteString("Expected naming patterns:\n")
+				errMsg.WriteString("- Vector column 'content_embedding' → text column 'content'\n")
+				errMsg.WriteString("- Vector column 'title_vector' → text column 'title'\n")
+				errMsg.WriteString("</diagnosis>\n\n")
+				errMsg.WriteString("<next_steps>\n")
+				errMsg.WriteString("1. Check table structure:\n")
+				errMsg.WriteString(fmt.Sprintf("   → get_schema_info(schema_name=%q)\n\n", strings.Split(tableName, ".")[0]))
+				errMsg.WriteString("2. List columns in this table:\n")
+				errMsg.WriteString(fmt.Sprintf("   → query_database(query=\"SELECT column_name, data_type FROM information_schema.columns WHERE table_name = '%s'\")\n\n", tableName))
+				errMsg.WriteString("3. This table might not be suitable for semantic search\n")
+				errMsg.WriteString("   → Try a different table with get_schema_info(vector_tables_only=true)\n")
+				errMsg.WriteString("</next_steps>\n")
+
+				return mcp.NewToolError(errMsg.String())
 			}
 
 			// Step 3: Sample data for smart column type detection
@@ -191,7 +264,24 @@ Consider using output_format parameter to control verbosity.
 			// Step 4: Generate query embedding (use the global cfg variable, not the search config)
 			queryEmbedding, err := generateQueryEmbeddingWithConfig(cfg, queryText)
 			if err != nil {
-				return mcp.NewToolError(fmt.Sprintf("Failed to generate query embedding: %v", err))
+				var errMsg strings.Builder
+				errMsg.WriteString(fmt.Sprintf("Failed to generate query embedding: %v\n\n", err))
+				errMsg.WriteString("<diagnosis>\n")
+				errMsg.WriteString("The server's embedding service encountered an error. Possible causes:\n")
+				errMsg.WriteString("1. Embedding generation is disabled in server configuration\n")
+				errMsg.WriteString("2. API key is missing or invalid (OpenAI, Voyage AI)\n")
+				errMsg.WriteString("3. Embedding service (Ollama) is not reachable\n")
+				errMsg.WriteString("4. Network connectivity issues\n")
+				errMsg.WriteString("5. Query text is empty or malformed\n")
+				errMsg.WriteString("</diagnosis>\n\n")
+				errMsg.WriteString("<next_steps>\n")
+				errMsg.WriteString("1. Contact server administrator to check embedding configuration\n\n")
+				errMsg.WriteString("2. Verify API keys and service availability\n\n")
+				errMsg.WriteString("3. For non-semantic queries, use query_database instead:\n")
+				errMsg.WriteString(fmt.Sprintf("   → query_database(query=\"SELECT * FROM %s WHERE text_column ILIKE '%%%s%%'\")\n", tableName, queryText))
+				errMsg.WriteString("</next_steps>\n")
+
+				return mcp.NewToolError(errMsg.String())
 			}
 
 			// Step 5: Perform weighted vector search
@@ -206,11 +296,51 @@ Consider using output_format parameter to control verbosity.
 				searchCfg.DistanceMetric,
 			)
 			if err != nil {
-				return mcp.NewToolError(fmt.Sprintf("Vector search failed: %v", err))
+				var errMsg strings.Builder
+				errMsg.WriteString(fmt.Sprintf("Vector search failed: %v\n\n", err))
+				errMsg.WriteString("<diagnosis>\n")
+				errMsg.WriteString("The database query for vector similarity failed. Possible causes:\n")
+				errMsg.WriteString("1. Vector dimension mismatch (embedding size != column size)\n")
+				errMsg.WriteString("2. Incompatible distance metric for the vector index\n")
+				errMsg.WriteString("3. Database permissions issue\n")
+				errMsg.WriteString("4. pgvector extension not properly installed\n")
+				errMsg.WriteString("5. Table or vector columns have been modified\n")
+				errMsg.WriteString("</diagnosis>\n\n")
+				errMsg.WriteString("<next_steps>\n")
+				errMsg.WriteString("1. Check vector column dimensions:\n")
+				errMsg.WriteString(fmt.Sprintf("   → query_database(query=\"SELECT column_name, atttypmod FROM pg_attribute WHERE attrelid = '%s'::regclass AND atttypid = 'vector'::regtype\")\n\n", tableName))
+				errMsg.WriteString("2. Verify pgvector extension:\n")
+				errMsg.WriteString("   → query_database(query=\"SELECT * FROM pg_extension WHERE extname = 'vector'\")\n\n")
+				errMsg.WriteString("3. Try a different table:\n")
+				errMsg.WriteString("   → get_schema_info(vector_tables_only=true)\n\n")
+				errMsg.WriteString("4. Contact administrator if error persists\n")
+				errMsg.WriteString("</next_steps>\n")
+
+				return mcp.NewToolError(errMsg.String())
 			}
 
 			if len(results) == 0 {
-				return mcp.NewToolSuccess("No results found for the query.")
+				var msg strings.Builder
+				msg.WriteString(fmt.Sprintf("No results found for query: %q\n\n", queryText))
+				msg.WriteString("<diagnosis>\n")
+				msg.WriteString("The vector search completed but found no semantically similar content.\n")
+				msg.WriteString("Possible reasons:\n")
+				msg.WriteString("1. Table is empty or has very few rows\n")
+				msg.WriteString("2. Query is too specific or uses unusual terminology\n")
+				msg.WriteString("3. Vector embeddings don't match query semantics\n")
+				msg.WriteString("4. Distance threshold is too strict\n")
+				msg.WriteString("</diagnosis>\n\n")
+				msg.WriteString("<next_steps>\n")
+				msg.WriteString("1. Check if table has data:\n")
+				msg.WriteString(fmt.Sprintf("   → query_database(query=\"SELECT COUNT(*) FROM %s\")\n\n", tableName))
+				msg.WriteString("2. Try a broader or simpler query\n\n")
+				msg.WriteString("3. Sample the table to see what content exists:\n")
+				msg.WriteString(fmt.Sprintf("   → query_database(query=\"SELECT * FROM %s\", limit=5)\n\n", tableName))
+				msg.WriteString("4. Increase top_n parameter to cast a wider net:\n")
+				msg.WriteString(fmt.Sprintf("   → similarity_search(table_name=%q, query_text=%q, top_n=50)\n", tableName, queryText))
+				msg.WriteString("</next_steps>\n")
+
+				return mcp.NewToolSuccess(msg.String())
 			}
 
 			// Step 6: Chunk all results
@@ -231,7 +361,24 @@ Consider using output_format parameter to control verbosity.
 			finalChunks := search.SelectChunksWithinBudget(diverseChunks, searchCfg.MaxOutputTokens)
 
 			if len(finalChunks) == 0 {
-				return mcp.NewToolSuccess("Search completed but no chunks fit within token budget.")
+				var msg strings.Builder
+				msg.WriteString("Search completed successfully, but no chunks fit within the token budget.\n\n")
+				msg.WriteString("<diagnosis>\n")
+				msg.WriteString(fmt.Sprintf("All matching chunks exceed the max_output_tokens limit of %d tokens.\n", searchCfg.MaxOutputTokens))
+				msg.WriteString(fmt.Sprintf("Found %d diverse chunks after MMR filtering, but all too large.\n", len(diverseChunks)))
+				msg.WriteString("</diagnosis>\n\n")
+				msg.WriteString("<next_steps>\n")
+				msg.WriteString("1. Increase token budget:\n")
+				msg.WriteString(fmt.Sprintf("   → similarity_search(table_name=%q, query_text=%q, max_output_tokens=2500)\n\n", tableName, queryText))
+				msg.WriteString("2. Reduce chunk size for more granular results:\n")
+				msg.WriteString(fmt.Sprintf("   → similarity_search(table_name=%q, query_text=%q, chunk_size_tokens=50)\n\n", tableName, queryText))
+				msg.WriteString("3. Use summary format instead:\n")
+				msg.WriteString(fmt.Sprintf("   → similarity_search(table_name=%q, query_text=%q, output_format=\"summary\")\n\n", tableName, queryText))
+				msg.WriteString("4. Use ids_only to see what matched:\n")
+				msg.WriteString(fmt.Sprintf("   → similarity_search(table_name=%q, query_text=%q, output_format=\"ids_only\")\n", tableName, queryText))
+				msg.WriteString("</next_steps>\n")
+
+				return mcp.NewToolSuccess(msg.String())
 			}
 
 			// Step 10: Format output based on requested format
@@ -245,7 +392,12 @@ Consider using output_format parameter to control verbosity.
 				output = formatSearchResults(finalChunks, queryText, columnWeights, searchCfg)
 			}
 
-			return mcp.NewToolSuccess(output)
+			// Prepend database context
+			connStr := dbClient.GetDefaultConnection()
+			sanitizedConn := database.SanitizeConnStr(connStr)
+			result := fmt.Sprintf("Database: %s\nTable: %s\n\n%s", sanitizedConn, tableName, output)
+
+			return mcp.NewToolSuccess(result)
 		},
 	}
 }

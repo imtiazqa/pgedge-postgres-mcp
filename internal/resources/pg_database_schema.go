@@ -23,8 +23,8 @@ import (
 func PGDatabaseSchemaResource(dbClient *database.Client) Resource {
 	return Resource{
 		Definition: mcp.Resource{
-			URI:         URIDatabaseSchema,
-			Name:        "PostgreSQL Database Schema",
+			URI:  URIDatabaseSchema,
+			Name: "PostgreSQL Database Schema",
 			Description: `Lightweight table listing: schema names, table names, and owners only.
 
 <usecase>
@@ -56,7 +56,7 @@ For detailed schema exploration, use get_schema_info tool which provides:
 <recommendation>
 This resource is best for quick table discovery. For actual query writing or schema analysis, prefer the get_schema_info tool.
 </recommendation>`,
-			MimeType:    "application/json",
+			MimeType: "application/json",
 		},
 		Handler: func() (mcp.ResourceContent, error) {
 			query := `

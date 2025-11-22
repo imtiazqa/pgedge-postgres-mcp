@@ -31,8 +31,8 @@ func ParseSlashCommand(input string) *SlashCommand {
 	// Remove the leading slash
 	input = strings.TrimPrefix(input, "/")
 
-	// Split into command and arguments
-	parts := strings.Fields(input)
+	// Split into command and arguments, respecting quotes
+	parts := parseQuotedArgs(input)
 	if len(parts) == 0 {
 		return nil
 	}
@@ -41,6 +41,51 @@ func ParseSlashCommand(input string) *SlashCommand {
 		Command: parts[0],
 		Args:    parts[1:],
 	}
+}
+
+// parseQuotedArgs splits a string into arguments, respecting quoted strings
+func parseQuotedArgs(input string) []string {
+	var args []string
+	var current strings.Builder
+	inQuote := false
+	quoteChar := rune(0)
+
+	for i, r := range input {
+		switch {
+		case (r == '"' || r == '\'') && !inQuote:
+			// Start of quoted string
+			inQuote = true
+			quoteChar = r
+		case r == quoteChar && inQuote:
+			// End of quoted string
+			inQuote = false
+			quoteChar = 0
+		case r == ' ' && !inQuote:
+			// Space outside quotes - end of argument
+			if current.Len() > 0 {
+				args = append(args, current.String())
+				current.Reset()
+			}
+		case r == '\\' && inQuote && i+1 < len(input):
+			// Escape sequence in quoted string
+			next := rune(input[i+1])
+			if next == quoteChar || next == '\\' {
+				// Skip the backslash, include the next character
+				continue
+			}
+			current.WriteRune(r)
+		default:
+			// Regular character
+			current.WriteRune(r)
+		}
+	}
+
+	// Add the last argument if any
+	if current.Len() > 0 {
+		args = append(args, current.String())
+	}
+
+	return args
 }
 
 // HandleSlashCommand processes slash commands, returns true if handled
@@ -62,6 +107,9 @@ func (c *Client) HandleSlashCommand(ctx context.Context, cmd *SlashCommand) bool
 
 	case "list":
 		return c.handleListCommand(ctx, cmd.Args)
+
+	case "prompt":
+		return c.handlePromptCommand(ctx, cmd.Args)
 
 	default:
 		// Unknown slash command, let it be sent to LLM
@@ -86,12 +134,14 @@ Slash Commands:
   /show llm-model                      Show current LLM model
   /show settings                       Show all current settings
   /list models                         List available models from current LLM provider
+  /prompt <name> [arg=value ...]       Execute an MCP prompt with optional arguments
 
 Other Commands:
   help                                 Show general help
   clear                                Clear screen
   tools                                List available MCP tools
   resources                            List available MCP resources
+  prompts                              List available MCP prompts
   quit, exit                           Exit the chat client
 
 Examples:
@@ -102,6 +152,8 @@ Examples:
   /set llm-model gpt-4-turbo
   /list models
   /show settings
+  /prompt explore-database
+  /prompt setup-semantic-search query_text="product search"
 `
 	fmt.Print(help)
 }
@@ -439,6 +491,75 @@ func (c *Client) listModels(ctx context.Context) bool {
 		} else {
 			fmt.Printf("    %s\n", model)
 		}
+	}
+
+	return true
+}
+
+// handlePromptCommand handles /prompt commands
+func (c *Client) handlePromptCommand(ctx context.Context, args []string) bool {
+	if len(args) < 1 {
+		c.ui.PrintError("Usage: /prompt <name> [arg=value ...]")
+		c.ui.PrintSystemMessage("Use 'prompts' command to list available prompts")
+		return true
+	}
+
+	promptName := args[0]
+
+	// Parse arguments in key=value format
+	promptArgs := make(map[string]string)
+	for _, arg := range args[1:] {
+		parts := strings.SplitN(arg, "=", 2)
+		if len(parts) == 2 {
+			key := strings.TrimSpace(parts[0])
+			value := strings.TrimSpace(parts[1])
+			// Quotes are already removed by parseQuotedArgs
+			promptArgs[key] = value
+		} else {
+			c.ui.PrintError(fmt.Sprintf("Invalid argument format: %s (expected key=value)", arg))
+			return true
+		}
+	}
+
+	// Execute the prompt
+	c.ui.PrintSystemMessage(fmt.Sprintf("Executing prompt: %s", promptName))
+
+	result, err := c.mcp.GetPrompt(ctx, promptName, promptArgs)
+	if err != nil {
+		c.ui.PrintError(fmt.Sprintf("Failed to execute prompt: %v", err))
+		return true
+	}
+
+	// Display the prompt description if available
+	if result.Description != "" {
+		c.ui.PrintSystemMessage(result.Description)
+	}
+
+	// Add prompt messages to conversation history
+	// The prompt result contains messages that guide the LLM through a workflow
+	for _, msg := range result.Messages {
+		if msg.Role == "user" {
+			// Add user message from prompt
+			c.messages = append(c.messages, Message{
+				Role:    "user",
+				Content: msg.Content.Text,
+			})
+		} else if msg.Role == "assistant" {
+			// Add assistant message from prompt (less common but supported)
+			c.messages = append(c.messages, Message{
+				Role:    "assistant",
+				Content: msg.Content.Text,
+			})
+		}
+	}
+
+	c.ui.PrintSystemMessage("Prompt loaded. Starting workflow execution...")
+	c.ui.PrintSeparator()
+
+	// Automatically process the prompt through the LLM
+	// This triggers the agentic loop with the loaded prompt instructions
+	if err := c.processQuery(ctx, ""); err != nil {
+		c.ui.PrintError(err.Error())
 	}
 
 	return true

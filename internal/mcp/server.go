@@ -36,10 +36,17 @@ type ResourceProvider interface {
 	Read(ctx context.Context, uri string) (ResourceContent, error)
 }
 
+// PromptProvider is an interface for listing and executing prompts
+type PromptProvider interface {
+	List() []Prompt
+	Execute(name string, args map[string]string) (PromptResult, error)
+}
+
 // Server handles MCP protocol communication
 type Server struct {
 	tools     ToolProvider
 	resources ResourceProvider
+	prompts   PromptProvider
 	debug     bool // Enable debug logging for HTTP mode
 }
 
@@ -53,6 +60,11 @@ func NewServer(tools ToolProvider) *Server {
 // SetResourceProvider sets the resource provider for the server
 func (s *Server) SetResourceProvider(resources ResourceProvider) {
 	s.resources = resources
+}
+
+// SetPromptProvider sets the prompt provider for the server
+func (s *Server) SetPromptProvider(prompts PromptProvider) {
+	s.prompts = prompts
 }
 
 // Run starts the stdio server loop
@@ -96,6 +108,10 @@ func (s *Server) handleRequest(req JSONRPCRequest) {
 		s.handleResourcesList(req)
 	case "resources/read":
 		s.handleResourceRead(req)
+	case "prompts/list":
+		s.handlePromptsList(req)
+	case "prompts/get":
+		s.handlePromptsGet(req)
 	default:
 		if req.ID != nil {
 			sendError(req.ID, -32601, "Method not found", nil)
@@ -128,6 +144,11 @@ func (s *Server) handleInitialize(req JSONRPCRequest) {
 	// Add resources capability if resource provider is set
 	if s.resources != nil {
 		capabilities["resources"] = map[string]interface{}{}
+	}
+
+	// Add prompts capability if prompt provider is set
+	if s.prompts != nil {
+		capabilities["prompts"] = map[string]interface{}{}
 	}
 
 	result := InitializeResult{
@@ -214,6 +235,47 @@ func (s *Server) handleResourceRead(req JSONRPCRequest) {
 	}
 
 	sendResponse(req.ID, content)
+}
+
+func (s *Server) handlePromptsList(req JSONRPCRequest) {
+	if s.prompts == nil {
+		sendError(req.ID, -32601, "Prompts not supported", nil)
+		return
+	}
+
+	prompts := s.prompts.List()
+
+	result := PromptsListResult{
+		Prompts: prompts,
+	}
+
+	sendResponse(req.ID, result)
+}
+
+func (s *Server) handlePromptsGet(req JSONRPCRequest) {
+	if s.prompts == nil {
+		sendError(req.ID, -32601, "Prompts not supported", nil)
+		return
+	}
+
+	paramsBytes, err := json.Marshal(req.Params)
+	if err != nil {
+		sendError(req.ID, -32602, "Invalid params", err.Error())
+		return
+	}
+	var params PromptGetParams
+	if err := json.Unmarshal(paramsBytes, &params); err != nil {
+		sendError(req.ID, -32602, "Invalid params", err.Error())
+		return
+	}
+
+	result, err := s.prompts.Execute(params.Name, params.Arguments)
+	if err != nil {
+		sendError(req.ID, -32603, "Prompt execution error", err.Error())
+		return
+	}
+
+	sendResponse(req.ID, result)
 }
 
 func sendResponse(id, result interface{}) {

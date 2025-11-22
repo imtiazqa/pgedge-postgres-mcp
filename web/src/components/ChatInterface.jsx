@@ -18,8 +18,41 @@ import { useLLMProviders } from '../hooks/useLLMProviders';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
 import ProviderSelector from './ProviderSelector';
+import PromptPopover from './PromptPopover';
 
 const MAX_AGENTIC_LOOPS = 10;
+
+/**
+ * Compacts message history to prevent token overflow by keeping only
+ * the most recent messages while preserving the initial context
+ * @param {Array} messages - The full message history
+ * @returns {Array} - Compacted message history
+ */
+const compactMessages = (messages) => {
+    const MAX_RECENT_MESSAGES = 10;
+
+    // If we have fewer messages than the limit, return all
+    if (messages.length <= MAX_RECENT_MESSAGES) {
+        return messages;
+    }
+
+    // Strategy: Keep the first user message and the last N messages
+    // This preserves the original query context while maintaining recent conversation flow
+    const compacted = [];
+
+    // Keep the first user message (original query)
+    if (messages.length > 0 && messages[0].role === 'user') {
+        compacted.push(messages[0]);
+    }
+
+    // Keep the last N messages
+    const startIdx = Math.max(1, messages.length - MAX_RECENT_MESSAGES);
+    compacted.push(...messages.slice(startIdx));
+
+    console.log(`[Compaction] Reduced messages from ${messages.length} to ${compacted.length} (kept first + last ${MAX_RECENT_MESSAGES})`);
+
+    return compacted;
+};
 
 const ChatInterface = () => {
     const { sessionToken, forceLogout } = useAuth();
@@ -52,10 +85,21 @@ const ChatInterface = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
+    // Prompt popover state
+    const [promptPopoverAnchor, setPromptPopoverAnchor] = useState(null);
+    const [executingPrompt, setExecutingPrompt] = useState(false);
+
     // Custom hooks for functionality
     const queryHistory = useQueryHistory();
-    const { mcpClient, tools, refreshTools } = useMCPClient(sessionToken);
+    const { mcpClient, tools, prompts, refreshTools, refreshPrompts } = useMCPClient(sessionToken);
     const llmProviders = useLLMProviders(sessionToken);
+
+    // Log prompts when they're available (for debugging)
+    useEffect(() => {
+        if (prompts.length > 0) {
+            console.log('MCP prompts available:', prompts);
+        }
+    }, [prompts]);
 
     // Save messages to localStorage when they change
     useEffect(() => {
@@ -132,7 +176,10 @@ const ChatInterface = () => {
             while (loopCount < MAX_AGENTIC_LOOPS) {
                 loopCount++;
 
-                // Call LLM
+                // Compact message history to prevent token overflow
+                const compactedMessages = compactMessages(conversationMessages);
+
+                // Call LLM with compacted history
                 const llmResponse = await fetch('/api/llm/chat', {
                     method: 'POST',
                     headers: {
@@ -141,7 +188,7 @@ const ChatInterface = () => {
                     },
                     credentials: 'include',
                     body: JSON.stringify({
-                        messages: conversationMessages,
+                        messages: compactedMessages,
                         tools: tools,
                         provider: llmProviders.selectedProvider,
                         model: llmProviders.selectedModel,
@@ -338,6 +385,239 @@ const ChatInterface = () => {
         setError('');
     }, [queryHistory]);
 
+    // Handle prompt selection
+    const handlePromptClick = useCallback((event) => {
+        setPromptPopoverAnchor(event.currentTarget);
+    }, []);
+
+    // Handle prompt execution
+    const handlePromptExecute = useCallback(async (promptName, args) => {
+        if (!mcpClient || loading) return;
+
+        setExecutingPrompt(true);
+
+        try {
+            // Get the prompt with arguments from MCP server
+            const promptResult = await mcpClient.getPrompt(promptName, args);
+
+            // Add a system message to indicate prompt execution
+            const systemMessage = {
+                role: 'system',
+                content: `Executing prompt: ${promptName}`,
+                timestamp: new Date().toISOString(),
+            };
+            setMessages(prev => [...prev, systemMessage]);
+
+            // Build conversation history (exclude system messages)
+            const conversationMessages = [];
+            for (const msg of messages) {
+                if (msg.role === 'user') {
+                    conversationMessages.push({
+                        role: 'user',
+                        content: msg.content
+                    });
+                } else if (msg.role === 'assistant' && msg.content) {
+                    conversationMessages.push({
+                        role: 'assistant',
+                        content: msg.content
+                    });
+                }
+            }
+            // Add prompt messages to conversation
+            if (promptResult.messages) {
+                for (const msg of promptResult.messages) {
+                    if (msg.role === 'user') {
+                        const userMsg = {
+                            role: 'user',
+                            content: msg.content.text,
+                            timestamp: new Date().toISOString(),
+                            fromPrompt: true,
+                        };
+                        setMessages(prev => [...prev, userMsg]);
+                        // Add to conversation history (only role and content)
+                        conversationMessages.push({
+                            role: 'user',
+                            content: msg.content.text
+                        });
+                    }
+                }
+            }
+
+            // Create thinking message placeholder
+            const thinkingMessage = {
+                role: 'assistant',
+                content: '',
+                timestamp: new Date().toISOString(),
+                provider: llmProviders.selectedProvider,
+                model: llmProviders.selectedModel,
+                isThinking: true,
+                activity: [],
+            };
+            setMessages(prev => [...prev, thinkingMessage]);
+
+            // Trigger the agentic loop with the prompt messages
+            setLoading(true);
+
+            // Start agentic loop (similar to handleSend but using prompt messages)
+            let loopCount = 0;
+            const activity = [];
+
+            while (loopCount < MAX_AGENTIC_LOOPS) {
+                loopCount++;
+
+                // Compact message history to prevent token overflow
+                const compactedMessages = compactMessages(conversationMessages);
+
+                // Make LLM request with compacted history
+                const response = await fetch('/api/llm/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${sessionToken}`,
+                    },
+                    body: JSON.stringify({
+                        messages: compactedMessages,
+                        tools: tools,
+                        provider: llmProviders.selectedProvider,
+                        model: llmProviders.selectedModel,
+                    }),
+                });
+
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        forceLogout();
+                        throw new Error('Session expired. Please login again.');
+                    }
+                    const errorText = await response.text();
+                    throw new Error(`Server error: ${errorText}`);
+                }
+
+                const llmData = await response.json();
+
+                // Handle end_turn
+                if (llmData.stop_reason === 'end_turn') {
+                    const finalContent = llmData.content
+                        .filter(c => c.type === 'text')
+                        .map(c => c.text)
+                        .join('\n');
+
+                    // Replace thinking message with actual response
+                    setMessages(prev => {
+                        const newMessages = prev.slice(0, -1);
+                        return [...newMessages, {
+                            role: 'assistant',
+                            content: finalContent,
+                            timestamp: new Date().toISOString(),
+                            provider: llmProviders.selectedProvider,
+                            model: llmProviders.selectedModel,
+                            activity: activity,
+                            tokenUsage: llmData.token_usage,
+                        }];
+                    });
+                    break;
+                }
+
+                // Handle tool use
+                if (llmData.stop_reason === 'tool_use') {
+                    const toolUses = llmData.content.filter(c => c.type === 'tool_use');
+
+                    if (toolUses.length === 0) {
+                        throw new Error('LLM indicated tool_use but no tool_use blocks found');
+                    }
+
+                    // Execute tools
+                    const toolResults = [];
+                    for (const toolUse of toolUses) {
+                        // Update activity
+                        activity.push({
+                            type: 'tool',
+                            name: toolUse.name,
+                            timestamp: new Date().toISOString(),
+                        });
+
+                        // Update thinking message with new activity
+                        setMessages(prev => {
+                            const newMessages = [...prev];
+                            if (newMessages.length > 0 && newMessages[newMessages.length - 1].isThinking) {
+                                newMessages[newMessages.length - 1] = {
+                                    ...newMessages[newMessages.length - 1],
+                                    activity: [...activity]
+                                };
+                            }
+                            return newMessages;
+                        });
+
+                        try {
+                            // Execute tool via MCP
+                            const result = await mcpClient.callTool(toolUse.name, toolUse.input);
+
+                            toolResults.push({
+                                type: 'tool_result',
+                                tool_use_id: toolUse.id,
+                                content: result.content,
+                            });
+
+                            // Refresh tools if manage_connections was called
+                            if (toolUse.name === 'manage_connections' && !result.isError) {
+                                await refreshTools();
+                            }
+                        } catch (toolError) {
+                            console.error('Tool execution error:', toolError);
+                            toolResults.push({
+                                type: 'tool_result',
+                                tool_use_id: toolUse.id,
+                                content: `Error: ${toolError.message}`,
+                                is_error: true,
+                            });
+                        }
+                    }
+
+                    // Add assistant message with tool uses
+                    conversationMessages.push({
+                        role: 'assistant',
+                        content: llmData.content,
+                    });
+
+                    // Add user message with tool results
+                    conversationMessages.push({
+                        role: 'user',
+                        content: toolResults,
+                    });
+
+                    // Continue loop
+                    continue;
+                }
+
+                // Unknown stop reason
+                throw new Error(`Unexpected stop reason: ${llmData.stop_reason}`);
+            }
+
+            if (loopCount >= MAX_AGENTIC_LOOPS) {
+                throw new Error('Maximum tool execution loops reached');
+            }
+        } catch (err) {
+            console.error('Prompt execution error:', err);
+
+            // Remove thinking message if present
+            setMessages(prev => {
+                if (prev.length > 0 && prev[prev.length - 1].isThinking) {
+                    return prev.slice(0, -1);
+                }
+                return prev;
+            });
+
+            // Network errors
+            if (err.name === 'TypeError' && err.message.includes('fetch')) {
+                setError('Cannot connect to server. Please check that the server is running.');
+            } else {
+                setError(err.message || 'Failed to execute prompt');
+            }
+        } finally {
+            setExecutingPrompt(false);
+            setLoading(false);
+        }
+    }, [mcpClient, loading, messages, sessionToken, tools, llmProviders.selectedProvider, llmProviders.selectedModel, forceLogout, refreshTools]);
+
     return (
         <Box
             sx={{
@@ -378,6 +658,8 @@ const ChatInterface = () => {
                     onSend={handleSend}
                     onKeyDown={handleKeyDown}
                     disabled={loading}
+                    onPromptClick={handlePromptClick}
+                    hasPrompts={prompts && prompts.length > 0}
                 />
 
                 <ProviderSelector
@@ -397,6 +679,16 @@ const ChatInterface = () => {
                     loadingModels={llmProviders.loadingModels}
                 />
             </Paper>
+
+            {/* Prompt Popover */}
+            <PromptPopover
+                anchorEl={promptPopoverAnchor}
+                open={Boolean(promptPopoverAnchor)}
+                onClose={() => setPromptPopoverAnchor(null)}
+                prompts={prompts}
+                onExecute={handlePromptExecute}
+                executing={executingPrompt}
+            />
         </Box>
     );
 };

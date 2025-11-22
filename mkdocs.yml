@@ -61,6 +61,7 @@ nav:
       - Using the CLI Client: using-cli-client.md
       - Available Tools: tools.md
       - Available Resources: resources.md
+      - Available Prompts: prompts.md
       - Query Examples: examples.md
       - Security: security.md
       - Troubleshooting: troubleshooting.md

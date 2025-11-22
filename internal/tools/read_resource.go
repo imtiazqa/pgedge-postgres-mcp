@@ -26,7 +26,7 @@ type ResourceReader interface {
 func ReadResourceTool(resourceProvider ResourceReader) Tool {
 	return Tool{
 		Definition: mcp.Tool{
-			Name:        "read_resource",
+			Name: "read_resource",
 			Description: `Read MCP resources via tool interface (backward compatibility).
 
 <important>

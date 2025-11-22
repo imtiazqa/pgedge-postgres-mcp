@@ -10,8 +10,8 @@
 
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Box, Paper, Typography, useTheme } from '@mui/material';
-import { Person as PersonIcon, SmartToy as BotIcon } from '@mui/icons-material';
+import { Box, Paper, Typography, useTheme, Chip } from '@mui/material';
+import { Person as PersonIcon, SmartToy as BotIcon, Info as InfoIcon, Psychology as PsychologyIcon } from '@mui/icons-material';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { createMarkdownComponents } from './MarkdownComponents';
@@ -51,6 +51,29 @@ const Message = React.memo(({ message, showActivity, renderMarkdown, debug }) =>
     const theme = useTheme();
     const markdownComponents = createMarkdownComponents(theme);
 
+    // System messages have a different layout
+    if (message.role === 'system') {
+        return (
+            <Box sx={{ mb: 2, display: 'flex', justifyContent: 'center' }}>
+                <Chip
+                    icon={<InfoIcon />}
+                    label={message.content}
+                    color="info"
+                    variant="outlined"
+                    sx={{
+                        maxWidth: '100%',
+                        height: 'auto',
+                        py: 1,
+                        '& .MuiChip-label': {
+                            whiteSpace: 'normal',
+                            textAlign: 'center',
+                        },
+                    }}
+                />
+            </Box>
+        );
+    }
+
     return (
         <Box
             sx={{
@@ -86,18 +109,35 @@ const Message = React.memo(({ message, showActivity, renderMarkdown, debug }) =>
             {/* Message Content */}
             <Box sx={{ flex: 1 }}>
                 {/* Header */}
-                <Typography
-                    variant="caption"
-                    color="text.secondary"
-                    sx={{ display: 'block', mb: 0.5 }}
-                >
-                    {message.role === 'user'
-                        ? 'You'
-                        : message.provider && message.model
-                            ? `${message.provider.charAt(0).toUpperCase() + message.provider.slice(1)} (${getShortModelName(message.model)})`
-                            : 'Assistant'
-                    }
-                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                    <Typography
+                        variant="caption"
+                        color="text.secondary"
+                    >
+                        {message.role === 'user'
+                            ? 'You'
+                            : message.provider && message.model
+                                ? `${message.provider.charAt(0).toUpperCase() + message.provider.slice(1)} (${getShortModelName(message.model)})`
+                                : 'Assistant'
+                        }
+                    </Typography>
+                    {message.fromPrompt && (
+                        <Chip
+                            icon={<PsychologyIcon sx={{ fontSize: 14 }} />}
+                            label="From Prompt"
+                            size="small"
+                            color="primary"
+                            variant="outlined"
+                            sx={{
+                                height: 20,
+                                fontSize: '0.65rem',
+                                '& .MuiChip-icon': {
+                                    marginLeft: '4px',
+                                },
+                            }}
+                        />
+                    )}
+                </Box>
 
                 {/* Activity Log */}
                 {showActivity && message.role === 'assistant' && message.activity && message.activity.length > 0 && (

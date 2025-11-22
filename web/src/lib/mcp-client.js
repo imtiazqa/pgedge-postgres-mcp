@@ -138,6 +138,28 @@ export class MCPClient {
     }
 
     /**
+     * List available prompts
+     * @returns {Promise<Array>} - Array of prompt objects
+     */
+    async listPrompts() {
+        const result = await this.sendRequest('prompts/list');
+        return result.prompts || [];
+    }
+
+    /**
+     * Get a prompt with optional arguments
+     * @param {string} name - Prompt name
+     * @param {object} args - Prompt arguments (key-value pairs)
+     * @returns {Promise<object>} - Prompt result with messages
+     */
+    async getPrompt(name, args = {}) {
+        return await this.sendRequest('prompts/get', {
+            name: name,
+            arguments: args
+        });
+    }
+
+    /**
      * Authenticate user and get session token
      * Static method - creates temporary client without token to call authenticate_user
      * @param {string} baseURL - Base URL of MCP server
