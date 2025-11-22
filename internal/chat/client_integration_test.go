@@ -165,7 +165,7 @@ func TestClient_ConnectToMCP_HTTPMode(t *testing.T) {
 	}
 
 	// Create client
-	client, err := NewClient(cfg)
+	client, err := NewClient(cfg, &ConfigOverrides{})
 	if err != nil {
 		t.Fatalf("NewClient failed: %v", err)
 	}
@@ -203,7 +203,7 @@ func TestClient_InitializeLLM_Anthropic(t *testing.T) {
 		},
 	}
 
-	client, err := NewClient(cfg)
+	client, err := NewClient(cfg, &ConfigOverrides{})
 	if err != nil {
 		t.Fatalf("NewClient failed: %v", err)
 	}
@@ -235,7 +235,7 @@ func TestClient_InitializeLLM_Ollama(t *testing.T) {
 		},
 	}
 
-	client, err := NewClient(cfg)
+	client, err := NewClient(cfg, &ConfigOverrides{})
 	if err != nil {
 		t.Fatalf("NewClient failed: %v", err)
 	}
@@ -263,7 +263,8 @@ func TestClient_InitializeLLM_InvalidProvider(t *testing.T) {
 		},
 	}
 
-	client, err := NewClient(cfg)
+	// Set ProviderSet=true to prevent preferences from overriding the invalid provider
+	client, err := NewClient(cfg, &ConfigOverrides{ProviderSet: true})
 	if err != nil {
 		t.Fatalf("NewClient failed: %v", err)
 	}
@@ -280,7 +281,7 @@ func TestClient_HandleCommand_Help(t *testing.T) {
 		},
 	}
 
-	client, err := NewClient(cfg)
+	client, err := NewClient(cfg, &ConfigOverrides{})
 	if err != nil {
 		t.Fatalf("NewClient failed: %v", err)
 	}
@@ -299,7 +300,7 @@ func TestClient_HandleCommand_Clear(t *testing.T) {
 		},
 	}
 
-	client, err := NewClient(cfg)
+	client, err := NewClient(cfg, &ConfigOverrides{})
 	if err != nil {
 		t.Fatalf("NewClient failed: %v", err)
 	}
@@ -318,7 +319,7 @@ func TestClient_HandleCommand_Tools(t *testing.T) {
 		},
 	}
 
-	client, err := NewClient(cfg)
+	client, err := NewClient(cfg, &ConfigOverrides{})
 	if err != nil {
 		t.Fatalf("NewClient failed: %v", err)
 	}
@@ -354,7 +355,7 @@ func TestClient_HandleCommand_Resources(t *testing.T) {
 		},
 	}
 
-	client, err := NewClient(cfg)
+	client, err := NewClient(cfg, &ConfigOverrides{})
 	if err != nil {
 		t.Fatalf("NewClient failed: %v", err)
 	}
@@ -385,7 +386,7 @@ func TestClient_HandleCommand_Unknown(t *testing.T) {
 		},
 	}
 
-	client, err := NewClient(cfg)
+	client, err := NewClient(cfg, &ConfigOverrides{})
 	if err != nil {
 		t.Fatalf("NewClient failed: %v", err)
 	}
@@ -418,7 +419,7 @@ func TestClient_ProcessQuery_SimpleResponse(t *testing.T) {
 		},
 	}
 
-	client, err := NewClient(cfg)
+	client, err := NewClient(cfg, &ConfigOverrides{})
 	if err != nil {
 		t.Fatalf("NewClient failed: %v", err)
 	}
@@ -500,7 +501,7 @@ func TestClient_ProcessQuery_WithToolUse(t *testing.T) {
 		},
 	}
 
-	client, err := NewClient(cfg)
+	client, err := NewClient(cfg, &ConfigOverrides{})
 	if err != nil {
 		t.Fatalf("NewClient failed: %v", err)
 	}
@@ -586,7 +587,7 @@ func TestClient_ProcessQuery_MaxIterations(t *testing.T) {
 		},
 	}
 
-	client, err := NewClient(cfg)
+	client, err := NewClient(cfg, &ConfigOverrides{})
 	if err != nil {
 		t.Fatalf("NewClient failed: %v", err)
 	}
@@ -661,7 +662,7 @@ func TestClient_ProcessQuery_ContextCancellation(t *testing.T) {
 		},
 	}
 
-	client, err := NewClient(cfg)
+	client, err := NewClient(cfg, &ConfigOverrides{})
 	if err != nil {
 		t.Fatalf("NewClient failed: %v", err)
 	}
@@ -844,7 +845,7 @@ func TestClient_ProcessQuery_ToolListRefreshAfterManageConnections(t *testing.T)
 		},
 	}
 
-	client, err := NewClient(cfg)
+	client, err := NewClient(cfg, &ConfigOverrides{})
 	if err != nil {
 		t.Fatalf("NewClient failed: %v", err)
 	}
@@ -972,7 +973,7 @@ func TestClient_ConnectToMCP_URLFormatting(t *testing.T) {
 				},
 			}
 
-			client, err := NewClient(cfg)
+			client, err := NewClient(cfg, &ConfigOverrides{})
 			if err != nil {
 				t.Fatalf("NewClient failed: %v", err)
 			}

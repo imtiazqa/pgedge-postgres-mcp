@@ -131,7 +131,7 @@ func TestHandleSetStatusMessages(t *testing.T) {
 					DisplayStatusMessages: false,
 				},
 			}
-			client, _ := NewClient(cfg)
+			client, _ := NewClient(cfg, &ConfigOverrides{})
 
 			// Call handleSetStatusMessages
 			client.handleSetStatusMessages(tt.value)
@@ -176,7 +176,7 @@ func TestHandleSetLLMProvider(t *testing.T) {
 					NoColor: false,
 				},
 			}
-			client, _ := NewClient(cfg)
+			client, _ := NewClient(cfg, &ConfigOverrides{})
 
 			// Initialize LLM client
 			_ = client.initializeLLM()
@@ -215,7 +215,7 @@ func TestHandleSetLLMModel(t *testing.T) {
 			NoColor: false,
 		},
 	}
-	client, _ := NewClient(cfg)
+	client, _ := NewClient(cfg, &ConfigOverrides{})
 	_ = client.initializeLLM()
 
 	// Test setting a new model

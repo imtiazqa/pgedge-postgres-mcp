@@ -50,7 +50,12 @@ func parseQuotedArgs(input string) []string {
 	inQuote := false
 	quoteChar := rune(0)
 
-	for i, r := range input {
+	// Convert to runes for proper Unicode handling
+	runes := []rune(input)
+
+	for i := 0; i < len(runes); i++ {
+		r := runes[i]
+
 		switch {
 		case (r == '"' || r == '\'') && !inQuote:
 			// Start of quoted string
@@ -66,14 +71,17 @@ func parseQuotedArgs(input string) []string {
 				args = append(args, current.String())
 				current.Reset()
 			}
-		case r == '\\' && inQuote && i+1 < len(input):
+		case r == '\\' && inQuote && i+1 < len(runes):
 			// Escape sequence in quoted string
-			next := rune(input[i+1])
+			next := runes[i+1]
 			if next == quoteChar || next == '\\' {
-				// Skip the backslash, include the next character
-				continue
+				// Skip the backslash, include the escaped character
+				current.WriteRune(next)
+				i++ // Skip the next character since we've already processed it
+			} else {
+				// Not a valid escape sequence, include the backslash
+				current.WriteRune(r)
 			}
-			current.WriteRune(r)
 		default:
 			// Regular character
 			current.WriteRune(r)

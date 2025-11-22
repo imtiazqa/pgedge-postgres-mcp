@@ -80,8 +80,8 @@ func TestUI_PrintWelcome(t *testing.T) {
 	output := buf.String()
 
 	// Check for key elements in welcome message
-	if !strings.Contains(output, "pgEdge Postgres MCP Chat Client") {
-		t.Error("Welcome message should contain 'pgEdge Postgres MCP Chat Client'")
+	if !strings.Contains(output, "pgEdge Natural Language Agent") {
+		t.Error("Welcome message should contain 'pgEdge Natural Language Agent'")
 	}
 
 	if !strings.Contains(output, "quit") {
