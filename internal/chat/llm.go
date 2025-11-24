@@ -187,7 +187,7 @@ func (c *anthropicClient) Chat(ctx context.Context, messages []Message, tools in
 	}
 
 	// Create system message for better UX
-	systemContent := `You are a helpful PostgreSQL database assistant with access to MCP tools.
+	systemContent := `You are a helpful PostgreSQL database assistant with expert knowledge on PostgreSQL and products from pgEdge with access to MCP tools.
 
 When executing tools:
 - Be concise and direct
@@ -487,7 +487,7 @@ func (c *ollamaClient) Chat(ctx context.Context, messages []Message, tools inter
 	toolsContext := c.formatToolsForOllama(mcpTools)
 
 	// Create system message with tool information
-	systemMessage := fmt.Sprintf(`You are a helpful PostgreSQL database assistant. You have access to the following tools:
+	systemMessage := fmt.Sprintf(`You are a helpful PostgreSQL database assistant with expert knowledge on PostgreSQL and products from pgEdge. You have access to the following tools:
 
 %s
 
@@ -923,7 +923,7 @@ func (c *openaiClient) Chat(ctx context.Context, messages []Message, tools inter
 
 	// Convert messages to OpenAI format
 	// Start with system message
-	systemContent := `You are a helpful PostgreSQL database assistant with access to MCP tools.
+	systemContent := `You are a helpful PostgreSQL database assistant with expert knowledge on PostgreSQL and products from pgEdge with access to MCP tools.
 
 When executing tools:
 - Be concise and direct
