@@ -1,0 +1,173 @@
+# Example custom definitions file for pgEdge PostgreSQL MCP Server
+# This file demonstrates how to define custom prompts and resources
+
+prompts:
+    # Example 1: Simple prompt with argument interpolation
+    - name: analyze-table
+      description: Analyzes a specific database table to understand its structure and content
+      arguments:
+          - name: table_name
+            description: The name of the table to analyze
+            required: true
+      messages:
+          - role: user
+            content:
+                type: text
+                text: |
+                    Please analyze the {{table_name}} table in detail:
+
+                    1. First, use get_schema_info(table_name="{{table_name}}") to understand its structure
+                    2. Check for indexes, constraints, and relationships
+                    3. Query a sample of data: query_database(query="SELECT * FROM {{table_name}} LIMIT 5")
+                    4. Identify the table's purpose and any patterns in the data
+                    5. Suggest potential optimizations or queries
+
+                    Provide a comprehensive analysis report.
+
+    # Example 2: Prompt with multiple arguments
+    - name: compare-schemas
+      description: Compares two database schemas to identify differences
+      arguments:
+          - name: schema1
+            description: First schema name
+            required: true
+          - name: schema2
+            description: Second schema name
+            required: true
+      messages:
+          - role: user
+            content:
+                type: text
+                text: |
+                    Compare the structures of schema "{{schema1}}" and "{{schema2}}":
+
+                    1. Get schema info for {{schema1}}: get_schema_info(schema_name="{{schema1}}")
+                    2. Get schema info for {{schema2}}: get_schema_info(schema_name="{{schema2}}")
+                    3. Identify tables that exist in one schema but not the other
+                    4. Compare table structures for tables that exist in both
+                    5. Note any differences in columns, types, or constraints
+
+                    Provide a detailed comparison report.
+
+    # Example 3: Simple workflow prompt without arguments
+    - name: security-audit
+      description: Performs a security audit of the database
+      arguments: []
+      messages:
+          - role: user
+            content:
+                type: text
+                text: |
+                    Perform a security audit of this PostgreSQL database:
+
+                    1. Check user privileges and roles
+                    2. Identify tables without proper access controls
+                    3. Look for potential SQL injection vulnerabilities in stored procedures
+                    4. Check for unencrypted sensitive data
+                    5. Review connection settings and authentication methods
+
+                    Provide a security assessment with recommendations.
+
+resources:
+    # Example 1: SQL resource - Active users
+    - uri: custom://active-users
+      name: Active Users
+      description: Returns a list of all active users in the system
+      mimeType: application/json
+      type: sql
+      sql: |
+          SELECT
+              usename as username,
+              usesysid as user_id,
+              usecreatedb as can_create_db,
+              usesuper as is_superuser,
+              valuntil as valid_until
+          FROM pg_user
+          WHERE valuntil IS NULL OR valuntil > NOW()
+          ORDER BY usename
+
+    # Example 2: SQL resource - Large tables
+    - uri: custom://large-tables
+      name: Large Tables
+      description: Returns the 10 largest tables in the database by size
+      mimeType: application/json
+      type: sql
+      sql: |
+          SELECT
+              schemaname,
+              tablename,
+              pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) as size,
+              pg_total_relation_size(schemaname||'.'||tablename) as size_bytes
+          FROM pg_tables
+          WHERE schemaname NOT IN ('pg_catalog', 'information_schema')
+          ORDER BY size_bytes DESC
+          LIMIT 10
+
+    # Example 3: SQL resource - Recent database activity
+    - uri: custom://recent-activity
+      name: Recent Database Activity
+      description: Shows recent database activity and connection statistics
+      type: sql
+      sql: |
+          SELECT
+              datname as database,
+              numbackends as active_connections,
+              xact_commit as transactions_committed,
+              xact_rollback as transactions_rolled_back,
+              blks_read as blocks_read,
+              blks_hit as blocks_hit_cache,
+              tup_returned as tuples_returned,
+              tup_fetched as tuples_fetched,
+              tup_inserted as tuples_inserted,
+              tup_updated as tuples_updated,
+              tup_deleted as tuples_deleted
+          FROM pg_stat_database
+          WHERE datname = current_database()
+
+    # Example 4: Static resource - Single value
+    - uri: custom://environment
+      name: Environment
+      description: Returns the current environment (development, staging, production)
+      mimeType: application/json
+      type: static
+      data: "production"
+
+    # Example 5: Static resource - Single row (array)
+    - uri: custom://support-contact
+      name: Support Contact
+      description: Contact information for database support
+      mimeType: application/json
+      type: static
+      data:
+          - "Database Support Team"
+          - "support@example.com"
+          - "+1-555-0123"
+          - "https://support.example.com"
+
+    # Example 6: Static resource - Multiple rows (2D array)
+    - uri: custom://maintenance-schedule
+      name: Maintenance Schedule
+      description: Scheduled database maintenance windows
+      mimeType: application/json
+      type: static
+      data:
+          - ["2025-02-01", "02:00", "04:00", "Security patches"]
+          - ["2025-02-15", "03:00", "05:00", "Version upgrade"]
+          - ["2025-03-01", "02:00", "04:00", "Backup verification"]
+
+    # Example 7: Static resource - Configuration object
+    - uri: custom://db-config
+      name: Database Configuration
+      description: Important database configuration parameters
+      mimeType: application/json
+      type: static
+      data:
+          max_connections: 100
+          shared_buffers: "256MB"
+          effective_cache_size: "1GB"
+          maintenance_work_mem: "64MB"
+          checkpoint_completion_target: 0.9
+          wal_buffers: "16MB"
+          default_statistics_target: 100
+          random_page_cost: 4.0
+          work_mem: "4MB"

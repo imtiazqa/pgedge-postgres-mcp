@@ -33,8 +33,14 @@ type Config struct {
 	// LLM configuration (for web client chat proxy)
 	LLM LLMConfig `yaml:"llm"`
 
+	// Knowledgebase configuration
+	Knowledgebase KnowledgebaseConfig `yaml:"knowledgebase"`
+
 	// Secret file path (for encryption key)
 	SecretFile string `yaml:"secret_file"`
+
+	// Custom definitions file path (for user-defined prompts and resources)
+	CustomDefinitionsPath string `yaml:"custom_definitions_path"`
 }
 
 // HTTPConfig holds HTTP/HTTPS server settings
@@ -98,6 +104,12 @@ type LLMConfig struct {
 	OllamaURL           string  `yaml:"ollama_url"`             // URL for Ollama service (default: http://localhost:11434)
 	MaxTokens           int     `yaml:"max_tokens"`             // Maximum tokens for LLM response (default: 4096)
 	Temperature         float64 `yaml:"temperature"`            // Temperature for LLM sampling (default: 0.7)
+}
+
+// KnowledgebaseConfig holds knowledgebase configuration
+type KnowledgebaseConfig struct {
+	Enabled      bool   `yaml:"enabled"`       // Whether knowledgebase search is enabled (default: false)
+	DatabasePath string `yaml:"database_path"` // Path to SQLite knowledgebase database
 }
 
 // LoadConfig loads configuration with proper priority:
@@ -370,6 +382,11 @@ func mergeConfig(dest, src *Config) {
 	if src.SecretFile != "" {
 		dest.SecretFile = src.SecretFile
 	}
+
+	// Custom definitions path
+	if src.CustomDefinitionsPath != "" {
+		dest.CustomDefinitionsPath = src.CustomDefinitionsPath
+	}
 }
 
 // setStringFromEnv sets a string config value from an environment variable if it exists
@@ -513,6 +530,9 @@ func applyEnvironmentVariables(cfg *Config) {
 
 	// Secret file
 	setStringFromEnv(&cfg.SecretFile, "PGEDGE_SECRET_FILE")
+
+	// Custom definitions path
+	setStringFromEnv(&cfg.CustomDefinitionsPath, "PGEDGE_CUSTOM_DEFINITIONS_PATH")
 }
 
 // applyCLIFlags overrides config with CLI flags if they were explicitly set

@@ -24,6 +24,7 @@ import (
 	"pgedge-postgres-mcp/internal/compactor"
 	"pgedge-postgres-mcp/internal/config"
 	"pgedge-postgres-mcp/internal/database"
+	"pgedge-postgres-mcp/internal/definitions"
 	"pgedge-postgres-mcp/internal/llmproxy"
 	"pgedge-postgres-mcp/internal/mcp"
 	"pgedge-postgres-mcp/internal/prompts"
@@ -426,6 +427,44 @@ func main() {
 	promptRegistry.Register("setup-semantic-search", prompts.SetupSemanticSearch())
 	promptRegistry.Register("diagnose-query-issue", prompts.DiagnoseQueryIssue())
 	server.SetPromptProvider(promptRegistry)
+
+	// Load custom definitions if configured
+	if cfg.CustomDefinitionsPath != "" {
+		fmt.Fprintf(os.Stderr, "Loading custom definitions from: %s\n", cfg.CustomDefinitionsPath)
+		defs, err := definitions.LoadDefinitions(cfg.CustomDefinitionsPath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "ERROR: Failed to load custom definitions: %v\n", err)
+			os.Exit(1)
+		}
+
+		// Register custom prompts
+		for _, promptDef := range defs.Prompts {
+			if err := promptRegistry.RegisterStatic(promptDef); err != nil {
+				fmt.Fprintf(os.Stderr, "ERROR: Failed to register prompt %s: %v\n", promptDef.Name, err)
+				os.Exit(1)
+			}
+			fmt.Fprintf(os.Stderr, "Registered custom prompt: %s\n", promptDef.Name)
+		}
+
+		// Register custom resources
+		for _, resDef := range defs.Resources {
+			if resDef.Type == "sql" {
+				if err := contextAwareResourceProvider.RegisterSQL(resDef); err != nil {
+					fmt.Fprintf(os.Stderr, "ERROR: Failed to register resource %s: %v\n", resDef.URI, err)
+					os.Exit(1)
+				}
+				fmt.Fprintf(os.Stderr, "Registered custom SQL resource: %s\n", resDef.URI)
+			} else if resDef.Type == "static" {
+				if err := contextAwareResourceProvider.RegisterStatic(resDef); err != nil {
+					fmt.Fprintf(os.Stderr, "ERROR: Failed to register resource %s: %v\n", resDef.URI, err)
+					os.Exit(1)
+				}
+				fmt.Fprintf(os.Stderr, "Registered custom static resource: %s\n", resDef.URI)
+			}
+		}
+
+		fmt.Fprintf(os.Stderr, "Loaded %d custom prompt(s) and %d custom resource(s)\n", len(defs.Prompts), len(defs.Resources))
+	}
 
 	// Start periodic cleanup of expired tokens if auth is enabled
 	if cfg.HTTP.Enabled && cfg.HTTP.Auth.Enabled {

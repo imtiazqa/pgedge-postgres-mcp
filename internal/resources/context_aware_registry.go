@@ -19,25 +19,36 @@ import (
 	"pgedge-postgres-mcp/internal/mcp"
 )
 
+// ContextAwareHandler is a function that reads a resource with context and database client
+type ContextAwareHandler func(ctx context.Context, dbClient *database.Client) (mcp.ResourceContent, error)
+
 // ContextAwareRegistry wraps a resource registry and provides per-token database clients
 // This ensures connection isolation in HTTP/HTTPS mode with authentication
 type ContextAwareRegistry struct {
-	clientManager *database.ClientManager
-	authEnabled   bool
+	clientManager   *database.ClientManager
+	authEnabled     bool
+	customResources map[string]customResource
+}
+
+// customResource represents a user-defined resource
+type customResource struct {
+	definition mcp.Resource
+	handler    ContextAwareHandler
 }
 
 // NewContextAwareRegistry creates a new context-aware resource registry
 func NewContextAwareRegistry(clientManager *database.ClientManager, authEnabled bool) *ContextAwareRegistry {
 	return &ContextAwareRegistry{
-		clientManager: clientManager,
-		authEnabled:   authEnabled,
+		clientManager:   clientManager,
+		authEnabled:     authEnabled,
+		customResources: make(map[string]customResource),
 	}
 }
 
 // List returns all available resource definitions
 func (r *ContextAwareRegistry) List() []mcp.Resource {
-	// Return static list of all resources
-	return []mcp.Resource{
+	// Start with static built-in resources
+	resources := []mcp.Resource{
 		{
 			URI:         URISystemInfo,
 			Name:        "PostgreSQL System Information",
@@ -51,11 +62,36 @@ func (r *ContextAwareRegistry) List() []mcp.Resource {
 			MimeType:    "application/json",
 		},
 	}
+
+	// Add custom resources
+	for _, customRes := range r.customResources {
+		resources = append(resources, customRes.definition)
+	}
+
+	return resources
 }
 
 // Read retrieves a resource by URI with the appropriate database client
 func (r *ContextAwareRegistry) Read(ctx context.Context, uri string) (mcp.ResourceContent, error) {
-	// Get the appropriate database client for this request
+	// Check if this is a custom resource first
+	if customRes, exists := r.customResources[uri]; exists {
+		// Get database client for custom resource
+		dbClient, err := r.getClient(ctx)
+		if err != nil {
+			return mcp.ResourceContent{
+				URI: uri,
+				Contents: []mcp.ContentItem{
+					{
+						Type: "text",
+						Text: fmt.Sprintf("Error: %v", err),
+					},
+				},
+			}, nil
+		}
+		return customRes.handler(ctx, dbClient)
+	}
+
+	// Get the appropriate database client for built-in resources
 	dbClient, err := r.getClient(ctx)
 	if err != nil {
 		return mcp.ResourceContent{
