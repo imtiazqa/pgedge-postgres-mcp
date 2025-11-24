@@ -28,7 +28,34 @@ func SimilaritySearchTool(dbClient *database.Client, cfg *config.Config) Tool {
 	return Tool{
 		Definition: mcp.Tool{
 			Name: "similarity_search",
-			Description: `Semantic search for NATURAL LANGUAGE and CONCEPT-BASED queries.
+			Description: `⚠️  IMPORTANT: Use this tool to retrieve database content BEFORE answering questions about it. Do NOT answer from memory!
+
+Semantic search for NATURAL LANGUAGE and CONCEPT-BASED queries.
+
+<critical_usage_note>
+MANDATORY RULE: When a user asks about content that you know EXISTS in the database (e.g., "tell me about X", "what is Y", "describe Z", "summarize A", "what are the capabilities of X"), you MUST ALWAYS use this tool FIRST to retrieve the current information from the database.
+
+NEVER answer from memory or general knowledge if the information exists in the database. ALWAYS retrieve it first using this tool.
+
+DO NOT:
+- Say "I don't have the capability to analyze" (use the tool!)
+- Answer questions about database content without calling this tool
+- Provide summaries/descriptions from memory when data exists in DB
+
+DO:
+- Call similarity_search BEFORE providing any answer about database content
+- Start with ONE broad search using output_format="summary" to avoid rate limits
+- Only make additional searches if the first doesn't provide enough information
+- Base your answer ONLY on the retrieved chunks, not on prior knowledge
+
+RATE LIMIT STRATEGY:
+- ALWAYS start with output_format="summary" (uses 50 tokens vs 1000)
+- If summary provides sufficient info, synthesize answer from it
+- Only use output_format="full" if you need complete details
+- Avoid making 3+ searches in rapid succession (causes rate limit errors)
+
+This ensures accuracy and uses the most current information in the database.
+</critical_usage_note>
 
 <usecase>
 Use similarity_search when you need:
@@ -38,6 +65,8 @@ Use similarity_search when you need:
 - When user language may differ from stored text
 - Searching Wikipedia articles, documentation, support tickets, reviews
 - Content that benefits from semantic understanding
+- Answering questions about content stored in the database
+- Providing comprehensive descriptions/summaries of topics in the database
 </usecase>
 
 <technical_details>
@@ -64,6 +93,9 @@ ALWAYS call get_schema_info with vector_tables_only=true FIRST if you don't know
 </important>
 
 <examples>
+✓ "Give me a comprehensive description of pgAdmin" → search for "pgAdmin capabilities features overview"
+✓ "Tell me about the authentication system" → search for "authentication system login security"
+✓ "What can I do with this tool?" → search for "features capabilities functionality"
 ✓ "Find tickets about connection timeouts"
 ✓ "Documents similar to article ID 123"
 ✓ "Wikipedia articles related to quantum computing"
