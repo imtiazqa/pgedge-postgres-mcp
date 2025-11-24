@@ -1,4 +1,4 @@
-.PHONY: build build-server build-client clean clean-server clean-client test test-server test-client run install help lint lint-server lint-client fmt
+.PHONY: build build-server build-client clean clean-server clean-client test test-server test-client run install help lint lint-server lint-client fmt format
 
 # Binary names and directories
 SERVER_BINARY=pgedge-pg-mcp-svr
@@ -120,6 +120,9 @@ fmt:
 	$(GO) fmt ./...
 	@echo "Format complete"
 
+# Alias for fmt
+format: fmt
+
 # Run linter on all code (requires golangci-lint)
 lint:
 	@echo "Running linter on all code..."
@@ -180,6 +183,10 @@ help:
 	@echo "  make test-server    - Run server tests only"
 	@echo "  make test-client    - Run client tests only"
 	@echo ""
+	@echo "Formatting:"
+	@echo "  make format         - Format Go code with gofmt"
+	@echo "  make fmt            - Format Go code with gofmt (alias)"
+	@echo ""
 	@echo "Linting:"
 	@echo "  make lint           - Run linter on all code"
 	@echo "  make lint-server    - Run linter on server code only"
@@ -194,6 +201,5 @@ help:
 	@echo "  make run            - Run server with environment from .env file"
 	@echo "  make deps           - Install/update dependencies"
 	@echo "  make install        - Install both binaries to GOPATH/bin"
-	@echo "  make fmt            - Format Go code"
 	@echo "  make help           - Show this help message"
 	@echo ""
