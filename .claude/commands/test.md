@@ -1,6 +1,6 @@
 ---
 allowed-tools: Bash(make:*)
-description: Fully test the roject
+description: Fully test the project
 ---
 
 # Test
