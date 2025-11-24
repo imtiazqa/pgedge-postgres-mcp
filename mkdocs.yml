@@ -87,3 +87,5 @@ nav:
       - Internal Architecture: internal-architecture.md
       - Testing: testing.md
       - CI/CD: ci-cd.md
+
+  - Changelog: changelog.md
