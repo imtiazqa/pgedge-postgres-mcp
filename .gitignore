@@ -37,4 +37,4 @@ go.work
 Thumbs.db
 
 # AI
-.claude
+.claude/settings.local.json
