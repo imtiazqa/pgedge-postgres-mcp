@@ -26,14 +26,16 @@ import (
 // ContextAwareProvider wraps a tool registry and provides per-token database clients
 // This ensures connection isolation in HTTP/HTTPS mode with authentication
 type ContextAwareProvider struct {
-	baseRegistry   *Registry // Registry for tool definitions (List operation)
-	clientManager  *database.ClientManager
-	resourceReg    *resources.ContextAwareRegistry
-	authEnabled    bool
-	fallbackClient *database.Client // Used when auth is disabled
-	cfg            *config.Config   // Server configuration (for embedding settings)
-	userStore      *auth.UserStore  // User store for authentication
-	userFilePath   string           // Path to user file for persisting updates
+	baseRegistry      *Registry // Registry for tool definitions (List operation)
+	clientManager     *database.ClientManager
+	resourceReg       *resources.ContextAwareRegistry
+	authEnabled       bool
+	fallbackClient    *database.Client  // Used when auth is disabled
+	cfg               *config.Config    // Server configuration (for embedding settings)
+	userStore         *auth.UserStore   // User store for authentication
+	userFilePath      string            // Path to user file for persisting updates
+	rateLimiter       *auth.RateLimiter // Rate limiter for authentication attempts
+	maxFailedAttempts int               // Maximum failed attempts before account lockout
 
 	// Cache of registries per client to avoid re-creating tools on every Execute()
 	mu               sync.RWMutex
@@ -67,18 +69,20 @@ func (p *ContextAwareProvider) registerDatabaseTools(registry *Registry, client 
 }
 
 // NewContextAwareProvider creates a new context-aware tool provider
-func NewContextAwareProvider(clientManager *database.ClientManager, resourceReg *resources.ContextAwareRegistry, authEnabled bool, fallbackClient *database.Client, cfg *config.Config, userStore *auth.UserStore, userFilePath string) *ContextAwareProvider {
+func NewContextAwareProvider(clientManager *database.ClientManager, resourceReg *resources.ContextAwareRegistry, authEnabled bool, fallbackClient *database.Client, cfg *config.Config, userStore *auth.UserStore, userFilePath string, rateLimiter *auth.RateLimiter, maxFailedAttempts int) *ContextAwareProvider {
 	provider := &ContextAwareProvider{
-		baseRegistry:     NewRegistry(),
-		clientManager:    clientManager,
-		resourceReg:      resourceReg,
-		authEnabled:      authEnabled,
-		fallbackClient:   fallbackClient,
-		cfg:              cfg,
-		userStore:        userStore,
-		userFilePath:     userFilePath,
-		clientRegistries: make(map[*database.Client]*Registry),
-		hiddenRegistry:   NewRegistry(),
+		baseRegistry:      NewRegistry(),
+		clientManager:     clientManager,
+		resourceReg:       resourceReg,
+		authEnabled:       authEnabled,
+		fallbackClient:    fallbackClient,
+		cfg:               cfg,
+		userStore:         userStore,
+		userFilePath:      userFilePath,
+		rateLimiter:       rateLimiter,
+		maxFailedAttempts: maxFailedAttempts,
+		clientRegistries:  make(map[*database.Client]*Registry),
+		hiddenRegistry:    NewRegistry(),
 	}
 
 	// Register ALL tools in base registry so they're always visible in tools/list
@@ -89,7 +93,7 @@ func NewContextAwareProvider(clientManager *database.ClientManager, resourceReg 
 
 	// Register hidden tools (not advertised to LLM but available for execution)
 	if userStore != nil {
-		provider.hiddenRegistry.Register("authenticate_user", AuthenticateUserTool(userStore))
+		provider.hiddenRegistry.Register("authenticate_user", AuthenticateUserTool(userStore, rateLimiter, maxFailedAttempts))
 	}
 
 	return provider

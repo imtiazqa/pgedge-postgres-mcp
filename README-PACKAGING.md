@@ -74,6 +74,9 @@ http:
     enabled: true
     token_file: /var/lib/pgedge/nla-server/tokens.json
     user_file: /var/lib/pgedge/nla-server/users.json
+    max_failed_attempts_before_lockout: 5  # Lock account after N failed attempts (0 = disabled)
+    rate_limit_window_minutes: 15  # Time window for rate limiting
+    rate_limit_max_attempts: 10  # Max failed attempts per IP per window
 
 # LLM proxy settings (optional - for web UI)
 llm:

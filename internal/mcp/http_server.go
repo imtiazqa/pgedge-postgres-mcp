@@ -120,6 +120,10 @@ func (s *Server) handleHTTPRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Extract IP address and add to context
+	ipAddress := auth.ExtractIPAddress(r)
+	ctx := context.WithValue(r.Context(), auth.IPAddressContextKey, ipAddress)
+
 	// Read request body
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -141,7 +145,7 @@ func (s *Server) handleHTTPRequest(w http.ResponseWriter, r *http.Request) {
 
 	// Debug logging: log incoming request
 	if s.debug {
-		fmt.Fprintf(os.Stderr, "[DEBUG] Incoming request: method=%s id=%v\n", req.Method, req.ID)
+		fmt.Fprintf(os.Stderr, "[DEBUG] Incoming request: method=%s id=%v ip=%s\n", req.Method, req.ID, ipAddress)
 		if req.Params != nil {
 			if paramsJSON, err := json.Marshal(req.Params); err == nil {
 				fmt.Fprintf(os.Stderr, "[DEBUG] Request params: %s\n", string(paramsJSON))
@@ -149,8 +153,8 @@ func (s *Server) handleHTTPRequest(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Handle the request and capture the response (pass request context)
-	response := s.handleRequestHTTP(r.Context(), req)
+	// Handle the request and capture the response (pass context with IP address)
+	response := s.handleRequestHTTP(ctx, req)
 
 	// Debug logging: log outgoing response
 	if s.debug {

@@ -352,7 +352,7 @@ func TestAuthenticateUser(t *testing.T) {
 		store := InitializeUserStore()
 		store.AddUser("testuser", "password123", "Test User")
 
-		token, expiration, err := store.AuthenticateUser("testuser", "password123")
+		token, expiration, err := store.AuthenticateUser("testuser", "password123", 0)
 		if err != nil {
 			t.Fatalf("AuthenticateUser failed: %v", err)
 		}
@@ -396,7 +396,7 @@ func TestAuthenticateUser(t *testing.T) {
 		store := InitializeUserStore()
 		store.AddUser("testuser", "password123", "Test User")
 
-		_, _, err := store.AuthenticateUser("wronguser", "password123")
+		_, _, err := store.AuthenticateUser("wronguser", "password123", 0)
 		if err == nil {
 			t.Error("Expected error for invalid username")
 		}
@@ -406,7 +406,7 @@ func TestAuthenticateUser(t *testing.T) {
 		store := InitializeUserStore()
 		store.AddUser("testuser", "password123", "Test User")
 
-		_, _, err := store.AuthenticateUser("testuser", "wrongpassword")
+		_, _, err := store.AuthenticateUser("testuser", "wrongpassword", 0)
 		if err == nil {
 			t.Error("Expected error for invalid password")
 		}
@@ -417,7 +417,7 @@ func TestAuthenticateUser(t *testing.T) {
 		store.AddUser("testuser", "password123", "Test User")
 		store.DisableUser("testuser")
 
-		_, _, err := store.AuthenticateUser("testuser", "password123")
+		_, _, err := store.AuthenticateUser("testuser", "password123", 0)
 		if err == nil {
 			t.Error("Expected error for disabled user")
 		}
@@ -429,7 +429,7 @@ func TestValidateSessionToken(t *testing.T) {
 	t.Run("validates valid session token", func(t *testing.T) {
 		store := InitializeUserStore()
 		store.AddUser("testuser", "password123", "Test User")
-		token, _, _ := store.AuthenticateUser("testuser", "password123")
+		token, _, _ := store.AuthenticateUser("testuser", "password123", 0)
 
 		username, err := store.ValidateSessionToken(token)
 		if err != nil {
@@ -454,7 +454,7 @@ func TestValidateSessionToken(t *testing.T) {
 	t.Run("rejects expired token", func(t *testing.T) {
 		store := InitializeUserStore()
 		store.AddUser("testuser", "password123", "Test User")
-		token, _, _ := store.AuthenticateUser("testuser", "password123")
+		token, _, _ := store.AuthenticateUser("testuser", "password123", 0)
 
 		// Manually set expiration to past
 		user := store.Users["testuser"]
@@ -470,7 +470,7 @@ func TestValidateSessionToken(t *testing.T) {
 	t.Run("rejects token for disabled user", func(t *testing.T) {
 		store := InitializeUserStore()
 		store.AddUser("testuser", "password123", "Test User")
-		token, _, _ := store.AuthenticateUser("testuser", "password123")
+		token, _, _ := store.AuthenticateUser("testuser", "password123", 0)
 
 		store.DisableUser("testuser")
 
@@ -627,4 +627,174 @@ func TestGetDefaultUserPath(t *testing.T) {
 			t.Errorf("Expected relative path 'bin/pgedge-pg-mcp-svr-users.yaml', got '%s'", path)
 		}
 	})
+}
+
+// TestAuthenticateUser_WithFailedAttempts tests failed attempt tracking
+func TestAuthenticateUser_WithFailedAttempts(t *testing.T) {
+	store := InitializeUserStore()
+
+	// Add a user
+	err := store.AddUser("testuser", "password123", "Test User")
+	if err != nil {
+		t.Fatalf("Failed to add user: %v", err)
+	}
+
+	t.Run("increments failed attempts on wrong password", func(t *testing.T) {
+		// Attempt with wrong password
+		_, _, err := store.AuthenticateUser("testuser", "wrongpassword", 0)
+		if err == nil {
+			t.Fatal("Expected authentication to fail")
+		}
+
+		// Check failed attempts counter
+		attempts, err := store.GetFailedAttempts("testuser")
+		if err != nil {
+			t.Fatalf("Failed to get failed attempts: %v", err)
+		}
+
+		if attempts != 1 {
+			t.Errorf("Expected 1 failed attempt, got %d", attempts)
+		}
+	})
+
+	t.Run("resets failed attempts on successful login", func(t *testing.T) {
+		// Failed attempt
+		store.AuthenticateUser("testuser", "wrongpassword", 0)
+
+		// Successful attempt
+		_, _, err := store.AuthenticateUser("testuser", "password123", 0)
+		if err != nil {
+			t.Fatalf("Authentication failed: %v", err)
+		}
+
+		// Check failed attempts counter is reset
+		attempts, err := store.GetFailedAttempts("testuser")
+		if err != nil {
+			t.Fatalf("Failed to get failed attempts: %v", err)
+		}
+
+		if attempts != 0 {
+			t.Errorf("Expected 0 failed attempts after successful login, got %d", attempts)
+		}
+	})
+}
+
+// TestAuthenticateUser_WithAccountLockout tests account lockout feature
+func TestAuthenticateUser_WithAccountLockout(t *testing.T) {
+	store := InitializeUserStore()
+
+	// Add a user
+	err := store.AddUser("testuser", "password123", "Test User")
+	if err != nil {
+		t.Fatalf("Failed to add user: %v", err)
+	}
+
+	t.Run("locks account after N failed attempts", func(t *testing.T) {
+		maxAttempts := 3
+
+		// Make N failed attempts
+		for i := 0; i < maxAttempts; i++ {
+			_, _, err := store.AuthenticateUser("testuser", "wrongpassword", maxAttempts)
+			if err == nil {
+				t.Fatal("Expected authentication to fail")
+			}
+		}
+
+		// Verify account is disabled
+		store.mu.RLock()
+		user := store.Users["testuser"]
+		isEnabled := user.Enabled
+		failedAttempts := user.FailedAttempts
+		store.mu.RUnlock()
+
+		if isEnabled {
+			t.Error("Expected account to be disabled after max failed attempts")
+		}
+
+		if failedAttempts != maxAttempts {
+			t.Errorf("Expected %d failed attempts, got %d", maxAttempts, failedAttempts)
+		}
+	})
+
+	t.Run("does not lock account when maxFailedAttempts is 0", func(t *testing.T) {
+		store2 := InitializeUserStore()
+		store2.AddUser("testuser2", "password123", "Test User 2")
+
+		// Make 10 failed attempts with lockout disabled (maxAttempts = 0)
+		for i := 0; i < 10; i++ {
+			_, _, err := store2.AuthenticateUser("testuser2", "wrongpassword", 0)
+			if err == nil {
+				t.Fatal("Expected authentication to fail")
+			}
+		}
+
+		// Verify account is still enabled
+		store2.mu.RLock()
+		user := store2.Users["testuser2"]
+		isEnabled := user.Enabled
+		store2.mu.RUnlock()
+
+		if !isEnabled {
+			t.Error("Account should not be locked when maxFailedAttempts is 0")
+		}
+	})
+
+	t.Run("cannot login after account is locked", func(t *testing.T) {
+		store3 := InitializeUserStore()
+		store3.AddUser("testuser3", "password123", "Test User 3")
+
+		// Lock the account
+		maxAttempts := 3
+		for i := 0; i < maxAttempts; i++ {
+			store3.AuthenticateUser("testuser3", "wrongpassword", maxAttempts)
+		}
+
+		// Try to login with correct password
+		_, _, err := store3.AuthenticateUser("testuser3", "password123", maxAttempts)
+		if err == nil {
+			t.Fatal("Expected authentication to fail for locked account")
+		}
+
+		if err.Error() != "user account is disabled" {
+			t.Errorf("Expected 'user account is disabled' error, got: %v", err)
+		}
+	})
+}
+
+// TestResetFailedAttempts tests the reset function
+func TestResetFailedAttempts(t *testing.T) {
+	store := InitializeUserStore()
+	store.AddUser("testuser", "password123", "Test User")
+
+	// Record some failed attempts
+	store.AuthenticateUser("testuser", "wrongpassword", 0)
+	store.AuthenticateUser("testuser", "wrongpassword", 0)
+
+	// Verify attempts were recorded
+	attempts, _ := store.GetFailedAttempts("testuser")
+	if attempts != 2 {
+		t.Errorf("Expected 2 failed attempts, got %d", attempts)
+	}
+
+	// Reset
+	err := store.ResetFailedAttempts("testuser")
+	if err != nil {
+		t.Fatalf("ResetFailedAttempts failed: %v", err)
+	}
+
+	// Verify counter is reset
+	attempts, _ = store.GetFailedAttempts("testuser")
+	if attempts != 0 {
+		t.Errorf("Expected 0 failed attempts after reset, got %d", attempts)
+	}
+}
+
+// TestGetFailedAttempts tests getting failed attempts for non-existent user
+func TestGetFailedAttempts_NonExistentUser(t *testing.T) {
+	store := InitializeUserStore()
+
+	_, err := store.GetFailedAttempts("nonexistent")
+	if err == nil {
+		t.Error("Expected error for non-existent user")
+	}
 }

@@ -30,14 +30,15 @@ const (
 
 // User represents a user account with credentials and metadata
 type User struct {
-	Username       string     `yaml:"username"`      // Unique username
-	PasswordHash   string     `yaml:"password_hash"` // Bcrypt hash of password
-	CreatedAt      time.Time  `yaml:"created_at"`    // When the user was created
-	LastLogin      *time.Time `yaml:"last_login"`    // Last successful login (null if never logged in)
-	Enabled        bool       `yaml:"enabled"`       // Whether the user is enabled
-	Annotation     string     `yaml:"annotation"`    // User note/description
-	SessionToken   string     `yaml:"-"`             // Current session token (not persisted)
-	SessionExpires *time.Time `yaml:"-"`             // Session expiration (not persisted)
+	Username       string     `yaml:"username"`        // Unique username
+	PasswordHash   string     `yaml:"password_hash"`   // Bcrypt hash of password
+	CreatedAt      time.Time  `yaml:"created_at"`      // When the user was created
+	LastLogin      *time.Time `yaml:"last_login"`      // Last successful login (null if never logged in)
+	Enabled        bool       `yaml:"enabled"`         // Whether the user is enabled
+	Annotation     string     `yaml:"annotation"`      // User note/description
+	FailedAttempts int        `yaml:"failed_attempts"` // Count of consecutive failed login attempts
+	SessionToken   string     `yaml:"-"`               // Current session token (not persisted)
+	SessionExpires *time.Time `yaml:"-"`               // Session expiration (not persisted)
 }
 
 // UserStore manages user accounts
@@ -246,7 +247,8 @@ func (s *UserStore) RemoveUser(username string) error {
 
 // AuthenticateUser verifies credentials and returns a session token
 // Returns the token and expiration time on success
-func (s *UserStore) AuthenticateUser(username, password string) (string, time.Time, error) {
+// maxFailedAttempts: if > 0, will disable account after N consecutive failed attempts
+func (s *UserStore) AuthenticateUser(username, password string, maxFailedAttempts int) (string, time.Time, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -261,6 +263,14 @@ func (s *UserStore) AuthenticateUser(username, password string) (string, time.Ti
 
 	// Verify password
 	if err := VerifyPassword(password, user.PasswordHash); err != nil {
+		// Increment failed attempts counter
+		user.FailedAttempts++
+
+		// Lock account if threshold is reached (only if maxFailedAttempts > 0)
+		if maxFailedAttempts > 0 && user.FailedAttempts >= maxFailedAttempts {
+			user.Enabled = false
+		}
+
 		return "", time.Time{}, fmt.Errorf("invalid username or password")
 	}
 
@@ -281,7 +291,37 @@ func (s *UserStore) AuthenticateUser(username, password string) (string, time.Ti
 	now := time.Now()
 	user.LastLogin = &now
 
+	// Reset failed attempts counter on successful login
+	user.FailedAttempts = 0
+
 	return token, expiration, nil
+}
+
+// ResetFailedAttempts resets the failed login attempts counter for a user
+func (s *UserStore) ResetFailedAttempts(username string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	user, exists := s.Users[username]
+	if !exists {
+		return fmt.Errorf("user '%s' not found", username)
+	}
+
+	user.FailedAttempts = 0
+	return nil
+}
+
+// GetFailedAttempts returns the number of failed login attempts for a user
+func (s *UserStore) GetFailedAttempts(username string) (int, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	user, exists := s.Users[username]
+	if !exists {
+		return 0, fmt.Errorf("user '%s' not found", username)
+	}
+
+	return user.FailedAttempts, nil
 }
 
 // ValidateSessionToken checks if a session token is valid for a user

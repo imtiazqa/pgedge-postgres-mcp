@@ -74,6 +74,22 @@ http:
         # Command line flag: -token-file
         token_file: ""
 
+        # Rate limiting and account lockout (prevents brute force attacks)
+        # Lock account after N failed attempts (0 = disabled)
+        # Default: 0 (disabled)
+        # Environment variable: PGEDGE_AUTH_MAX_FAILED_ATTEMPTS_BEFORE_LOCKOUT
+        max_failed_attempts_before_lockout: 5
+
+        # Time window for rate limiting in minutes
+        # Default: 15
+        # Environment variable: PGEDGE_AUTH_RATE_LIMIT_WINDOW_MINUTES
+        rate_limit_window_minutes: 15
+
+        # Maximum failed attempts per IP per time window
+        # Default: 10
+        # Environment variable: PGEDGE_AUTH_RATE_LIMIT_MAX_ATTEMPTS
+        rate_limit_max_attempts: 10
+
         # Token management commands (no database connection required):
         # - Create token: ./bin/pgedge-pg-mcp-svr -add-token
         # - List tokens:  ./bin/pgedge-pg-mcp-svr -list-tokens

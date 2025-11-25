@@ -20,6 +20,9 @@ data:
       auth:
         enabled: true
         token_file: /var/lib/pgedge/nla-server/tokens.json
+        max_failed_attempts_before_lockout: 5
+        rate_limit_window_minutes: 15
+        rate_limit_max_attempts: 10
 
     llm:
       enabled: false

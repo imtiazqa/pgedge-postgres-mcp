@@ -4,7 +4,8 @@ The pgEdge MCP Server includes built-in authentication with two methods: API tok
 
 ## Overview
 
-- **API Tokens**: For machine-to-machine communication (direct HTTP/HTTPS access)
+- **API Tokens**: For machine-to-machine communication (direct HTTP/HTTPS
+  access)
 - **User Accounts**: For interactive authentication with session tokens
 - **Enabled by default** in HTTP/HTTPS mode
 - **SHA256/Bcrypt hashing** for secure credential storage
@@ -12,6 +13,8 @@ The pgEdge MCP Server includes built-in authentication with two methods: API tok
 - **Per-token connection isolation** for multi-user security
 - **Bearer token authentication** using HTTP Authorization header
 - **Auto-reload** of token and user files without server restart
+- **Rate limiting**: Per-IP protection against brute force attacks
+- **Account lockout**: Automatic account disabling after failed attempts
 - **Not required** for stdio mode (Claude Desktop)
 
 ### Connection Isolation
@@ -24,6 +27,89 @@ When authentication is enabled, each API token gets its own isolated database co
 - **Resource management**: Independent connection pools per token
 
 See [Security Guide - Connection Isolation](security.md#connection-isolation) for more details.
+
+## Rate Limiting and Account Lockout
+
+The server includes built-in protection against brute force attacks through
+per-IP rate limiting and automatic account lockout.
+
+### Per-IP Rate Limiting
+
+Failed authentication attempts are tracked per IP address to prevent brute
+force attacks:
+
+- **Default**: 10 failed attempts per 15-minute window per IP address
+- **Configurable**: Customize both the time window and attempt limit
+- **Automatic cleanup**: Old attempts are automatically removed from memory
+- **Status-blind**: Rate limiting applies regardless of whether the username
+  exists
+
+### Account Lockout
+
+When a valid username is provided, failed login attempts are tracked per
+account:
+
+- **Automatic lockout**: Account is disabled after N consecutive failed
+  attempts
+- **Configurable threshold**: Set the maximum failed attempts (default: 0 =
+  disabled)
+- **Reset on success**: Failed attempt counter is reset after successful login
+- **Admin recovery**: Use `-enable-user` CLI command to re-enable locked
+  accounts
+
+### Configuration
+
+Add these settings to your server configuration file:
+
+```yaml
+http:
+    auth:
+        enabled: true
+        token_file: "./pgedge-pg-mcp-svr-tokens.yaml"
+        # Rate limiting settings
+        rate_limit_window_minutes: 15  # Time window for rate limiting
+        rate_limit_max_attempts: 10  # Max attempts per IP per window
+        # Account lockout settings
+        max_failed_attempts_before_lockout: 5  # 0 = disabled
+```
+
+### Example: Enabling Account Lockout
+
+```yaml
+http:
+    auth:
+        enabled: true
+        token_file: "./pgedge-pg-mcp-svr-tokens.yaml"
+        max_failed_attempts_before_lockout: 5
+        rate_limit_window_minutes: 15
+        rate_limit_max_attempts: 10
+```
+
+With this configuration:
+
+- After 5 failed login attempts, the account will be automatically disabled
+- IP addresses are limited to 10 failed attempts per 15-minute window
+- The server logs show when rate limiting is enabled
+
+### Recovering Locked Accounts
+
+```bash
+# Re-enable a locked account
+./bin/pgedge-pg-mcp-svr -enable-user -username alice
+
+# Reset failed attempts counter
+# (automatically reset on successful login)
+```
+
+### Environment Variables
+
+You can also configure rate limiting via environment variables:
+
+```bash
+export PGEDGE_AUTH_MAX_FAILED_ATTEMPTS_BEFORE_LOCKOUT=5
+export PGEDGE_AUTH_RATE_LIMIT_WINDOW_MINUTES=15
+export PGEDGE_AUTH_RATE_LIMIT_MAX_ATTEMPTS=10
+```
 
 ## User Management
 
@@ -916,7 +1002,9 @@ HTTP Status: `401 Unauthorized`
 
 ### 3. Account Security
 
-- **Account lockout**: Implement rate limiting for failed authentication attempts
+- **Account lockout**: Configure `max_failed_attempts_before_lockout` to
+  automatically disable accounts after repeated failed login attempts (see
+  [Rate Limiting and Account Lockout](#rate-limiting-and-account-lockout))
 - **Audit logging**: Log authentication events (success and failures)
 - **Inactive accounts**: Disable accounts after period of inactivity
 - **Role-based access**: Use annotations to track user roles/permissions

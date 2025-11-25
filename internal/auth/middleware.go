@@ -26,6 +26,9 @@ const (
 	// TokenHashContextKey is the context key for storing the authenticated token hash
 	TokenHashContextKey contextKey = "token_hash"
 
+	// IPAddressContextKey is the context key for storing the client IP address
+	IPAddressContextKey contextKey = "ip_address"
+
 	// HealthCheckPath is the path for the health check endpoint (bypasses authentication)
 	HealthCheckPath = "/health"
 )
@@ -37,6 +40,43 @@ func GetTokenHashFromContext(ctx context.Context) string {
 		return hash
 	}
 	return ""
+}
+
+// GetIPAddressFromContext retrieves the client IP address from the request context
+// Returns empty string if no IP address is found
+func GetIPAddressFromContext(ctx context.Context) string {
+	if ip, ok := ctx.Value(IPAddressContextKey).(string); ok {
+		return ip
+	}
+	return ""
+}
+
+// ExtractIPAddress extracts the client IP address from an HTTP request
+// Checks X-Forwarded-For and X-Real-IP headers first (for proxies), then falls back to RemoteAddr
+func ExtractIPAddress(r *http.Request) string {
+	// Check X-Forwarded-For header first (used by proxies/load balancers)
+	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+		// X-Forwarded-For can contain multiple IPs (client, proxy1, proxy2, ...)
+		// Use the first one (original client IP)
+		parts := strings.Split(xff, ",")
+		if len(parts) > 0 {
+			return strings.TrimSpace(parts[0])
+		}
+	}
+
+	// Check X-Real-IP header (used by some proxies)
+	if xri := r.Header.Get("X-Real-IP"); xri != "" {
+		return strings.TrimSpace(xri)
+	}
+
+	// Fall back to RemoteAddr
+	// This may include the port, so strip it if present
+	ip := r.RemoteAddr
+	if colonIndex := strings.LastIndex(ip, ":"); colonIndex != -1 {
+		ip = ip[:colonIndex]
+	}
+
+	return ip
 }
 
 // AuthMiddleware creates an HTTP middleware that validates API tokens and session tokens

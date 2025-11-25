@@ -19,6 +19,9 @@ The pgEdge MCP Server supports multiple configuration methods with the following
 | `http.tls.chain_file` | `-chain` | `PGEDGE_TLS_CHAIN_FILE` | Path to TLS certificate chain file (optional) |
 | `http.auth.enabled` | `-no-auth` | `PGEDGE_AUTH_ENABLED` | Enable API token authentication (default: true) |
 | `http.auth.token_file` | `-token-file` | `PGEDGE_AUTH_TOKEN_FILE` | Path to API tokens file |
+| `http.auth.max_failed_attempts_before_lockout` | N/A | `PGEDGE_AUTH_MAX_FAILED_ATTEMPTS_BEFORE_LOCKOUT` | Lock account after N failed attempts (0 = disabled, default: 0) |
+| `http.auth.rate_limit_window_minutes` | N/A | `PGEDGE_AUTH_RATE_LIMIT_WINDOW_MINUTES` | Time window for rate limiting in minutes (default: 15) |
+| `http.auth.rate_limit_max_attempts` | N/A | `PGEDGE_AUTH_RATE_LIMIT_MAX_ATTEMPTS` | Max failed attempts per IP per window (default: 10) |
 | `embedding.enabled` | N/A | N/A | Enable embedding generation (default: false) |
 | `embedding.provider` | N/A | N/A | Embedding provider: "ollama", "voyage", or "openai" |
 | `embedding.model` | N/A | N/A | Embedding model name (provider-specific) |
@@ -54,6 +57,9 @@ http:
   auth:
     enabled: true
     token_file: ""  # defaults to {binary_dir}/pgedge-pg-mcp-svr-tokens.yaml
+    max_failed_attempts_before_lockout: 5  # Lock account after N failed attempts (0 = disabled)
+    rate_limit_window_minutes: 15  # Time window for rate limiting
+    rate_limit_max_attempts: 10  # Max failed attempts per IP per window
 
 # Embedding generation (optional)
 embedding:

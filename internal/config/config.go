@@ -53,8 +53,11 @@ type HTTPConfig struct {
 
 // AuthConfig holds authentication settings
 type AuthConfig struct {
-	Enabled   bool   `yaml:"enabled"`    // Whether authentication is required
-	TokenFile string `yaml:"token_file"` // Path to token configuration file
+	Enabled                        bool   `yaml:"enabled"`                            // Whether authentication is required
+	TokenFile                      string `yaml:"token_file"`                         // Path to token configuration file
+	MaxFailedAttemptsBeforeLockout int    `yaml:"max_failed_attempts_before_lockout"` // Number of failed login attempts before account lockout (0 = disabled)
+	RateLimitWindowMinutes         int    `yaml:"rate_limit_window_minutes"`          // Time window in minutes for rate limiting (default: 15)
+	RateLimitMaxAttempts           int    `yaml:"rate_limit_max_attempts"`            // Maximum failed attempts per IP in the time window (default: 10)
 }
 
 // TLSConfig holds TLS/HTTPS settings
@@ -218,8 +221,11 @@ func defaultConfig() *Config {
 				ChainFile: "",
 			},
 			Auth: AuthConfig{
-				Enabled:   true, // Authentication enabled by default
-				TokenFile: "",   // Will be set to default path if not specified
+				Enabled:                        true, // Authentication enabled by default
+				TokenFile:                      "",   // Will be set to default path if not specified
+				MaxFailedAttemptsBeforeLockout: 0,    // Disabled by default (0 = no lockout)
+				RateLimitWindowMinutes:         15,   // 15 minute window for rate limiting
+				RateLimitMaxAttempts:           10,   // 10 attempts per IP per window
 			},
 		},
 		Database: DatabaseConfig{
@@ -307,6 +313,15 @@ func mergeConfig(dest, src *Config) {
 	if src.HTTP.Auth.TokenFile != "" || !src.HTTP.Auth.Enabled {
 		dest.HTTP.Auth.Enabled = src.HTTP.Auth.Enabled
 		dest.HTTP.Auth.TokenFile = src.HTTP.Auth.TokenFile
+	}
+	if src.HTTP.Auth.MaxFailedAttemptsBeforeLockout >= 0 {
+		dest.HTTP.Auth.MaxFailedAttemptsBeforeLockout = src.HTTP.Auth.MaxFailedAttemptsBeforeLockout
+	}
+	if src.HTTP.Auth.RateLimitWindowMinutes > 0 {
+		dest.HTTP.Auth.RateLimitWindowMinutes = src.HTTP.Auth.RateLimitWindowMinutes
+	}
+	if src.HTTP.Auth.RateLimitMaxAttempts > 0 {
+		dest.HTTP.Auth.RateLimitMaxAttempts = src.HTTP.Auth.RateLimitMaxAttempts
 	}
 
 	// Database
@@ -489,6 +504,9 @@ func applyEnvironmentVariables(cfg *Config) {
 	// Auth
 	setBoolFromEnv(&cfg.HTTP.Auth.Enabled, "PGEDGE_AUTH_ENABLED")
 	setStringFromEnv(&cfg.HTTP.Auth.TokenFile, "PGEDGE_AUTH_TOKEN_FILE")
+	setIntFromEnv(&cfg.HTTP.Auth.MaxFailedAttemptsBeforeLockout, "PGEDGE_AUTH_MAX_FAILED_ATTEMPTS_BEFORE_LOCKOUT")
+	setIntFromEnv(&cfg.HTTP.Auth.RateLimitWindowMinutes, "PGEDGE_AUTH_RATE_LIMIT_WINDOW_MINUTES")
+	setIntFromEnv(&cfg.HTTP.Auth.RateLimitMaxAttempts, "PGEDGE_AUTH_RATE_LIMIT_MAX_ATTEMPTS")
 
 	// Database
 	setStringFromEnv(&cfg.Database.Host, "PGEDGE_DB_HOST")

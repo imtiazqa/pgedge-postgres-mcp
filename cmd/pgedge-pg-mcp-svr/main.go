@@ -354,9 +354,26 @@ func main() {
 		}
 	}
 
+	// Create rate limiter for authentication if HTTP auth is enabled
+	var rateLimiter *auth.RateLimiter
+	if cfg.HTTP.Enabled && cfg.HTTP.Auth.Enabled {
+		rateLimiter = auth.NewRateLimiter(cfg.HTTP.Auth.RateLimitWindowMinutes, cfg.HTTP.Auth.RateLimitMaxAttempts)
+		fmt.Fprintf(os.Stderr, "Rate limiting enabled: %d attempts per %d minutes per IP\n",
+			cfg.HTTP.Auth.RateLimitMaxAttempts, cfg.HTTP.Auth.RateLimitWindowMinutes)
+		if cfg.HTTP.Auth.MaxFailedAttemptsBeforeLockout > 0 {
+			fmt.Fprintf(os.Stderr, "Account lockout enabled: %d failed attempts before lockout\n",
+				cfg.HTTP.Auth.MaxFailedAttemptsBeforeLockout)
+		}
+	}
+
 	// Create a cancellable context for graceful shutdown of background goroutines
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel() // Ensure background goroutines are stopped on exit
+
+	// Ensure rate limiter cleanup goroutine is stopped on exit
+	if rateLimiter != nil {
+		defer rateLimiter.Stop()
+	}
 
 	// Initialize client manager for database connections with database configuration
 	clientManager := database.NewClientManager(&cfg.Database)
@@ -411,7 +428,7 @@ func main() {
 	contextAwareResourceProvider := resources.NewContextAwareRegistry(clientManager, authEnabled)
 
 	// Context-aware tool provider
-	contextAwareToolProvider := tools.NewContextAwareProvider(clientManager, contextAwareResourceProvider, authEnabled, fallbackClient, cfg, userStore, userFilePathForTools)
+	contextAwareToolProvider := tools.NewContextAwareProvider(clientManager, contextAwareResourceProvider, authEnabled, fallbackClient, cfg, userStore, userFilePathForTools, rateLimiter, cfg.HTTP.Auth.MaxFailedAttemptsBeforeLockout)
 	if err := contextAwareToolProvider.RegisterTools(ctx); err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: Failed to register tools: %v\n", err)
 		os.Exit(1)
