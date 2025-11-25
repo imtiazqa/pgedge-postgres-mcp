@@ -11,6 +11,25 @@
 import { useState, useEffect } from 'react';
 import { useLocalStorageString } from './useLocalStorage';
 
+// Helper functions for per-provider model storage
+const getProviderModelKey = (provider) => `llm-model-${provider}`;
+
+const getPerProviderModel = (provider) => {
+    if (!provider) return '';
+    const key = getProviderModelKey(provider);
+    return localStorage.getItem(key) || '';
+};
+
+const setPerProviderModel = (provider, model) => {
+    if (!provider) return;
+    const key = getProviderModelKey(provider);
+    if (model) {
+        localStorage.setItem(key, model);
+    } else {
+        localStorage.removeItem(key);
+    }
+};
+
 /**
  * Custom hook for managing LLM providers and models
  * @param {string} sessionToken - Authentication session token
@@ -20,7 +39,7 @@ export const useLLMProviders = (sessionToken) => {
     const [providers, setProviders] = useState([]);
     const [selectedProvider, setSelectedProvider] = useLocalStorageString('llm-provider', '');
     const [models, setModels] = useState([]);
-    const [selectedModel, setSelectedModel] = useLocalStorageString('llm-model', '');
+    const [selectedModel, setSelectedModel] = useState('');
     const [loadingProviders, setLoadingProviders] = useState(false);
     const [loadingModels, setLoadingModels] = useState(false);
     const [error, setError] = useState('');
@@ -63,11 +82,26 @@ export const useLLMProviders = (sessionToken) => {
                     // No saved preference or saved provider no longer available - use default
                     const defaultProvider = data.providers?.find(p => p.isDefault);
                     if (defaultProvider) {
-                        console.log('Setting default provider:', defaultProvider.name, 'model:', data.defaultModel);
+                        console.log('Setting default provider:', defaultProvider.name);
                         setSelectedProvider(defaultProvider.name);
-                        setSelectedModel(data.defaultModel || '');
+                        // Load remembered model for this provider (or default)
+                        const rememberedModel = getPerProviderModel(defaultProvider.name);
+                        if (rememberedModel) {
+                            console.log('Using remembered model for provider:', rememberedModel);
+                            setSelectedModel(rememberedModel);
+                        } else {
+                            console.log('Using default model:', data.defaultModel);
+                            setSelectedModel(data.defaultModel || '');
+                        }
                     } else {
                         console.warn('No default provider found in response');
+                    }
+                } else {
+                    // Saved provider exists - load its remembered model
+                    const rememberedModel = getPerProviderModel(selectedProvider);
+                    if (rememberedModel) {
+                        console.log('Loading remembered model for saved provider:', rememberedModel);
+                        setSelectedModel(rememberedModel);
                     }
                 }
             } catch (err) {
@@ -112,12 +146,30 @@ export const useLLMProviders = (sessionToken) => {
                 console.log('Models data:', data);
                 setModels(data.models || []);
 
-                // Set the first model as selected if current model is not in the list
+                // Load remembered model for this provider or select first available
                 if (data.models && data.models.length > 0) {
-                    const currentModelExists = data.models.some(m => m.name === selectedModel);
-                    if (!currentModelExists) {
-                        console.log('Current model not in list, selecting first model:', data.models[0].name);
+                    const rememberedModel = getPerProviderModel(selectedProvider);
+
+                    if (rememberedModel) {
+                        // Check if remembered model is still available
+                        const rememberedModelExists = data.models.some(m => m.name === rememberedModel);
+                        if (rememberedModelExists) {
+                            console.log('Using remembered model for provider:', rememberedModel);
+                            setSelectedModel(rememberedModel);
+                            // No need to save - it's already saved
+                        } else {
+                            // Remembered model no longer available, use first model
+                            console.log('Remembered model not available, selecting first model:', data.models[0].name);
+                            setSelectedModel(data.models[0].name);
+                            // Save the new selection
+                            setPerProviderModel(selectedProvider, data.models[0].name);
+                        }
+                    } else {
+                        // No remembered model - use first model
+                        console.log('No remembered model for this provider, selecting first model:', data.models[0].name);
                         setSelectedModel(data.models[0].name);
+                        // Save the selection
+                        setPerProviderModel(selectedProvider, data.models[0].name);
                     }
                 } else {
                     console.warn('No models returned from API');
@@ -133,6 +185,18 @@ export const useLLMProviders = (sessionToken) => {
 
         fetchModels();
     }, [selectedProvider, sessionToken]);
+
+    // Save model when user manually changes it (not when provider changes)
+    useEffect(() => {
+        if (selectedProvider && selectedModel && models.length > 0) {
+            // Only save if the model is in the current models list (meaning it's valid for this provider)
+            const modelExists = models.some(m => m.name === selectedModel);
+            if (modelExists) {
+                console.log('Model changed by user, saving for provider:', selectedProvider, 'model:', selectedModel);
+                setPerProviderModel(selectedProvider, selectedModel);
+            }
+        }
+    }, [selectedModel]); // Only depend on selectedModel, not selectedProvider
 
     return {
         providers,

@@ -311,12 +311,24 @@ func (c *Client) handleSetLLMProvider(provider string) bool {
 		return true
 	}
 
-	// Update config
+	// Save current model for current provider before switching
+	if c.config.LLM.Provider != "" && c.config.LLM.Model != "" {
+		c.preferences.SetModelForProvider(c.config.LLM.Provider, c.config.LLM.Model)
+	}
+
+	// Update config to new provider
 	c.config.LLM.Provider = provider
 
 	// Auto-switch to preferred model for this provider
-	if preferredModel := c.preferences.GetModelForProvider(provider); preferredModel != "" {
+	preferredModel := c.preferences.GetModelForProvider(provider)
+	if preferredModel != "" {
 		c.config.LLM.Model = preferredModel
+	} else {
+		// No saved model - use default for this provider
+		defaults := getDefaultPreferences()
+		if defaultModel := defaults.ProviderModels[provider]; defaultModel != "" {
+			c.config.LLM.Model = defaultModel
+		}
 	}
 
 	// Update preferences

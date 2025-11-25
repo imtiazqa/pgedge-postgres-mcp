@@ -67,8 +67,14 @@ func NewClient(cfg *Config, overrides *ConfigOverrides) (*Client, error) {
 		}
 	}
 
-	// Update last provider
+	// Update last provider in preferences
 	prefs.LastProvider = cfg.LLM.Provider
+
+	// Ensure the current model is saved for this provider
+	// This handles the case where a model was set via flag or config
+	if cfg.LLM.Model != "" {
+		prefs.SetModelForProvider(cfg.LLM.Provider, cfg.LLM.Model)
+	}
 
 	ui := NewUI(cfg.UI.NoColor, cfg.UI.RenderMarkdown)
 	ui.DisplayStatusMessages = cfg.UI.DisplayStatusMessages
@@ -297,6 +303,25 @@ func (c *Client) authenticateUser(ctx context.Context, username, password string
 
 // initializeLLM creates the LLM client
 func (c *Client) initializeLLM() error {
+	// Handle Ollama dynamic model selection if no model is set
+	if c.config.LLM.Provider == "ollama" && c.config.LLM.Model == "" {
+		if err := c.selectBestOllamaModel(); err != nil {
+			// If we can't select a model, fall back to a default
+			if c.config.UI.Debug {
+				fmt.Fprintf(os.Stderr, "Warning: Failed to auto-select Ollama model: %v\n", err)
+			}
+			// Use first preferred model as fallback
+			preferredModels := getPreferredOllamaModels()
+			if len(preferredModels) > 0 {
+				c.config.LLM.Model = preferredModels[0]
+			} else {
+				return fmt.Errorf("no Ollama model configured and auto-selection failed")
+			}
+		}
+		// Save the selected model
+		c.preferences.SetModelForProvider("ollama", c.config.LLM.Model)
+	}
+
 	if c.config.LLM.Provider == "anthropic" {
 		c.llm = NewAnthropicClient(
 			c.config.LLM.AnthropicAPIKey,
@@ -321,6 +346,49 @@ func (c *Client) initializeLLM() error {
 		)
 	} else {
 		return fmt.Errorf("unsupported LLM provider: %s", c.config.LLM.Provider)
+	}
+
+	return nil
+}
+
+// selectBestOllamaModel queries the Ollama server for available models
+// and selects the first one from the preferred list
+func (c *Client) selectBestOllamaModel() error {
+	// Create a temporary Ollama client to query available models
+	tempClient := NewOllamaClient(c.config.LLM.OllamaURL, "", false)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	availableModels, err := tempClient.ListModels(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to list Ollama models: %w", err)
+	}
+
+	if len(availableModels) == 0 {
+		return fmt.Errorf("no models available on Ollama server")
+	}
+
+	// Get preferred models in priority order
+	preferredModels := getPreferredOllamaModels()
+
+	// Try to find the first preferred model that's available
+	for _, preferred := range preferredModels {
+		for _, available := range availableModels {
+			if available == preferred {
+				c.config.LLM.Model = available
+				if c.config.UI.Debug {
+					fmt.Fprintf(os.Stderr, "Auto-selected Ollama model: %s\n", available)
+				}
+				return nil
+			}
+		}
+	}
+
+	// If no preferred model is available, use the first available model
+	c.config.LLM.Model = availableModels[0]
+	if c.config.UI.Debug {
+		fmt.Fprintf(os.Stderr, "Using first available Ollama model: %s\n", availableModels[0])
 	}
 
 	return nil
