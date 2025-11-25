@@ -473,8 +473,10 @@ cd /path/to/pgedge-postgres-mcp
 make build-kb-builder
 
 # Generate the knowledgebase database
-# This requires valid API keys for embedding providers (OpenAI, Voyage, or Ollama)
-./bin/kb-builder -config kb-builder.yaml.example
+# This requires valid API keys for embedding providers (OpenAI, Voyage, AND Ollama)
+# Note that Ollama may need to run on a g4dn.xlarge instance on AWS to keep up.
+# The example config below should be maintained with the standard list of repos.
+./bin/kb-builder -config examples/kb-builder.yaml
 
 # The generated database will be: kb.db
 ```
