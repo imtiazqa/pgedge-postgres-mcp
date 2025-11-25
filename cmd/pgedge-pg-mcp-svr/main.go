@@ -644,6 +644,19 @@ func main() {
 			fmt.Fprintf(os.Stderr, "LLM Proxy: DISABLED\n")
 		}
 
+		if cfg.Knowledgebase.Enabled {
+			apiKeyStatus := "not set"
+			if cfg.Knowledgebase.EmbeddingVoyageAPIKey != "" {
+				apiKeyStatus = "loaded"
+			} else if cfg.Knowledgebase.EmbeddingOpenAIAPIKey != "" {
+				apiKeyStatus = "loaded"
+			}
+			fmt.Fprintf(os.Stderr, "Knowledgebase: ENABLED (provider: %s, model: %s, API key: %s)\n",
+				cfg.Knowledgebase.EmbeddingProvider, cfg.Knowledgebase.EmbeddingModel, apiKeyStatus)
+		} else {
+			fmt.Fprintf(os.Stderr, "Knowledgebase: DISABLED\n")
+		}
+
 		if *debug {
 			fmt.Fprintf(os.Stderr, "Debug logging: ENABLED\n")
 		}

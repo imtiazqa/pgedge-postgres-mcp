@@ -41,8 +41,14 @@ type voyageEmbeddingRequest struct {
 
 // voyageEmbeddingResponse represents a response from Voyage AI's embeddings API
 type voyageEmbeddingResponse struct {
-	Embedding []float64 `json:"embedding"`
-	Model     string    `json:"model"`
+	Data []struct {
+		Embedding []float64 `json:"embedding"`
+		Index     int       `json:"index"`
+	} `json:"data"`
+	Model string `json:"model"`
+	Usage struct {
+		TotalTokens int `json:"total_tokens"`
+	} `json:"usage"`
 }
 
 // Model dimensions for Voyage models
@@ -157,7 +163,7 @@ func (p *VoyageProvider) Embed(ctx context.Context, text string) ([]float64, err
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	if len(embResp.Embedding) == 0 {
+	if len(embResp.Data) == 0 || len(embResp.Data[0].Embedding) == 0 {
 		duration := time.Since(startTime)
 		err := fmt.Errorf("received empty embedding from API")
 		LogAPICall("voyage", p.model, textLen, duration, 0, err)
@@ -165,11 +171,12 @@ func (p *VoyageProvider) Embed(ctx context.Context, text string) ([]float64, err
 	}
 
 	duration := time.Since(startTime)
-	dimensions := len(embResp.Embedding)
+	embedding := embResp.Data[0].Embedding
+	dimensions := len(embedding)
 	LogResponseTrace("voyage", p.model, resp.StatusCode, dimensions)
 	LogAPICall("voyage", p.model, textLen, duration, dimensions, nil)
 
-	return embResp.Embedding, nil
+	return embedding, nil
 }
 
 // Dimensions returns the number of dimensions for this model
