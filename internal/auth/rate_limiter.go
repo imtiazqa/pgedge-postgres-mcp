@@ -27,12 +27,18 @@ type RateLimiter struct {
 }
 
 // NewRateLimiter creates a new rate limiter with the specified parameters
-func NewRateLimiter(windowMinutes int, maxAttempts int) *RateLimiter {
+// cleanupInterval specifies how often to clean up old entries (0 = default of 1 minute)
+func NewRateLimiter(windowMinutes int, maxAttempts int, cleanupInterval ...time.Duration) *RateLimiter {
+	cleanup := time.Minute // default to 1 minute
+	if len(cleanupInterval) > 0 && cleanupInterval[0] > 0 {
+		cleanup = cleanupInterval[0]
+	}
+
 	rl := &RateLimiter{
 		attempts:        make(map[string][]time.Time),
 		windowDuration:  time.Duration(windowMinutes) * time.Minute,
 		maxAttempts:     maxAttempts,
-		cleanupInterval: time.Minute, // Clean up every minute
+		cleanupInterval: cleanup,
 		stopCleanup:     make(chan bool),
 	}
 

@@ -15,6 +15,23 @@ import (
 	"time"
 )
 
+// newRateLimiterForTest creates a rate limiter with direct time.Duration parameters
+// This avoids data races from modifying fields after the cleanup goroutine starts
+func newRateLimiterForTest(windowDuration, cleanupInterval time.Duration, maxAttempts int) *RateLimiter {
+	rl := &RateLimiter{
+		attempts:        make(map[string][]time.Time),
+		windowDuration:  windowDuration,
+		maxAttempts:     maxAttempts,
+		cleanupInterval: cleanupInterval,
+		stopCleanup:     make(chan bool),
+	}
+
+	// Start background cleanup goroutine
+	go rl.cleanupLoop()
+
+	return rl
+}
+
 func TestNewRateLimiter(t *testing.T) {
 	rl := NewRateLimiter(15, 10)
 	if rl == nil {
@@ -136,8 +153,7 @@ func TestRateLimiter_GetRemainingAttempts(t *testing.T) {
 
 func TestRateLimiter_WindowExpiry(t *testing.T) {
 	// Use very short window for testing (100ms)
-	rl := NewRateLimiter(0, 2)                 // 0 minutes = use raw duration
-	rl.windowDuration = 100 * time.Millisecond // Override for testing
+	rl := newRateLimiterForTest(100*time.Millisecond, time.Minute, 2)
 	defer rl.Stop()
 
 	ipAddress := "192.168.1.100"
@@ -161,10 +177,8 @@ func TestRateLimiter_WindowExpiry(t *testing.T) {
 }
 
 func TestRateLimiter_Cleanup(t *testing.T) {
-	// Use very short window for testing (50ms)
-	rl := NewRateLimiter(0, 2)
-	rl.windowDuration = 50 * time.Millisecond
-	rl.cleanupInterval = 100 * time.Millisecond // Run cleanup every 100ms
+	// Use very short window and cleanup interval for testing
+	rl := newRateLimiterForTest(50*time.Millisecond, 100*time.Millisecond, 2)
 	defer rl.Stop()
 
 	ipAddress := "192.168.1.100"
