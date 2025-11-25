@@ -1,0 +1,19 @@
+apiVersion: v2
+name: pgedge-nla
+description: pgEdge Natural Language Agent for PostgreSQL
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - postgresql
+  - llm
+  - mcp
+  - ai
+  - database
+maintainers:
+  - name: pgEdge
+    email: support@pgedge.com
+    url: https://pgedge.com
+home: https://github.com/pgEdge/pgedge-postgres-mcp
+sources:
+  - https://github.com/pgEdge/pgedge-postgres-mcp

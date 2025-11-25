@@ -1,0 +1,119 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "pgedge-nla.fullname" . }}-server
+  labels:
+    {{- include "pgedge-nla.labels" . | nindent 4 }}
+    app.kubernetes.io/component: server
+spec:
+  {{- if not .Values.server.autoscaling.enabled }}
+  replicas: {{ .Values.server.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "pgedge-nla.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: server
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        {{- with .Values.server.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "pgedge-nla.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: server
+    spec:
+      {{- if .Values.serviceAccount.create }}
+      serviceAccountName: {{ include "pgedge-nla.serviceAccountName" . }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.server.podSecurityContext | nindent 8 }}
+      containers:
+      - name: server
+        image: "{{ .Values.server.image.repository }}:{{ .Values.server.image.tag }}"
+        imagePullPolicy: {{ .Values.server.image.pullPolicy }}
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        env:
+        - name: PGEDGE_POSTGRES_CONNECTION_STRING
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "pgedge-nla.fullname" . }}-secret
+              key: postgres-connection-string
+        - name: PGEDGE_MCP_LOG_LEVEL
+          value: {{ .Values.server.config.logLevel }}
+        - name: ANTHROPIC_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "pgedge-nla.fullname" . }}-secret
+              key: anthropic-api-key
+              optional: true
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "pgedge-nla.fullname" . }}-secret
+              key: openai-api-key
+              optional: true
+        volumeMounts:
+        - name: config
+          mountPath: /etc/pgedge
+          readOnly: true
+        - name: data
+          mountPath: /var/lib/pgedge/nla-server
+        - name: tmp
+          mountPath: /tmp
+        {{- if .Values.server.knowledgebase.enabled }}
+        - name: knowledgebase
+          mountPath: /usr/share/pgedge/nla-kb
+          readOnly: true
+        {{- end }}
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        resources:
+          {{- toYaml .Values.server.resources | nindent 10 }}
+        securityContext:
+          {{- toYaml .Values.server.securityContext | nindent 10 }}
+      volumes:
+      - name: config
+        configMap:
+          name: {{ include "pgedge-nla.fullname" . }}-server-config
+      - name: data
+        {{- if .Values.server.persistence.enabled }}
+        persistentVolumeClaim:
+          claimName: {{ include "pgedge-nla.fullname" . }}-server-data
+        {{- else }}
+        emptyDir: {}
+        {{- end }}
+      - name: tmp
+        emptyDir: {}
+      {{- if .Values.server.knowledgebase.enabled }}
+      - name: knowledgebase
+        persistentVolumeClaim:
+          claimName: {{ .Values.server.knowledgebase.existingPvc }}
+      {{- end }}
+      {{- with .Values.server.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.server.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.server.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

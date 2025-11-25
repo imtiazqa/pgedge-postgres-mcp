@@ -1,0 +1,165 @@
+# Global settings
+global:
+  imagePullPolicy: IfNotPresent
+
+# Server configuration
+server:
+  image:
+    repository: ghcr.io/pgedge/nla-server
+    tag: latest
+    pullPolicy: IfNotPresent
+
+  replicaCount: 2
+
+  service:
+    type: ClusterIP
+    port: 8080
+    annotations: {}
+
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+
+  config:
+    logLevel: info
+
+  # PostgreSQL connection
+  database:
+    host: postgres-postgresql
+    port: 5432
+    database: postgres
+    user: postgres
+    # password via secret
+
+  # Knowledgebase
+  knowledgebase:
+    enabled: true
+    existingPvc: pgedge-nla-kb
+
+  persistence:
+    enabled: true
+    size: 1Gi
+    storageClass: ""
+
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
+
+  podAnnotations: {}
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    fsGroup: 1000
+
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+      - ALL
+    readOnlyRootFilesystem: true
+
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# Web UI configuration
+web:
+  image:
+    repository: ghcr.io/pgedge/nla-web
+    tag: latest
+    pullPolicy: IfNotPresent
+
+  replicaCount: 2
+
+  service:
+    type: ClusterIP
+    port: 80
+    annotations: {}
+
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 80
+
+  podAnnotations: {}
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 101
+    fsGroup: 101
+
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+      - ALL
+    readOnlyRootFilesystem: true
+
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+    - host: nla.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: pgedge-nla-tls
+      hosts:
+        - nla.example.com
+
+# External PostgreSQL (if using external database)
+externalDatabase:
+  enabled: false
+  host: external-postgres.example.com
+  port: 5432
+  database: postgres
+  user: postgres
+  existingSecret: postgres-credentials
+  existingSecretPasswordKey: password
+
+# Secrets
+secrets:
+  # PostgreSQL password
+  postgresPassword: "changeme"
+
+  # LLM API keys
+  anthropicApiKey: ""
+  openaiApiKey: ""
+
+  # Authentication tokens
+  tokens:
+    - token: "admin-token-change-me"
+      annotation: "Admin token"
+
+# Service Account
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# RBAC
+rbac:
+  create: true
