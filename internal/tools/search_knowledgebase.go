@@ -39,6 +39,9 @@ Use this tool when you need information about:
 The knowledgebase contains chunked, embedded documentation from multiple sources
 with semantic search capabilities.
 
+Note: In this tool, "project" and "product" are used interchangeably - they both refer
+to the software product/project being documented (e.g., PostgreSQL, pgEdge, pgAdmin).
+
 <usage>
 This tool performs semantic similarity search across pre-built documentation.
 Results are ranked by relevance and limited by token budget.
@@ -59,11 +62,11 @@ Results are ranked by relevance and limited by token budget.
 					},
 					"project_name": map[string]interface{}{
 						"type":        "string",
-						"description": "Filter by project name (e.g., 'PostgreSQL', 'pgEdge')",
+						"description": "Filter by project/product name (e.g., 'PostgreSQL', 'pgEdge', 'pgAdmin')",
 					},
 					"project_version": map[string]interface{}{
 						"type":        "string",
-						"description": "Filter by project version (e.g., '17', '16')",
+						"description": "Filter by project/product version (e.g., '17', '16')",
 					},
 					"top_n": map[string]interface{}{
 						"type":        "integer",
@@ -338,7 +341,11 @@ func formatKBResults(results []KBSearchResult, query, projectName, projectVersio
 
 	for i, result := range results {
 		sb.WriteString(fmt.Sprintf("Result %d/%d\n", i+1, len(results)))
-		sb.WriteString(fmt.Sprintf("Project: %s %s\n", result.ProjectName, result.ProjectVersion))
+		if result.ProjectVersion != "" {
+			sb.WriteString(fmt.Sprintf("Project: %s %s\n", result.ProjectName, result.ProjectVersion))
+		} else {
+			sb.WriteString(fmt.Sprintf("Project: %s\n", result.ProjectName))
+		}
 		if result.Title != "" {
 			sb.WriteString(fmt.Sprintf("Title: %s\n", result.Title))
 		}
