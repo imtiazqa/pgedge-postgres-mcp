@@ -202,8 +202,11 @@ SELECT pg_reload_conf();
 **3. Review generated SQL:**
 
 ```bash
-# Check server logs to see generated queries
-journalctl -u pgedge-mcp -f | grep "Generated SQL"
+# If started with the development scripts (stdout/stderr redirect):
+tail -f /tmp/pgedge-nla-server.log | grep "Generated SQL"
+
+# If running under systemd:
+journalctl -u pgedge-nla-server -f | grep "Generated SQL"
 ```
 
 ### Query Validation
@@ -579,13 +582,13 @@ server {
 
 ```bash
 # Monitor authentication failures
-journalctl -u pgedge-mcp | grep "Unauthorized"
+journalctl -u pgedge-nla-server | grep "Unauthorized"
 
 # Count auth failures per IP
-journalctl -u pgedge-mcp | grep "Unauthorized" | awk '{print $NF}' | sort | uniq -c | sort -rn
+journalctl -u pgedge-nla-server | grep "Unauthorized" | awk '{print $NF}' | sort | uniq -c | sort -rn
 
 # Monitor configuration changes
-journalctl -u pgedge-mcp | grep "set_pg_configuration"
+journalctl -u pgedge-nla-server | grep "set_pg_configuration"
 ```
 
 ### Security Monitoring Checklist
@@ -668,7 +671,7 @@ SELECT pg_reload_conf();
     export PGEDGE_POSTGRES_CONNECTION_STRING="postgres://mcp_readonly:new_password@host/db"
 
     # Restart server
-    sudo systemctl restart pgedge-mcp
+    sudo systemctl restart pgedge-nla-server
     ```
 
 ### If Server is Compromised
@@ -680,7 +683,7 @@ SELECT pg_reload_conf();
     sudo ufw deny 8080
 
     # Stop service
-    sudo systemctl stop pgedge-mcp
+    sudo systemctl stop pgedge-nla-server
     ```
 
 2. **Investigate:**
