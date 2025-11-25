@@ -70,8 +70,8 @@ jobs:
 
             - name: Verify binary
               run: |
-                  ls -lh bin/pgedge-pg-mcp-cli
-                  file bin/pgedge-pg-mcp-cli
+                  ls -lh bin/pgedge-nla-cli
+                  file bin/pgedge-nla-cli
 
             - name: Run client unit tests
               run: go test -v -race -coverprofile=coverage.out -covermode=atomic ./internal/chat/... ./cmd/pgedge-pg-mcp-cli/...

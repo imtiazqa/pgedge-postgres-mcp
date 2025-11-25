@@ -85,8 +85,8 @@ jobs:
 
             - name: Verify binary
               run: |
-                  ls -lh bin/pgedge-pg-mcp-svr
-                  file bin/pgedge-pg-mcp-svr
+                  ls -lh bin/pgedge-nla-server
+                  file bin/pgedge-nla-server
 
             - name: Run server unit tests
               run: go test -v -race -coverprofile=coverage.out -covermode=atomic ./internal/mcp/... ./internal/auth/... ./internal/config/... ./internal/crypto/... ./internal/database/... ./internal/resources/... ./internal/tools/... ./cmd/pgedge-pg-mcp-svr/...
