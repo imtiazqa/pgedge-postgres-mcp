@@ -177,7 +177,11 @@ func run(cmd *cobra.Command, args []string) error {
 
 	fmt.Printf("Total chunks: %v\n", stats["total_chunks"])
 	fmt.Println("Projects:")
-	for _, project := range stats["projects"].([]map[string]interface{}) {
+	projects, ok := stats["projects"].([]map[string]interface{})
+	if !ok {
+		return fmt.Errorf("unexpected projects format in stats")
+	}
+	for _, project := range projects {
 		fmt.Printf("  - %s %s: %d chunks\n",
 			project["name"], project["version"], project["chunks"])
 	}
@@ -284,10 +288,11 @@ func runClearEmbeddings(config *kbconfig.Config, provider string) error {
 func processAllDocuments(sources []kbsource.SourceInfo, db *kbdatabase.Database) ([]*kbtypes.Chunk, error) {
 	var allChunks []*kbtypes.Chunk
 
-	for _, source := range sources {
+	for i := range sources {
+		source := &sources[i]
 		fmt.Printf("\nProcessing %s %s...\n", source.Source.ProjectName, source.Source.ProjectVersion)
 
-		chunks, err := processSource(source, db)
+		chunks, err := processSource(*source, db)
 		if err != nil {
 			return nil, fmt.Errorf("failed to process source %s: %w", source.Source.ProjectName, err)
 		}
@@ -327,8 +332,8 @@ func processSource(source kbsource.SourceInfo, db *kbdatabase.Database) ([]*kbty
 		processedCount++
 
 		// Show progress every file, but with relative path for readability
-		relPath, _ := filepath.Rel(source.BasePath, path)
-		if relPath == "" {
+		relPath, err := filepath.Rel(source.BasePath, path)
+		if err != nil || relPath == "" {
 			relPath = filepath.Base(path)
 		}
 

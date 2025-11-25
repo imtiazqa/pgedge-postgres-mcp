@@ -12,6 +12,7 @@ package compactor
 
 import (
 	"encoding/json"
+	"fmt"
 	"regexp"
 	"strings"
 )
@@ -143,35 +144,38 @@ func (c *Classifier) classifyUserMessage(text, lowerText string, result *Classif
 func (c *Classifier) classifyAssistantMessage(text, lowerText string, result *ClassificationResult) {
 	// Schema information is always anchor
 	for _, pattern := range c.schemaPatterns {
-		if pattern.MatchString(text) {
-			result.Class = ClassAnchor
-			result.Importance = 1.0
-			result.Reasons = append(result.Reasons, "schema definition")
-			result.Metadata["has_schema"] = true
-			return
+		if !pattern.MatchString(text) {
+			continue
 		}
+		result.Class = ClassAnchor
+		result.Importance = 1.0
+		result.Reasons = append(result.Reasons, "schema definition")
+		result.Metadata["has_schema"] = true
+		return
 	}
 
 	// Query analysis is important
 	for _, pattern := range c.queryPatterns {
-		if pattern.MatchString(text) {
-			result.Class = ClassImportant
-			result.Importance = 0.85
-			result.Reasons = append(result.Reasons, "query analysis")
-			result.Metadata["has_query_analysis"] = true
-			return
+		if !pattern.MatchString(text) {
+			continue
 		}
+		result.Class = ClassImportant
+		result.Importance = 0.85
+		result.Reasons = append(result.Reasons, "query analysis")
+		result.Metadata["has_query_analysis"] = true
+		return
 	}
 
 	// Error information is important
 	for _, pattern := range c.errorPatterns {
-		if pattern.MatchString(text) {
-			result.Class = ClassImportant
-			result.Importance = 0.8
-			result.Reasons = append(result.Reasons, "error information")
-			result.Metadata["has_error"] = true
-			return
+		if !pattern.MatchString(text) {
+			continue
 		}
+		result.Class = ClassImportant
+		result.Importance = 0.8
+		result.Reasons = append(result.Reasons, "error information")
+		result.Metadata["has_error"] = true
+		return
 	}
 
 	// Significant insights
@@ -292,8 +296,7 @@ func (c *Classifier) classifyToolMessage(msg Message, result *ClassificationResu
 
 // hasToolContent checks if a message contains tool use or tool result blocks.
 func (c *Classifier) hasToolContent(msg Message) bool {
-	switch content := msg.Content.(type) {
-	case []interface{}:
+	if content, ok := msg.Content.([]interface{}); ok {
 		for _, block := range content {
 			if blockMap, ok := block.(map[string]interface{}); ok {
 				if blockType, ok := blockMap["type"].(string); ok {
@@ -311,8 +314,7 @@ func (c *Classifier) hasToolContent(msg Message) bool {
 func (c *Classifier) extractToolNames(msg Message) []string {
 	var names []string
 
-	switch content := msg.Content.(type) {
-	case []interface{}:
+	if content, ok := msg.Content.([]interface{}); ok {
 		for _, block := range content {
 			if blockMap, ok := block.(map[string]interface{}); ok {
 				if blockType, ok := blockMap["type"].(string); ok {
@@ -348,7 +350,10 @@ func (c *Classifier) getContentText(msg Message) string {
 		return strings.Join(texts, " ")
 
 	default:
-		jsonBytes, _ := json.Marshal(content)
+		jsonBytes, err := json.Marshal(content)
+		if err != nil {
+			return fmt.Sprintf("(error marshaling content: %v)", err)
+		}
 		return string(jsonBytes)
 	}
 }
@@ -372,8 +377,10 @@ func (c *Classifier) extractTextFromBlock(block map[string]interface{}) string {
 			parts = append(parts, name)
 		}
 		if input, ok := block["input"]; ok {
-			inputJSON, _ := json.Marshal(input)
-			parts = append(parts, string(inputJSON))
+			inputJSON, err := json.Marshal(input)
+			if err == nil {
+				parts = append(parts, string(inputJSON))
+			}
 		}
 		return strings.Join(parts, " ")
 
@@ -393,7 +400,10 @@ func (c *Classifier) extractTextFromBlock(block map[string]interface{}) string {
 				}
 				return strings.Join(texts, " ")
 			default:
-				contentJSON, _ := json.Marshal(content)
+				contentJSON, err := json.Marshal(content)
+				if err != nil {
+					return fmt.Sprintf("(error marshaling content: %v)", err)
+				}
 				return string(contentJSON)
 			}
 		}

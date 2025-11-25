@@ -169,7 +169,10 @@ func retryWithBackoff(operation string, fn func() (*http.Response, error)) (*htt
 			resp.StatusCode == 503 || // Service unavailable
 			resp.StatusCode == 504 { // Gateway timeout
 
-			body, _ := io.ReadAll(resp.Body)
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				body = []byte("(could not read response body)")
+			}
 			resp.Body.Close()
 			lastErr = fmt.Errorf("HTTP %d: %s", resp.StatusCode, string(body))
 
@@ -180,7 +183,10 @@ func retryWithBackoff(operation string, fn func() (*http.Response, error)) (*htt
 		}
 
 		// Non-retryable error
-		body, _ := io.ReadAll(resp.Body)
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			body = []byte("(could not read response body)")
+		}
 		resp.Body.Close()
 		return nil, fmt.Errorf("API request failed with status %d: %s", resp.StatusCode, string(body))
 	}
@@ -278,13 +284,14 @@ func (eg *EmbeddingGenerator) generateOpenAIEmbeddings(chunks []*kbtypes.Chunk) 
 		if err != nil {
 			return fmt.Errorf("failed to make request: %w", err)
 		}
-		defer resp.Body.Close()
 
 		// Parse response
 		var embResp openAIEmbeddingResponse
 		if err := json.NewDecoder(resp.Body).Decode(&embResp); err != nil {
+			resp.Body.Close()
 			return fmt.Errorf("failed to decode response: %w", err)
 		}
+		resp.Body.Close()
 
 		// Assign embeddings to chunks
 		if len(embResp.Data) != len(batch) {
@@ -399,13 +406,14 @@ func (eg *EmbeddingGenerator) generateVoyageEmbeddings(chunks []*kbtypes.Chunk) 
 		if err != nil {
 			return fmt.Errorf("failed to make request: %w", err)
 		}
-		defer resp.Body.Close()
 
 		// Parse response
 		var embResp voyageEmbeddingResponse
 		if err := json.NewDecoder(resp.Body).Decode(&embResp); err != nil {
+			resp.Body.Close()
 			return fmt.Errorf("failed to decode response: %w", err)
 		}
+		resp.Body.Close()
 
 		// Assign embeddings to chunks
 		if len(embResp.Data) != len(batch) {
@@ -496,12 +504,13 @@ func (eg *EmbeddingGenerator) generateOllamaEmbeddings(chunks []*kbtypes.Chunk) 
 		if err != nil {
 			return fmt.Errorf("failed to make request: %w", err)
 		}
-		defer resp.Body.Close()
 
 		var embResp ollamaEmbeddingResponse
 		if err := json.NewDecoder(resp.Body).Decode(&embResp); err != nil {
+			resp.Body.Close()
 			return fmt.Errorf("failed to decode response: %w", err)
 		}
+		resp.Body.Close()
 
 		chunk.OllamaEmbedding = embResp.Embedding
 		pendingSave = append(pendingSave, chunk)

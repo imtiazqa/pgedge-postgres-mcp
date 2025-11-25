@@ -115,7 +115,11 @@ func (c *CompactionCache) generateKey(messages []Message, maxTokens, recentWindo
 
 	// Hash messages
 	for _, msg := range messages {
-		msgJSON, _ := json.Marshal(msg)
+		msgJSON, err := json.Marshal(msg)
+		if err != nil {
+			// If marshaling fails, use empty bytes for this message
+			msgJSON = []byte{}
+		}
 		h.Write(msgJSON)
 	}
 

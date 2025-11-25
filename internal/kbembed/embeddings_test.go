@@ -349,6 +349,11 @@ func TestEmbeddingAssignment(t *testing.T) {
 		ProjectVersion: "1.0",
 	}
 
+	// Verify chunk fields are set
+	if chunk.Text == "" || chunk.ProjectName == "" || chunk.ProjectVersion == "" {
+		t.Error("Chunk fields not initialized correctly")
+	}
+
 	// Simulate assigning different provider embeddings
 	chunk.OpenAIEmbedding = []float32{0.1, 0.2, 0.3}
 	chunk.VoyageEmbedding = []float32{0.4, 0.5, 0.6}

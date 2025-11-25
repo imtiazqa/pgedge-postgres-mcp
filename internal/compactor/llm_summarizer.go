@@ -206,7 +206,7 @@ func (ls *LLMSummarizer) extractEntities(text string) map[string]bool {
 			prevWord := strings.ToLower(words[i-1])
 			if prevWord == "table" || prevWord == "schema" || prevWord == "database" {
 				cleaned := strings.Trim(word, ".,;:!?\"'")
-				if len(cleaned) > 0 {
+				if cleaned != "" {
 					entities[cleaned] = true
 				}
 			}

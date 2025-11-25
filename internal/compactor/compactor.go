@@ -152,7 +152,9 @@ func (c *Compactor) Compact(messages []Message) CompactResponse {
 	}
 
 	// Build compacted message list
-	compacted := append(anchors, important...)
+	compacted := make([]Message, 0, len(anchors)+len(important)+len(recent))
+	compacted = append(compacted, anchors...)
+	compacted = append(compacted, important...)
 	compacted = append(compacted, recent...)
 
 	// Check if we're within token budget
@@ -392,14 +394,6 @@ func (c *Compactor) buildSummaryDescription(topics, tables, tools []string, drop
 // formatSummary formats a summary for insertion as a message.
 func (c *Compactor) formatSummary(summary *Summary) string {
 	return summary.Description
-}
-
-// min returns the minimum of two integers.
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }
 
 // estimateTokens uses provider-specific estimation if configured, otherwise falls back to generic.

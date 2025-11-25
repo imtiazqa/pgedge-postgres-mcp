@@ -281,8 +281,7 @@ func TestTransactionRollback(t *testing.T) {
 	stats, _ = db.GetStats()
 	finalCount := stats["total_chunks"].(int)
 
-	if finalCount != initialCount {
-		// This test is mainly to ensure the transaction mechanism is in place
-		// In a real scenario with mock errors, this would test rollback
-	}
+	// This test is mainly to ensure the transaction mechanism is in place
+	// In a real scenario with mock errors, this would test rollback
+	_, _ = initialCount, finalCount // Suppress unused variable warnings
 }

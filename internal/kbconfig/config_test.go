@@ -13,6 +13,7 @@ package kbconfig
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -227,7 +228,9 @@ func TestExpandPath(t *testing.T) {
 				}
 			} else if tt.contains != "" && result != tt.input {
 				// Check that expanded path contains the expected part
-				// (skip check if tilde was expanded)
+				if !strings.Contains(result, tt.contains) {
+					t.Errorf("Expected path to contain '%s', got: %s", tt.contains, result)
+				}
 			}
 		})
 	}

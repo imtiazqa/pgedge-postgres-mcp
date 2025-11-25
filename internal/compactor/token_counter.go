@@ -212,11 +212,11 @@ func isNaturalLanguage(text string) bool {
 	}
 
 	// If we have ~10-20 words per sentence, it's likely natural language
-	wordsPerSentence := float64(words) / float64(max(sentences, 1))
+	wordsPerSentence := float64(words) / float64(maxInt(sentences, 1))
 	return wordsPerSentence >= 5 && wordsPerSentence <= 30
 }
 
-func max(a, b int) int {
+func maxInt(a, b int) int {
 	if a > b {
 		return a
 	}

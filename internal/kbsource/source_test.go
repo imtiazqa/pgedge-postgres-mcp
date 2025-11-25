@@ -223,10 +223,8 @@ func TestFetchSource_LocalVsGit(t *testing.T) {
 
 	_, err = fetchSource(gitSource, tmpDir, false, clonedRepos)
 	// Git operations will likely fail in test environment, which is expected
-	if err == nil {
-		// If it doesn't fail, that's okay too (might have network access)
-		// Just verify we took the git path
-	}
+	// If it doesn't fail, that's okay too (might have network access)
+	_ = err // Ignore error in this test as we're just verifying the code path
 }
 
 func TestFetchAll_EmptyConfig(t *testing.T) {

@@ -102,7 +102,10 @@ func (d *Database) InsertChunks(chunks []*kbtypes.Chunk) error {
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() {
+		// Rollback is safe to ignore here as it will be a no-op if commit succeeds
+		_ = tx.Rollback() //nolint:errcheck // rollback error is not actionable
+	}()
 
 	stmt, err := tx.Prepare(`
         INSERT INTO chunks (
@@ -357,7 +360,10 @@ func (d *Database) UpdateChunkEmbeddings(chunks []*kbtypes.Chunk) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() {
+		// Rollback is safe to ignore here as it will be a no-op if commit succeeds
+		_ = tx.Rollback() //nolint:errcheck // rollback error is not actionable
+	}()
 
 	stmt, err := tx.Prepare(`
         UPDATE chunks
@@ -391,7 +397,10 @@ func (d *Database) UpdateOpenAIEmbeddings(chunks []*kbtypes.Chunk) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() {
+		// Rollback is safe to ignore here as it will be a no-op if commit succeeds
+		_ = tx.Rollback() //nolint:errcheck // rollback error is not actionable
+	}()
 
 	stmt, err := tx.Prepare(`UPDATE chunks SET openai_embedding = ? WHERE id = ?`)
 	if err != nil {
@@ -415,7 +424,10 @@ func (d *Database) UpdateVoyageEmbeddings(chunks []*kbtypes.Chunk) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() {
+		// Rollback is safe to ignore here as it will be a no-op if commit succeeds
+		_ = tx.Rollback() //nolint:errcheck // rollback error is not actionable
+	}()
 
 	stmt, err := tx.Prepare(`UPDATE chunks SET voyage_embedding = ? WHERE id = ?`)
 	if err != nil {
@@ -439,7 +451,10 @@ func (d *Database) UpdateOllamaEmbeddings(chunks []*kbtypes.Chunk) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() {
+		// Rollback is safe to ignore here as it will be a no-op if commit succeeds
+		_ = tx.Rollback() //nolint:errcheck // rollback error is not actionable
+	}()
 
 	stmt, err := tx.Prepare(`UPDATE chunks SET ollama_embedding = ? WHERE id = ?`)
 	if err != nil {
@@ -545,7 +560,10 @@ func (d *Database) DeleteChunksForFile(checksum, projectName, projectVersion str
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() {
+		// Rollback is safe to ignore here as it will be a no-op if commit succeeds
+		_ = tx.Rollback() //nolint:errcheck // rollback error is not actionable
+	}()
 
 	// Delete chunks
 	_, err = tx.Exec(`
@@ -581,7 +599,10 @@ func (d *Database) CleanupStaleChunks(projectName, projectVersion string, validC
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() {
+		// Rollback is safe to ignore here as it will be a no-op if commit succeeds
+		_ = tx.Rollback() //nolint:errcheck // rollback error is not actionable
+	}()
 
 	// Build a parameterized query with placeholders for all checksums
 	placeholders := make([]string, len(validChecksums))
@@ -606,7 +627,10 @@ func (d *Database) CleanupStaleChunks(projectName, projectVersion string, validC
 		return err
 	}
 
-	rowsAffected, _ := result.RowsAffected()
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
 
 	// Delete source file records that aren't in the valid checksums list
 	query = `

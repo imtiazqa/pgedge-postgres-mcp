@@ -85,12 +85,10 @@ func parseMarkdownSections(markdown string) []Section {
 			currentSection.Content += line + "\n"
 		} else {
 			// Content before first heading - create a default section
-			if currentSection == nil {
-				currentSection = &Section{
-					Heading: "",
-					Content: "",
-					Level:   0,
-				}
+			currentSection = &Section{
+				Heading: "",
+				Content: "",
+				Level:   0,
 			}
 			currentSection.Content += line + "\n"
 		}
@@ -209,7 +207,7 @@ func findSentenceBoundary(tokens []string, preferredEnd, maxEnd int) int {
 	// Look backwards from preferredEnd for sentence-ending punctuation
 	for i := preferredEnd - 1; i >= preferredEnd-50 && i >= 0; i-- {
 		token := tokens[i]
-		if len(token) > 0 {
+		if token != "" {
 			lastChar := rune(token[len(token)-1])
 			if isSentenceEnd(lastChar) {
 				return i + 1
@@ -221,7 +219,7 @@ func findSentenceBoundary(tokens []string, preferredEnd, maxEnd int) int {
 	if maxEnd > preferredEnd {
 		for i := preferredEnd; i < maxEnd && i < len(tokens); i++ {
 			token := tokens[i]
-			if len(token) > 0 {
+			if token != "" {
 				lastChar := rune(token[len(token)-1])
 				if isSentenceEnd(lastChar) {
 					return i + 1

@@ -102,8 +102,10 @@ func (te *TokenEstimator) extractTextFromBlock(block map[string]interface{}) str
 			parts = append(parts, name)
 		}
 		if input, ok := block["input"]; ok {
-			inputJSON, _ := json.Marshal(input)
-			parts = append(parts, string(inputJSON))
+			inputJSON, err := json.Marshal(input)
+			if err == nil {
+				parts = append(parts, string(inputJSON))
+			}
 		}
 		return strings.Join(parts, " ")
 
@@ -124,7 +126,10 @@ func (te *TokenEstimator) extractTextFromBlock(block map[string]interface{}) str
 				}
 				return strings.Join(texts, " ")
 			default:
-				contentJSON, _ := json.Marshal(content)
+				contentJSON, err := json.Marshal(content)
+				if err != nil {
+					return ""
+				}
 				return string(contentJSON)
 			}
 		}
