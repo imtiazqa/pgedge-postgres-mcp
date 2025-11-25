@@ -29,14 +29,31 @@ To enable knowledgebase search, add to your server configuration:
 knowledgebase:
     enabled: true
     database_path: "./pgedge-mcp-kb.db"
-    embedding_provider: "openai"  # or "voyage", "ollama"
-    embedding_model: "text-embedding-3-small"
-    embedding_openai_api_key_file: "~/.openai-api-key"
+    embedding_provider: "voyage"  # or "openai", "ollama"
+    embedding_model: "voyage-3"
+
+    # API keys (independent from embedding and LLM sections)
+    # Option 1: API key file (RECOMMENDED)
+    embedding_voyage_api_key_file: "~/.voyage-api-key"
+    # embedding_openai_api_key_file: "~/.openai-api-key"
+
+    # Option 2: Environment variables
+    # PGEDGE_KB_VOYAGE_API_KEY or VOYAGE_API_KEY
+    # PGEDGE_KB_OPENAI_API_KEY or OPENAI_API_KEY
+
+    # Option 3: Direct config (NOT RECOMMENDED)
+    # embedding_voyage_api_key: ""
+    # embedding_openai_api_key: ""
 ```
 
-**Note:** The knowledgebase embedding configuration is independent of the
-`generate_embedding` tool configuration. You can use different providers for
-each.
+**IMPORTANT:** The knowledgebase embedding configuration is **completely
+independent** from the `embedding` and `llm` sections. This allows you to:
+
+- Use different embedding providers for semantic search vs. the
+    `generate_embeddings` tool
+- Use different API keys for knowledgebase search
+- Configure each section separately via environment variables
+    (`PGEDGE_KB_*` prefix for knowledgebase)
 
 **Requirements:**
 

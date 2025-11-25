@@ -22,16 +22,23 @@ The pgEdge MCP Server supports multiple configuration methods with the following
 | `http.auth.max_failed_attempts_before_lockout` | N/A | `PGEDGE_AUTH_MAX_FAILED_ATTEMPTS_BEFORE_LOCKOUT` | Lock account after N failed attempts (0 = disabled, default: 0) |
 | `http.auth.rate_limit_window_minutes` | N/A | `PGEDGE_AUTH_RATE_LIMIT_WINDOW_MINUTES` | Time window for rate limiting in minutes (default: 15) |
 | `http.auth.rate_limit_max_attempts` | N/A | `PGEDGE_AUTH_RATE_LIMIT_MAX_ATTEMPTS` | Max failed attempts per IP per window (default: 10) |
-| `embedding.enabled` | N/A | N/A | Enable embedding generation (default: false) |
-| `embedding.provider` | N/A | N/A | Embedding provider: "ollama", "voyage", or "openai" |
-| `embedding.model` | N/A | N/A | Embedding model name (provider-specific) |
+| `embedding.enabled` | N/A | `PGEDGE_EMBEDDING_ENABLED` | Enable embedding generation (default: false) |
+| `embedding.provider` | N/A | `PGEDGE_EMBEDDING_PROVIDER` | Embedding provider: "ollama", "voyage", or "openai" |
+| `embedding.model` | N/A | `PGEDGE_EMBEDDING_MODEL` | Embedding model name (provider-specific) |
 | `embedding.ollama_url` | N/A | `PGEDGE_OLLAMA_URL` | Ollama API URL (default: "http://localhost:11434") |
-| `embedding.voyage_api_key` | N/A | `PGEDGE_VOYAGE_API_KEY` | Voyage AI API key for embeddings |
-| `embedding.openai_api_key` | N/A | `PGEDGE_OPENAI_API_KEY` | OpenAI API key for embeddings |
-| `knowledgebase.enabled` | N/A | N/A | Enable knowledgebase search (default: false) |
-| `knowledgebase.database_path` | N/A | N/A | Path to knowledgebase SQLite database |
-| `knowledgebase.embedding_provider` | N/A | N/A | Embedding provider for KB search: "openai", "voyage", or "ollama" |
-| `knowledgebase.embedding_model` | N/A | N/A | Embedding model for KB search (must match KB build) |
+| `embedding.voyage_api_key` | N/A | `PGEDGE_VOYAGE_API_KEY`, `VOYAGE_API_KEY` | Voyage AI API key for embeddings |
+| `embedding.voyage_api_key_file` | N/A | N/A | Path to file containing Voyage API key |
+| `embedding.openai_api_key` | N/A | `PGEDGE_OPENAI_API_KEY`, `OPENAI_API_KEY` | OpenAI API key for embeddings |
+| `embedding.openai_api_key_file` | N/A | N/A | Path to file containing OpenAI API key |
+| `knowledgebase.enabled` | N/A | `PGEDGE_KB_ENABLED` | Enable knowledgebase search (default: false) |
+| `knowledgebase.database_path` | N/A | `PGEDGE_KB_DATABASE_PATH` | Path to knowledgebase SQLite database |
+| `knowledgebase.embedding_provider` | N/A | `PGEDGE_KB_EMBEDDING_PROVIDER` | Embedding provider for KB search: "openai", "voyage", or "ollama" (independent of `embedding` section) |
+| `knowledgebase.embedding_model` | N/A | `PGEDGE_KB_EMBEDDING_MODEL` | Embedding model for KB search (must match KB build) |
+| `knowledgebase.embedding_voyage_api_key` | N/A | `PGEDGE_KB_VOYAGE_API_KEY`, `VOYAGE_API_KEY` | Voyage AI API key for KB search (independent of `embedding` section) |
+| `knowledgebase.embedding_voyage_api_key_file` | N/A | N/A | Path to file containing Voyage API key for KB search |
+| `knowledgebase.embedding_openai_api_key` | N/A | `PGEDGE_KB_OPENAI_API_KEY`, `OPENAI_API_KEY` | OpenAI API key for KB search (independent of `embedding` section) |
+| `knowledgebase.embedding_openai_api_key_file` | N/A | N/A | Path to file containing OpenAI API key for KB search |
+| `knowledgebase.embedding_ollama_url` | N/A | `PGEDGE_KB_OLLAMA_URL` | Ollama API URL for KB search |
 | `secret_file` | N/A | `PGEDGE_SECRET_FILE` | Path to encryption secret file (auto-generated if not present) |
 
 ## Configuration File
@@ -71,14 +78,24 @@ embedding:
   # openai_api_key: "sk-..."  # OpenAI API key (for openai provider)
 
 # Knowledgebase configuration (optional)
+# IMPORTANT: This section has INDEPENDENT API key configuration from the embedding
+# and LLM sections. This allows you to use different embedding providers for
+# semantic search vs. the generate_embeddings tool.
 knowledgebase:
   enabled: false  # Enable knowledgebase search
   database_path: ""  # Path to knowledgebase SQLite database
-  embedding_provider: "ollama"  # Provider for KB search: "openai", "voyage", or "ollama"
-  embedding_model: "nomic-embed-text"  # Model for KB search (must match KB build)
-  # embedding_ollama_url: "http://localhost:11434"  # For ollama provider
-  # embedding_voyage_api_key_file: "~/.voyage-api-key"  # For voyage provider
+  embedding_provider: "voyage"  # Provider for KB search: "voyage", "openai", or "ollama"
+  embedding_model: "voyage-3"  # Model for KB search (must match KB build)
+
+  # API Key Configuration Priority (highest to lowest):
+  # 1. Environment variables: PGEDGE_KB_VOYAGE_API_KEY, PGEDGE_KB_OPENAI_API_KEY
+  # 2. API key file: embedding_voyage_api_key_file, embedding_openai_api_key_file
+  # 3. Direct config value: embedding_voyage_api_key, embedding_openai_api_key
+  embedding_voyage_api_key_file: "~/.voyage-api-key"  # For voyage provider
   # embedding_openai_api_key_file: "~/.openai-api-key"  # For openai provider
+  # embedding_voyage_api_key: ""  # Direct key (NOT RECOMMENDED)
+  # embedding_openai_api_key: ""  # Direct key (NOT RECOMMENDED)
+  embedding_ollama_url: "http://localhost:11434"  # For ollama provider
 
 # Encryption secret file path (optional)
 secret_file: ""  # defaults to pgedge-pg-mcp-svr.secret, auto-generated if not present

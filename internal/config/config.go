@@ -593,6 +593,31 @@ func applyEnvironmentVariables(cfg *Config) {
 		}
 	}
 
+	// Knowledgebase
+	setBoolFromEnv(&cfg.Knowledgebase.Enabled, "PGEDGE_KB_ENABLED")
+	setStringFromEnv(&cfg.Knowledgebase.DatabasePath, "PGEDGE_KB_DATABASE_PATH")
+	setStringFromEnv(&cfg.Knowledgebase.EmbeddingProvider, "PGEDGE_KB_EMBEDDING_PROVIDER")
+	setStringFromEnv(&cfg.Knowledgebase.EmbeddingModel, "PGEDGE_KB_EMBEDDING_MODEL")
+	// API key loading priority: env vars > api_key_file > direct config value
+	// 1. Try environment variables first (PGEDGE_ prefixed, then standard)
+	setStringFromEnvWithFallback(&cfg.Knowledgebase.EmbeddingVoyageAPIKey, "PGEDGE_KB_VOYAGE_API_KEY", "VOYAGE_API_KEY")
+	setStringFromEnvWithFallback(&cfg.Knowledgebase.EmbeddingOpenAIAPIKey, "PGEDGE_KB_OPENAI_API_KEY", "OPENAI_API_KEY")
+	// 2. If env vars not set and api_key_file is specified, load from file
+	if cfg.Knowledgebase.EmbeddingVoyageAPIKey == "" && cfg.Knowledgebase.EmbeddingVoyageAPIKeyFile != "" {
+		if key, err := readAPIKeyFromFile(cfg.Knowledgebase.EmbeddingVoyageAPIKeyFile); err == nil && key != "" {
+			cfg.Knowledgebase.EmbeddingVoyageAPIKey = key
+		}
+		// Note: errors are silently ignored - file may not exist and that's ok
+	}
+	if cfg.Knowledgebase.EmbeddingOpenAIAPIKey == "" && cfg.Knowledgebase.EmbeddingOpenAIAPIKeyFile != "" {
+		if key, err := readAPIKeyFromFile(cfg.Knowledgebase.EmbeddingOpenAIAPIKeyFile); err == nil && key != "" {
+			cfg.Knowledgebase.EmbeddingOpenAIAPIKey = key
+		}
+		// Note: errors are silently ignored - file may not exist and that's ok
+	}
+	// 3. Direct config value (if set) is already in cfg.Knowledgebase.EmbeddingVoyageAPIKey/EmbeddingOpenAIAPIKey from mergeConfig
+	setStringFromEnv(&cfg.Knowledgebase.EmbeddingOllamaURL, "PGEDGE_KB_OLLAMA_URL")
+
 	// Secret file
 	setStringFromEnv(&cfg.SecretFile, "PGEDGE_SECRET_FILE")
 

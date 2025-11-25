@@ -296,8 +296,10 @@ knowledgebase:
     database_path: "./pgedge-mcp-kb.db"
 
     # Embedding provider for knowledgebase similarity search
+    # IMPORTANT: This is INDEPENDENT from the embedding.provider setting above.
+    # You can use different providers for semantic search vs. generate_embeddings tool.
     # Must match the provider used to build the knowledgebase
-    # Options: "openai", "voyage", or "ollama"
+    # Options: "voyage", "openai", or "ollama"
     # Default: ollama
     embedding_provider: "voyage"
 
@@ -307,16 +309,23 @@ knowledgebase:
     #          voyage-3 (voyage)
     embedding_model: "voyage-3"
 
-    # API keys for knowledgebase embeddings (independent of generate_embeddings)
-    # For Voyage AI
-    # embedding_voyage_api_key_file: "~/.voyage-api-key"
-    # embedding_voyage_api_key: ""  # Not recommended
+    # API Key Configuration (INDEPENDENT from embedding and LLM sections)
+    # Priority: Environment variables > API key files > Direct config values
+    #
+    # Environment variables:
+    #   - PGEDGE_KB_VOYAGE_API_KEY or VOYAGE_API_KEY
+    #   - PGEDGE_KB_OPENAI_API_KEY or OPENAI_API_KEY
+    #   - PGEDGE_KB_OLLAMA_URL
 
-    # For OpenAI
-    # embedding_openai_api_key_file: "~/.openai-api-key"
-    # embedding_openai_api_key: ""  # Not recommended
+    # Option 1: API key files (RECOMMENDED)
+    embedding_voyage_api_key_file: "~/.voyage-api-key"  # For Voyage AI
+    # embedding_openai_api_key_file: "~/.openai-api-key"  # For OpenAI
 
-    # For Ollama
+    # Option 2: Direct API keys (NOT RECOMMENDED)
+    # embedding_voyage_api_key: ""  # Leave empty - use env var or file instead
+    # embedding_openai_api_key: ""  # Leave empty - use env var or file instead
+
+    # For Ollama (local)
     embedding_ollama_url: "http://localhost:11434"
 
 # ============================================================================
@@ -332,10 +341,17 @@ custom_definitions_path: ""
 # API keys can be configured in three ways (priority order):
 #
 # 1. Environment variables (HIGHEST PRIORITY):
-#    - PGEDGE_OPENAI_API_KEY or OPENAI_API_KEY
-#    - PGEDGE_ANTHROPIC_API_KEY or ANTHROPIC_API_KEY
-#    - PGEDGE_VOYAGE_API_KEY or VOYAGE_API_KEY
-#    - PGEDGE_OLLAMA_URL
+#    Embedding tool (generate_embeddings):
+#      - PGEDGE_OPENAI_API_KEY or OPENAI_API_KEY
+#      - PGEDGE_VOYAGE_API_KEY or VOYAGE_API_KEY
+#      - PGEDGE_OLLAMA_URL
+#    LLM proxy (web client):
+#      - PGEDGE_ANTHROPIC_API_KEY or ANTHROPIC_API_KEY
+#      - PGEDGE_OPENAI_API_KEY or OPENAI_API_KEY
+#    Knowledgebase search (INDEPENDENT):
+#      - PGEDGE_KB_VOYAGE_API_KEY or VOYAGE_API_KEY
+#      - PGEDGE_KB_OPENAI_API_KEY or OPENAI_API_KEY
+#      - PGEDGE_KB_OLLAMA_URL
 #
 # 2. API key files (RECOMMENDED):
 #    - Store API keys in files with appropriate permissions

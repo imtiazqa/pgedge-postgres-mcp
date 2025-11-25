@@ -14,15 +14,15 @@ prompts:
             content:
                 type: text
                 text: |
-                    Please analyze the {{table_name}} table in detail:
+                  Please analyze the {{table_name}} table in detail:
 
-                    1. First, use get_schema_info(table_name="{{table_name}}") to understand its structure
-                    2. Check for indexes, constraints, and relationships
-                    3. Query a sample of data: query_database(query="SELECT * FROM {{table_name}} LIMIT 5")
-                    4. Identify the table's purpose and any patterns in the data
-                    5. Suggest potential optimizations or queries
+                  1. First, use get_schema_info(table_name="{{table_name}}") to understand its structure
+                  2. Check for indexes, constraints, and relationships
+                  3. Query a sample of data: query_database(query="SELECT * FROM {{table_name}} LIMIT 5")
+                  4. Identify the table's purpose and any patterns in the data
+                  5. Suggest potential optimizations or queries
 
-                    Provide a comprehensive analysis report.
+                  Provide a comprehensive analysis report.
 
     # Example 2: Prompt with multiple arguments
     - name: compare-schemas
