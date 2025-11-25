@@ -42,8 +42,8 @@ sources:
       branch: "REL_17_STABLE"                 # Git branch to use
       # tag: "REL_17_0"                       # Alternative: use tag instead
       doc_path: "doc/src/sgml"                # Path within repo containing docs
-      project_name: "PostgreSQL"              # Project identifier
-      project_version: "17"                   # Version identifier
+      project_name: "PostgreSQL"              # Project identifier (required)
+      project_version: "17"                   # Version identifier (optional)
 
     # Example: PostgreSQL 16 documentation
     - git_url: "https://github.com/postgres/postgres.git"

@@ -63,7 +63,13 @@ func fetchSource(source kbconfig.DocumentSource, docSourcePath string, skipUpdat
 // fetchGitSource clones or updates a Git repository
 func fetchGitSource(source kbconfig.DocumentSource, docSourcePath string, skipUpdates bool, clonedRepos map[string]string) (SourceInfo, error) {
 	// Create a directory name from project name and version
-	dirName := fmt.Sprintf("%s-%s", sanitizeName(source.ProjectName), sanitizeName(source.ProjectVersion))
+	// If version is empty, just use the project name
+	var dirName string
+	if source.ProjectVersion != "" {
+		dirName = fmt.Sprintf("%s-%s", sanitizeName(source.ProjectName), sanitizeName(source.ProjectVersion))
+	} else {
+		dirName = sanitizeName(source.ProjectName)
+	}
 	repoPath := filepath.Join(docSourcePath, dirName)
 
 	// Check if already cloned

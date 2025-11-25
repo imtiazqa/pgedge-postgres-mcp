@@ -102,7 +102,7 @@ sources:
     # - local_path: "~/projects/my-docs"
     #   doc_path: "docs"  # Optional subdirectory within local_path
     #   project_name: "My Project"
-    #   project_version: "1.0"
+    #   project_version: "1.0"  # Optional - can be omitted for unversioned docs
 
 # Embedding provider configurations
 embeddings:

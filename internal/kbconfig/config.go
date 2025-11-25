@@ -201,9 +201,7 @@ func validate(config *Config) error {
 		if source.ProjectName == "" {
 			return fmt.Errorf("source %d: project_name is required", i)
 		}
-		if source.ProjectVersion == "" {
-			return fmt.Errorf("source %d: project_version is required", i)
-		}
+		// Note: project_version is optional (some docs have no specific version)
 	}
 
 	// Check that at least one embedding provider is enabled

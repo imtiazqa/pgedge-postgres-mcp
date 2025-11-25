@@ -158,6 +158,22 @@ func TestValidateConfig(t *testing.T) {
 			},
 			shouldError: true,
 		},
+		{
+			name: "missing project version is allowed",
+			config: &Config{
+				Sources: []DocumentSource{
+					{
+						LocalPath:   "/tmp/test",
+						ProjectName: "Test",
+						// ProjectVersion is intentionally omitted
+					},
+				},
+				Embeddings: EmbeddingConfig{
+					OpenAI: OpenAIConfig{Enabled: true},
+				},
+			},
+			shouldError: false,
+		},
 	}
 
 	for _, tt := range tests {
