@@ -1,6 +1,6 @@
 # Custom Prompts and Resources
 
-The pgEdge PostgreSQL MCP Server supports user-defined custom prompts and
+The Natural Language Agent supports user-defined custom prompts and
 resources, allowing you to extend the server's functionality without
 modifying code.
 
@@ -23,7 +23,7 @@ the server configuration:
 ### YAML Configuration
 
 ```yaml
-# In pgedge-pg-mcp-svr.yaml
+# In pgedge-nla-server.yaml
 custom_definitions_path: "/path/to/pgedge-nla-server-custom.yaml"
 ```
 

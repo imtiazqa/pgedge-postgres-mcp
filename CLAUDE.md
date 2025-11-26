@@ -1,4 +1,4 @@
-# pgEdge PostgreSQL MCP - Development Guidelines
+# pgEdge Natural Language Agent - Development Guidelines
 
 This document provides guidelines for Claude Code when working on this
 project. These rules ensure consistency, quality, and maintainability.

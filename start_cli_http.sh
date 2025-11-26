@@ -33,13 +33,13 @@ BIN_DIR="$PROJECT_DIR/bin"
 
 # Source directories
 CMD_CLI_DIR="$PROJECT_DIR/cmd/pgedge-pg-mcp-cli"
-CMD_SERVER_DIR="$PROJECT_DIR/cmd/pgedge-pg-mcp-svr"
+CMD_SERVER_DIR="$PROJECT_DIR/cmd/pgedge-pg-mcp-server"
 INTERNAL_DIR="$PROJECT_DIR/internal"
 INTERNAL_CHAT_DIR="$PROJECT_DIR/internal/chat"
 
 # Binaries
-CLI_BIN="$BIN_DIR/pgedge-pg-mcp-cli"
-SERVER_BIN="$BIN_DIR/pgedge-pg-mcp-svr"
+CLI_BIN="$BIN_DIR/pgedge-nla-cli"
+SERVER_BIN="$BIN_DIR/pgedge-nla-server"
 
 # Configuration files
 SERVER_CONFIG="$BIN_DIR/pgedge-nla-server-http.yaml"

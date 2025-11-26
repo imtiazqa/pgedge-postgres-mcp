@@ -21,11 +21,11 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -o pged
 FROM registry.access.redhat.com/ubi9/ubi-micro:latest
 
 # Add labels for container metadata
-LABEL name="pgedge-postgres-mcp-cli" \
+LABEL name="pgedge-nla-cli" \
       vendor="pgEdge" \
       version="1.0" \
-      summary="pgEdge Postgres MCP CLI Client" \
-      description="Command-line chat interface for pgEdge Postgres MCP"
+      summary="pgEdge NAtural LAnguage Agent CLI" \
+      description="Command-line chat interface for pgEdge Natural Language Agent"
 
 # Create non-root user
 USER 1001

@@ -31,6 +31,9 @@ const (
 
 	// HealthCheckPath is the path for the health check endpoint (bypasses authentication)
 	HealthCheckPath = "/health"
+
+	// UserInfoPath is the path for the user info endpoint (bypasses auth to return auth status)
+	UserInfoPath = "/api/user/info"
 )
 
 // GetTokenHashFromContext retrieves the token hash from the request context
@@ -89,8 +92,9 @@ func AuthMiddleware(tokenStore *TokenStore, userStore *UserStore, enabled bool) 
 				return
 			}
 
-			// Skip authentication for health check endpoint
-			if r.URL.Path == HealthCheckPath {
+			// Skip authentication for public endpoints (needed before login)
+			switch r.URL.Path {
+			case HealthCheckPath, UserInfoPath:
 				next.ServeHTTP(w, r)
 				return
 			}

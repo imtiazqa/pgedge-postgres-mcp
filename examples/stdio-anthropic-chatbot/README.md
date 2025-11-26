@@ -105,7 +105,7 @@ cd ../.. && go build -o bin/pgedge-nla-server ./cmd/pgedge-pg-mcp-svr
 Or set the path explicitly:
 
 ```bash
-export PGEDGE_MCP_SERVER_PATH="/path/to/pgedge-pg-mcp-svr"
+export PGEDGE_MCP_SERVER_PATH="/path/to/pgedge-nla-server"
 ```
 
 **"ANTHROPIC_API_KEY environment variable is required":**

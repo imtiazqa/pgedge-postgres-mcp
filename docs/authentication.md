@@ -1,6 +1,6 @@
 # Authentication Guide
 
-The pgEdge MCP Server includes built-in authentication with two methods: API tokens for machine-to-machine communication and user accounts for interactive authentication.
+The Natural Language Agent includes built-in authentication with two methods: API tokens for machine-to-machine communication and user accounts for interactive authentication.
 
 ## Overview
 
@@ -201,7 +201,7 @@ charlie              2024-09-01 08:00          2024-10-10 16:45     DISABLED    
 
 ```bash
 # Specify custom user file path
-./bin/pgedge-nla-server -user-file /etc/pgedge-mcp/users.yaml -list-users
+./bin/pgedge-nla-server -user-file /etc/pgedge/pgedge-nla-server-users.yaml -list-users
 ```
 
 ### User Storage
@@ -479,7 +479,7 @@ func main() {
 
 ```bash
 # Specify custom token file path
-./bin/pgedge-nla-server -http -token-file /etc/pgedge-mcp/tokens.yaml
+./bin/pgedge-nla-server -http -token-file /etc/pgedge/pgedge-nla-server-tokens.yaml
 ```
 
 ### Disable Authentication (Development Only)
@@ -492,7 +492,7 @@ func main() {
 
 ### Configuration File
 
-In `pgedge-pg-mcp-svr.yaml`:
+In `pgedge-nla-server.yaml`:
 
 ```yaml
 http:
@@ -538,7 +538,7 @@ Removed 1 expired token(s)
 
 ## Automatic File Reloading
 
-The pgEdge MCP Server automatically detects and reloads changes to token
+The Natural Language Agent automatically detects and reloads changes to token
 and user files without requiring a server restart. This enables hot updates
 to authentication credentials while the server is running.
 
@@ -682,9 +682,9 @@ The auto-reload feature is implemented using:
 
 For implementation details, see:
 
-- [internal/auth/watcher.go](https://github.com/pgEdge/pgedge-mcp/blob/main/internal/auth/watcher.go) - File watching
-- [internal/auth/auth.go](https://github.com/pgEdge/pgedge-mcp/blob/main/internal/auth/auth.go) - Token store reload
-- [internal/auth/users.go](https://github.com/pgEdge/pgedge-mcp/blob/main/internal/auth/users.go) - User store reload
+- [internal/auth/watcher.go](https://github.com/pgEdge/pgedge-postgres-mcp/blob/main/internal/auth/watcher.go) - File watching
+- [internal/auth/auth.go](https://github.com/pgEdge/pgedge-postgres-mcp/blob/main/internal/auth/auth.go) - Token store reload
+- [internal/auth/users.go](https://github.com/pgEdge/pgedge-postgres-mcp/blob/main/internal/auth/users.go) - User store reload
 
 ## Authentication Behavior
 

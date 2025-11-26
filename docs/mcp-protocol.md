@@ -1,6 +1,6 @@
 # MCP Protocol Implementation
 
-This document describes how the pgEdge MCP Server implements the Model Context Protocol (MCP).
+This document describes how the Natural Language Agent implements the Model Context Protocol (MCP).
 
 ## Protocol Version
 
@@ -176,7 +176,7 @@ Establish connection and negotiate capabilities.
       "prompts": {}
     },
     "serverInfo": {
-      "name": "pgedge-pg-mcp-svr",
+      "name": "pgedge-nla-server",
       "version": "1.0.0-alpha1"
     }
   }

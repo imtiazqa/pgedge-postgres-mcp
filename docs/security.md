@@ -1,6 +1,6 @@
 # Security Guide
 
-This document outlines security considerations and best practices for deploying and using the pgEdge MCP Server.
+This document outlines security considerations and best practices for deploying and using the Natural Language Agent.
 
 ## Table of Contents
 
@@ -45,7 +45,7 @@ export PGUSER="myuser"
 export PGPASSWORD="mypassword"
 
 # Or use a secrets manager
-export PGPASSWORD=$(vault kv get -field=password secret/pgedge-mcp)
+export PGPASSWORD=$(vault kv get -field=password secret/pgedge-nla)
 ```
 
 **Example - Insecure (DON'T DO THIS):**
@@ -55,7 +55,7 @@ export PGPASSWORD=$(vault kv get -field=password secret/pgedge-mcp)
 ./bin/pgedge-nla-server -db "postgres://admin:SuperSecret123@prod.example.com/maindb"
 
 # Never commit secret files
-git add pgedge-pg-mcp-svr.secret  # DON'T DO THIS
+git add pgedge-nla-server.secret  # DON'T DO THIS
 ```
 
 ### Connection Security
@@ -475,11 +475,11 @@ ls -la /path/to/server.key  # Should show -rw-------
 
 ```bash
 # Store in /etc with restricted permissions
-sudo mkdir -p /etc/pgedge-mcp/certs
-sudo chmod 700 /etc/pgedge-mcp/certs
-sudo cp server.key /etc/pgedge-mcp/certs/
-sudo chmod 600 /etc/pgedge-mcp/certs/server.key
-sudo chown pgedge:pgedge /etc/pgedge-mcp/certs/server.key
+sudo mkdir -p /etc/pgedge/certs
+sudo chmod 700 /etc/pgedge/certs
+sudo cp server.key /etc/pgedge/certs/
+sudo chmod 600 /etc/pgedge/certs/server.key
+sudo chown pgedge:pgedge /etc/pgedge/certs/server.key
 ```
 
 ### Certificate Management
@@ -529,25 +529,25 @@ sudo systemctl list-timers | grep certbot
     ```bash
     # Run server as dedicated user
     sudo useradd -r -s /bin/false pgedge
-    sudo chown -R pgedge:pgedge /opt/pgedge-mcp
+    sudo chown -R pgedge:pgedge /opt/pgedge
     ```
 
 3. **File permissions:**
 
     ```bash
     # Binary: 755 (executable by all, writable by owner)
-    chmod 755 /opt/pgedge-mcp/bin/pgedge-nla-server
+    chmod 755 /opt/pgedge/bin/pgedge-nla-server
 
     # Config files: 600 (readable/writable by owner only)
-    chmod 600 /etc/pgedge-mcp/config.yaml
-    chmod 600 /etc/pgedge-mcp/pgedge-nla-server-tokens.yaml
+    chmod 600 /etc/pgedge/config.yaml
+    chmod 600 /etc/pgedge/pgedge-nla-server-tokens.yaml
 
     # Secret file: 600 (CRITICAL - contains encryption key)
-    chmod 600 /etc/pgedge-mcp/pgedge-pg-mcp-svr.secret
+    chmod 600 /etc/pgedge/pgedge-nla-server.secret
 
     # Certificates: 600 for keys, 644 for certs
-    chmod 600 /etc/pgedge-mcp/certs/server.key
-    chmod 644 /etc/pgedge-mcp/certs/server.crt
+    chmod 600 /etc/pgedge/certs/server.key
+    chmod 644 /etc/pgedge/certs/server.crt
     ```
 
 ### Reverse Proxy Rate Limiting
@@ -619,7 +619,7 @@ SELECT pg_reload_conf();
 
 ```bash
 # Log to file with timestamps
-./bin/pgedge-nla-server -http 2>&1 | tee -a /var/log/pgedge-mcp/server.log
+./bin/pgedge-nla-server -http 2>&1 | tee -a /var/log/pgedge/pgedge-nla-server-server.log
 ```
 
 ## Incident Response

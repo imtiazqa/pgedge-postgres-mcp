@@ -16,9 +16,9 @@
 # OUTPUT DATABASE CONFIGURATION
 # ============================================================================
 # Path to the output SQLite knowledgebase database
-# Default: pgedge-mcp-kb.db in same directory as config file
+# Default: pgedge-nla-kb.db in same directory as config file
 # Command line flag: --database or -d
-database_path: "pgedge-mcp-kb.db"
+database_path: "pgedge-nla-kb.db"
 
 # ============================================================================
 # DOCUMENTATION SOURCE DIRECTORY
@@ -182,7 +182,7 @@ embeddings:
 ### PostgreSQL Documentation Only
 
 ```yaml
-database_path: "pgedge-mcp-kb.db"
+database_path: "pgedge-nla-kb.db"
 doc_source_path: "doc-source"
 
 sources:
@@ -369,7 +369,7 @@ The kb-builder supports the following environment variables:
    ```yaml
    knowledgebase:
        enabled: true
-       database_path: "./pgedge-mcp-kb.db"
+       database_path: "./pgedge-nla-kb.db"
        embedding_provider: "openai"  # Match your kb-builder provider
        embedding_model: "text-embedding-3-small"
        embedding_openai_api_key_file: "~/.openai-api-key"

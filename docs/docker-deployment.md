@@ -1,6 +1,6 @@
 # Docker Deployment
 
-The pgEdge Postgres MCP provides Docker containers for easy deployment of the
+The Natural Language Agent provides Docker containers for easy deployment of the
 MCP server and web client. This guide covers building, configuring, and running
 the containerized services.
 
@@ -35,7 +35,7 @@ with PostgreSQL database access.
 - **Size**: ~177MB (includes shadow-utils for proper volume permission
   handling)
 - **Port**: 8080 (HTTP API)
-- **Dockerfile**: [Dockerfile.server](https://github.com/pgEdge/pgedge-mcp/blob/main/Dockerfile.server)
+- **Dockerfile**: [Dockerfile.server](https://github.com/pgEdge/pgedge-postgres-mcp/blob/main/Dockerfile.server)
 
 ### Web Client
 
@@ -50,7 +50,7 @@ communicates with the MCP server via JSON-RPC.
 - **Architecture**: Single-page React application with client-side agentic
   loop
 - **Communication**: JSON-RPC 2.0 to MCP server (via nginx proxy)
-- **Dockerfile**: [Dockerfile.web](https://github.com/pgEdge/pgedge-mcp/blob/main/Dockerfile.web)
+- **Dockerfile**: [Dockerfile.web](https://github.com/pgEdge/pgedge-postgres-mcp/blob/main/Dockerfile.web)
 
 **Architecture:**
 
@@ -67,14 +67,14 @@ The CLI client container provides an interactive command-line interface.
 - **Build**: Multi-stage build with Go 1.23 compilation
 - **Size**: Minimal (~48MB)
 - **Usage**: Interactive terminal
-- **Dockerfile**: [Dockerfile.cli](https://github.com/pgEdge/pgedge-mcp/blob/main/Dockerfile.cli)
+- **Dockerfile**: [Dockerfile.cli](https://github.com/pgEdge/pgedge-postgres-mcp/blob/main/Dockerfile.cli)
 
 ## Configuration
 
 ### Environment Variables
 
 All configuration is done through environment variables in the `.env` file.
-Copy [.env.example](https://github.com/pgEdge/pgedge-mcp/blob/main/.env.example) to `.env` and customize:
+Copy [.env.example](https://github.com/pgEdge/pgedge-postgres-mcp/blob/main/.env.example) to `.env` and customize:
 
 ```bash
 cp .env.example .env
@@ -181,7 +181,7 @@ PGEDGE_LLM_MODEL=claude-sonnet-4-20250514
 **Note:** The `PGEDGE_OLLAMA_URL` variable is used for both embeddings and LLM
 when using Ollama. There is no separate `PGEDGE_LLM_OLLAMA_URL` variable.
 
-See [.env.example](https://github.com/pgEdge/pgedge-mcp/blob/main/.env.example) for complete configuration options and
+See [.env.example](https://github.com/pgEdge/pgedge-postgres-mcp/blob/main/.env.example) for complete configuration options and
 examples.
 
 ## Building Containers
@@ -196,13 +196,13 @@ docker-compose build
 
 ```bash
 # MCP server
-docker build -f Dockerfile.server -t pgedge-mcp-server .
+docker build -f Dockerfile.server -t pgedge-nla-server .
 
 # Web client
-docker build -f Dockerfile.web -t pgedge-mcp-web .
+docker build -f Dockerfile.web -t pgedge-nla-web .
 
 # CLI client
-docker build -f Dockerfile.cli -t pgedge-mcp-cli .
+docker build -f Dockerfile.cli -t pgedge-nla-cli .
 ```
 
 ### Build with Custom Registry
@@ -210,13 +210,13 @@ docker build -f Dockerfile.cli -t pgedge-mcp-cli .
 ```bash
 # Tag for your registry
 docker build -f Dockerfile.server \
-  -t registry.example.com/pgedge-mcp-server:latest .
+  -t registry.example.com/pgedge-nla-server:latest .
 docker build -f Dockerfile.web \
-  -t registry.example.com/pgedge-mcp-web:latest .
+  -t registry.example.com/pgedge-nla-web:latest .
 
 # Push to registry
-docker push registry.example.com/pgedge-mcp-server:latest
-docker push registry.example.com/pgedge-mcp-web:latest
+docker push registry.example.com/pgedge-nla-server:latest
+docker push registry.example.com/pgedge-nla-web:latest
 ```
 
 ## Running with Docker Compose
@@ -271,7 +271,7 @@ docker-compose restart mcp-server
 
 ```bash
 docker run -d \
-  --name pgedge-mcp-server \
+  --name pgedge-nla-server \
   -p 8080:8080 \
   -e PGEDGE_DB_HOST=postgres.example.com \
   -e PGEDGE_DB_PORT=5432 \
@@ -281,30 +281,30 @@ docker run -d \
   -e PGEDGE_ANTHROPIC_API_KEY=sk-ant-... \
   -e INIT_TOKENS=my-secret-token \
   -v pgedge-data:/app/data \
-  pgedge-mcp-server
+  pgedge-nla-server
 ```
 
 ### Web Client
 
 ```bash
 docker run -d \
-  --name pgedge-mcp-web \
+  --name pgedge-nla-web \
   -p 8081:8081 \
-  --link pgedge-mcp-server:mcp-server \
-  pgedge-mcp-web
+  --link pgedge-nla-server:mcp-server \
+  pgedge-nla-web
 ```
 
 ### CLI Client (Interactive)
 
 ```bash
 docker run -it --rm \
-  --name pgedge-mcp-cli \
-  --link pgedge-mcp-server:mcp-server \
+  --name pgedge-nla-cli \
+  --link pgedge-nla-server:mcp-server \
   -e PGEDGE_MCP_MODE=http \
   -e PGEDGE_MCP_URL=http://mcp-server:8080 \
   -e PGEDGE_MCP_TOKEN=my-secret-token \
   -e PGEDGE_ANTHROPIC_API_KEY=sk-ant-... \
-  pgedge-mcp-cli
+  pgedge-nla-cli
 ```
 
 ## Usage Examples
@@ -707,7 +707,7 @@ Use Docker health checks and external monitoring:
 curl http://localhost:8080/metrics
 
 # Container stats
-docker stats pgedge-mcp-server pgedge-mcp-web-client
+docker stats pgedge-nla-server pgedge-nla-web-client
 ```
 
 ## See Also

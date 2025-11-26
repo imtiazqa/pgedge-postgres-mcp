@@ -1,8 +1,9 @@
-# pgEdge MCP Web UI - Test Suite Summary
+# Natural Language Agent Web UI - Test Suite Summary
 
 ## Test Coverage Overview
 
-This document summarizes the comprehensive test suite created for the pgEdge MCP Web UI.
+This document summarizes the comprehensive test suite created for the Natural
+Language Agent Web UI.
 
 ### Components Tested
 

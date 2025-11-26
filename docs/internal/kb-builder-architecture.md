@@ -283,7 +283,7 @@ type Chunk struct {
      - Chunk with overlap
    - Generate embeddings (all chunks, all providers)
    - Store in SQLite database
-4. **Output**: `pgedge-mcp-kb.db` (typically 300-500MB)
+4. **Output**: `pgedge-nla-kb.db` (typically 300-500MB)
 
 ### performance characteristics
 
@@ -378,7 +378,7 @@ files.
 
 SQLite VACUUM recommended after large updates:
 ```bash
-sqlite3 pgedge-mcp-kb.db "VACUUM;"
+sqlite3 pgedge-nla-kb.db "VACUUM;"
 ```
 
 ## troubleshooting

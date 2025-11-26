@@ -1,6 +1,6 @@
 # Deployment Guide
 
-This guide covers deploying the pgEdge MCP Server as an HTTP/HTTPS service for direct API access.
+This guide covers deploying the Natural Language Agent as an HTTP/HTTPS service for direct API access.
 
 ## Transport Modes
 
@@ -98,7 +98,7 @@ Response:
 ```json
 {
   "status": "ok",
-  "server": "pgedge-pg-mcp-svr",
+  "server": "pgedge-nla-server",
   "version": "1.0.0-alpha1"
 }
 ```
@@ -254,19 +254,19 @@ openssl s_client -connect localhost:8080 -tls1_2
 
 ### Systemd Service
 
-Create `/etc/systemd/system/pgedge-mcp.service`:
+Create `/etc/systemd/system/pgedge-nla-server.service`:
 
 ```ini
 [Unit]
-Description=pgEdge MCP Server
+Description=pgEdge Natural Language Agent
 After=network.target postgresql.service
 
 [Service]
 Type=simple
 User=pgedge
 Group=pgedge
-WorkingDirectory=/opt/pgedge-mcp
-ExecStart=/opt/pgedge-mcp/bin/pgedge-nla-server -config /etc/pgedge-mcp/config.yaml
+WorkingDirectory=/opt/pgedge
+ExecStart=/opt/pgedge/bin/pgedge-nla-server -config /etc/pgedge/pgedge-nla-server.yaml
 Restart=always
 RestartSec=10
 
@@ -275,7 +275,7 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/var/log/pgedge-mcp
+ReadWritePaths=/var/log/pgedge
 
 [Install]
 WantedBy=multi-user.target
@@ -284,9 +284,9 @@ WantedBy=multi-user.target
 Enable and start:
 
 ```bash
-sudo systemctl enable pgedge-mcp
-sudo systemctl start pgedge-mcp
-sudo systemctl status pgedge-mcp
+sudo systemctl enable pgedge-nla-server
+sudo systemctl start pgedge-nla-server
+sudo systemctl status pgedge-nla-server
 ```
 
 ### Docker Deployment
@@ -298,13 +298,14 @@ FROM golang:1.21-alpine AS builder
 
 WORKDIR /build
 COPY . .
-RUN go build -o pgedge-pg-mcp-svr ./cmd/pgedge-pg-mcp-svr
+RUN go build -o pgedge-nla-server ./cmd/pgedge-pg-mcp-svr
 
 FROM alpine:latest
 RUN apk --no-cache add ca-certificates
 WORKDIR /app
-COPY --from=builder /build/pgedge-pg-mcp-svr .
-COPY configs/pgedge-pg-mcp-svr.yaml.example config.yaml
+COPY --from=builder /build/pgedge-nla-server .
+# Copy your config file (see examples/ for templates)
+COPY your-config.yaml config.yaml
 
 EXPOSE 8080
 ENTRYPOINT ["./pgedge-nla-server"]
@@ -314,7 +315,7 @@ CMD ["-config", "config.yaml", "-http"]
 Build and run:
 
 ```bash
-docker build -t pgedge-mcp .
+docker build -t pgedge-nla-server .
 docker run -d \
   -p 8080:8080 \
   -e ANTHROPIC_API_KEY="sk-ant-..." \
@@ -323,8 +324,8 @@ docker run -d \
   -e PGDATABASE="mydb" \
   -e PGUSER="myuser" \
   -e PGPASSWORD="mypass" \
-  --name pgedge-mcp \
-  pgedge-mcp
+  --name pgedge-nka-server \
+  pgedge-nla-server
 
 # Note: Use host.docker.internal to access PostgreSQL on host machine from container
 ```
@@ -337,7 +338,7 @@ Create `docker-compose.yml`:
 version: '3.8'
 
 services:
-  pgedge-mcp:
+  pgedge-nla-server:
     build: .
     ports:
       - "8080:8080"
@@ -372,7 +373,7 @@ docker-compose up -d
 
 ### Reverse Proxy (Nginx)
 
-Create `/etc/nginx/sites-available/pgedge-mcp`:
+Create `/etc/nginx/sites-available/pgedge-nla`:
 
 ```nginx
 server {
@@ -421,7 +422,7 @@ server {
 Enable and reload:
 
 ```bash
-sudo ln -s /etc/nginx/sites-available/pgedge-mcp /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/pgedge-nla /etc/nginx/sites-enabled/
 sudo nginx -t
 sudo systemctl reload nginx
 ```
@@ -464,13 +465,13 @@ The server writes logs to stderr:
 
 ```bash
 # Systemd logs
-journalctl -u pgedge-mcp -f
+journalctl -u pgedge-nla-server -f
 
 # Docker logs
-docker logs -f pgedge-mcp
+docker logs -f pgedge-nla-server
 
 # File logging (redirect stderr)
-./bin/pgedge-nla-server -http 2>> /var/log/pgedge-mcp/server.log
+./bin/pgedge-nla-server -http 2>> /var/log/pgedge/pgedge-nla-server.log
 ```
 
 ## Security Best Practices
@@ -505,7 +506,7 @@ ls -la /path/to/server.key  # Should be 600
 
 ```bash
 # Verify server is running
-ps aux | grep pgedge-pg-mcp-svr
+ps aux | grep pgedge-nla-server
 
 # Check firewall
 sudo ufw status

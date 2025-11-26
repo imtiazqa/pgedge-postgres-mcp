@@ -80,8 +80,8 @@ export class MCPClient {
             protocolVersion: '2024-11-05',
             capabilities: {},
             clientInfo: {
-                name: 'pgedge-mcp-web',
-                version: '1.0.0'
+                name: 'pgedge-nla-web',
+                version: '1.0.0-alpha1'
             }
         });
     }

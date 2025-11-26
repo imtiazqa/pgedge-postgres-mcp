@@ -386,9 +386,9 @@ type UserInfo struct {
 }
 
 // GetDefaultUserPath returns the default user file path
-// Searches /etc/pgedge/postgres-mcp/ first, then binary directory
+// Searches /etc/pgedge/ first, then binary directory
 func GetDefaultUserPath(binaryPath string) string {
-	systemPath := "/etc/pgedge/postgres-mcp/pgedge-nla-server-users.yaml"
+	systemPath := "/etc/pgedge/pgedge-nla-server-users.yaml"
 	if _, err := os.Stat(systemPath); err == nil {
 		return systemPath
 	}

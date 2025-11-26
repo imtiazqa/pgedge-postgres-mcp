@@ -1,6 +1,6 @@
 # MCP Tools
 
-The pgEdge MCP Server provides various tools that enable SQL database
+The Natural Language Agent provides various tools that enable SQL database
 interaction, advanced semantic search, embedding generation, resource reading,
 and more.
 
@@ -241,7 +241,7 @@ Full embedding vector returned with 768 dimensions.
 
 **Configuration**:
 
-Enable in `pgedge-pg-mcp-svr.yaml`:
+Enable in your server configuration file:
 
 ```yaml
 embedding:

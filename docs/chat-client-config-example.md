@@ -1,5 +1,5 @@
 ```yaml
-# pgEdge Postgres MCP Chat Client Configuration Example
+# Natural Language Agent Chat Client Configuration Example
 #
 # Configuration Priority (highest to lowest):
 #   1. Command line flags

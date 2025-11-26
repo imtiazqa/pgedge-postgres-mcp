@@ -1,5 +1,5 @@
 ```yaml
-# pgEdge PostgreSQL MCP Server Configuration File
+# Natural Language Agent Configuration File
 #
 # Configuration Priority (highest to lowest):
 #   1. Command line flags
@@ -7,7 +7,7 @@
 #   3. Configuration file values (this file)
 #   4. Hard-coded defaults
 #
-# Copy this file to pgedge-pg-mcp-svr.yaml and customize as needed.
+# Copy this file to pgedge-nla-server.yaml and customize as needed.
 # By default, the server looks for config in the same directory as the binary.
 
 # ============================================================================
@@ -99,7 +99,7 @@ http:
 # ENCRYPTION SECRET FILE (Optional)
 # ============================================================================
 # Path to encryption secret file used for encrypting database passwords
-# Default: pgedge-pg-mcp-svr.secret in the same directory as the binary
+# Default: pgedge-nla-server.secret in the same directory as the binary
 # If the file does not exist, it will be automatically generated on first run
 # IMPORTANT: The secret file must have 0600 permissions (owner read/write only)
 #            The server will refuse to start if permissions are incorrect
@@ -157,8 +157,8 @@ secret_file: ""
 #         chain_file: "/etc/ssl/certs/ca-chain.crt"
 #     auth:
 #         enabled: true
-#         token_file: "/etc/pgedge-mcp/tokens.yaml"
-# secret_file: "/etc/pgedge-mcp/secret.key"
+#         token_file: "/etc/pgedge/pgedge-nla-server-tokens.yaml"
+# secret_file: "/etc/pgedge/pgedge-nla-server-secret.key"
 
 # ============================================================================
 # DATABASE CONFIGURATION
@@ -293,7 +293,7 @@ knowledgebase:
 
     # Path to knowledgebase SQLite database
     # Default: ""
-    database_path: "./pgedge-mcp-kb.db"
+    database_path: "./pgedge-nla-kb.db"
 
     # Embedding provider for knowledgebase similarity search
     # IMPORTANT: This is INDEPENDENT from the embedding.provider setting above.

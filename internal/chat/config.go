@@ -73,7 +73,7 @@ func LoadConfig(configPath string) (*Config, error) {
 		MCP: MCPConfig{
 			Mode:             getEnvOrDefault("PGEDGE_MCP_MODE", "stdio"),
 			URL:              os.Getenv("PGEDGE_MCP_URL"),
-			ServerPath:       getEnvOrDefault("PGEDGE_MCP_SERVER_PATH", "../../bin/pgedge-pg-mcp-svr"),
+			ServerPath:       getEnvOrDefault("PGEDGE_MCP_SERVER_PATH", "../../bin/pgedge-nla-server"),
 			ServerConfigPath: getEnvOrDefault("PGEDGE_MCP_SERVER_CONFIG_PATH", ""),
 			AuthMode:         getEnvOrDefault("PGEDGE_MCP_AUTH_MODE", "user"),
 			Token:            "", // Will be loaded separately
@@ -108,7 +108,7 @@ func LoadConfig(configPath string) (*Config, error) {
 		defaultPaths := []string{
 			".pgedge-nla-cli.yaml",
 			filepath.Join(os.Getenv("HOME"), ".pgedge-nla-cli.yaml"),
-			"/etc/pgedge/postgres-mcp/pgedge-nla-cli.yaml",
+			"/etc/pgedge/pgedge-nla-cli.yaml",
 		}
 		for _, path := range defaultPaths {
 			if _, err := os.Stat(path); err == nil {

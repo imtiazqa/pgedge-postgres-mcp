@@ -1,6 +1,6 @@
-# pgEdge MCP Web Client
+# Natural Language Agent Web Client
 
-Modern web-based client for pgEdge MCP Server. This application provides a clean, intuitive interface to interact with your PostgreSQL database using natural language.
+Modern web-based client for the Natural Language Agent. This application provides a clean, intuitive interface to interact with your PostgreSQL database using natural language.
 
 ## Features
 
@@ -43,7 +43,7 @@ The web client uses a **two-tier architecture** communicating directly with the 
 ## Prerequisites
 
 - Node.js 18.x or higher
-- A running pgEdge MCP Server configured for HTTP mode with:
+- A running Natural Language Agent configured for HTTP mode with:
   - Authentication enabled
   - LLM proxy enabled (for chat functionality)
   - Database connection configured

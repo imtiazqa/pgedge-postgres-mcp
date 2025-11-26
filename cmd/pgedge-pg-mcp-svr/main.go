@@ -560,37 +560,94 @@ func main() {
 
 		// Setup additional HTTP handlers
 		httpConfig.SetupHandlers = func(mux *http.ServeMux) error {
-			// Chat history compaction endpoint - always available
-			mux.HandleFunc("/api/chat/compact", compactor.HandleCompact)
+			// Helper to wrap handlers with authentication when enabled
+			authWrapper := func(handler http.HandlerFunc) http.HandlerFunc {
+				if !cfg.HTTP.Auth.Enabled {
+					return handler
+				}
+				return func(w http.ResponseWriter, r *http.Request) {
+					// Extract token from Authorization header
+					authHeader := r.Header.Get("Authorization")
+					if authHeader == "" {
+						http.Error(w, "Missing Authorization header",
+							http.StatusUnauthorized)
+						return
+					}
 
-			// User info endpoint - always available
+					// Extract Bearer token
+					token := strings.TrimPrefix(authHeader, "Bearer ")
+					if token == authHeader {
+						http.Error(w, "Invalid Authorization header format",
+							http.StatusUnauthorized)
+						return
+					}
+
+					// Try API token first, then session token
+					if _, err := tokenStore.ValidateToken(token); err != nil {
+						// Try session token if user auth is enabled
+						if userStore != nil {
+							if _, err := userStore.ValidateSessionToken(token); err != nil {
+								http.Error(w, "Invalid or expired token",
+									http.StatusUnauthorized)
+								return
+							}
+						} else {
+							http.Error(w, "Invalid or expired token",
+								http.StatusUnauthorized)
+							return
+						}
+					}
+
+					// Token valid, proceed with handler
+					handler(w, r)
+				}
+			}
+
+			// Chat history compaction endpoint - requires auth when enabled
+			mux.HandleFunc("/api/chat/compact",
+				authWrapper(compactor.HandleCompact))
+
+			// User info endpoint - returns auth status (no error if not logged in)
 			mux.HandleFunc("/api/user/info", func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+
 				// Extract session token from Authorization header
 				authHeader := r.Header.Get("Authorization")
 				if authHeader == "" {
-					http.Error(w, "Missing Authorization header", http.StatusUnauthorized)
+					//nolint:errcheck // Encoding a simple map should never fail
+					json.NewEncoder(w).Encode(map[string]interface{}{
+						"authenticated": false,
+					})
 					return
 				}
 
 				// Extract Bearer token
 				token := strings.TrimPrefix(authHeader, "Bearer ")
 				if token == authHeader {
-					http.Error(w, "Invalid Authorization header format", http.StatusUnauthorized)
+					//nolint:errcheck // Encoding a simple map should never fail
+					json.NewEncoder(w).Encode(map[string]interface{}{
+						"authenticated": false,
+						"error":         "Invalid Authorization header format",
+					})
 					return
 				}
 
 				// Validate session token and get username
 				username, err := userStore.ValidateSessionToken(token)
 				if err != nil {
-					http.Error(w, "Invalid or expired session", http.StatusUnauthorized)
+					//nolint:errcheck // Encoding a simple map should never fail
+					json.NewEncoder(w).Encode(map[string]interface{}{
+						"authenticated": false,
+						"error":         "Invalid or expired session",
+					})
 					return
 				}
 
 				// Return user info as JSON
-				w.Header().Set("Content-Type", "application/json")
 				//nolint:errcheck // Encoding a simple map should never fail
-				json.NewEncoder(w).Encode(map[string]string{
-					"username": username,
+				json.NewEncoder(w).Encode(map[string]interface{}{
+					"authenticated": true,
+					"username":      username,
 				})
 			})
 
@@ -607,15 +664,20 @@ func main() {
 					Temperature:     cfg.LLM.Temperature,
 				}
 
-				mux.HandleFunc("/api/llm/providers", func(w http.ResponseWriter, r *http.Request) {
-					llmproxy.HandleProviders(w, r, llmConfig)
-				})
-				mux.HandleFunc("/api/llm/models", func(w http.ResponseWriter, r *http.Request) {
-					llmproxy.HandleModels(w, r, llmConfig)
-				})
-				mux.HandleFunc("/api/llm/chat", func(w http.ResponseWriter, r *http.Request) {
-					llmproxy.HandleChat(w, r, llmConfig)
-				})
+				// Provider/model listing don't require auth (needed for login page)
+				mux.HandleFunc("/api/llm/providers",
+					func(w http.ResponseWriter, r *http.Request) {
+						llmproxy.HandleProviders(w, r, llmConfig)
+					})
+				mux.HandleFunc("/api/llm/models",
+					func(w http.ResponseWriter, r *http.Request) {
+						llmproxy.HandleModels(w, r, llmConfig)
+					})
+				// Chat endpoint requires auth (makes actual LLM API calls)
+				mux.HandleFunc("/api/llm/chat",
+					authWrapper(func(w http.ResponseWriter, r *http.Request) {
+						llmproxy.HandleChat(w, r, llmConfig)
+					}))
 			}
 
 			return nil

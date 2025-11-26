@@ -1,7 +1,7 @@
 # Application Development Overview
 
-This section helps developers build applications that use the pgEdge Postgres
-MCP Server.
+This section helps developers build applications that use the Natural Language
+Agent.
 
 ## What You Can Build
 
@@ -153,7 +153,7 @@ print(result)
   - HTTP + Ollama
 - **[Go CLI Client](using-cli-client.md)** - Full-featured reference
   implementation
-- **[Web Client](https://github.com/pgEdge/pgedge-mcp/blob/main/web/README.md)** - React-based web interface
+- **[Web Client](https://github.com/pgEdge/pgedge-postgres-mcp/blob/main/web/README.md)** - React-based web interface
 
 ### Configuration
 

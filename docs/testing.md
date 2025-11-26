@@ -1,6 +1,6 @@
 # Testing Guide
 
-This document describes the test coverage for the pgEdge PostgreSQL MCP Server, with a focus on multi-LLM provider support.
+This document describes the test coverage for the Natural Language Agent, with a focus on multi-LLM provider support.
 
 ## Test Structure
 
@@ -121,7 +121,8 @@ Tests verify that:
 
 ### PostgreSQL Resource Integration Tests
 
-Comprehensive integration tests for all 12 MCP resources are available in `internal/resources/integration_test.go`. These tests verify:
+Comprehensive integration tests for MCP resources are available in
+`internal/resources/integration_test.go`. These tests verify:
 
 - **Version Compatibility**: Tests against PostgreSQL 14-17
 - **Query Execution**: All resources execute successfully

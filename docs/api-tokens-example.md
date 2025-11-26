@@ -1,5 +1,5 @@
 ```yaml
-# pgEdge PostgreSQL MCP Server - API Tokens Configuration File
+# Natural Language Agent - API Tokens Configuration File
 #
 # This file stores API authentication tokens and their associated metadata.
 # Tokens are automatically managed via command-line tools.

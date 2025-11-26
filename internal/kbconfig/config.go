@@ -117,7 +117,7 @@ func applyDefaults(config *Config, configPath string) error {
 
 	// Default database path
 	if config.DatabasePath == "" {
-		config.DatabasePath = filepath.Join(configDir, "pgedge-mcp-kb.db")
+		config.DatabasePath = filepath.Join(configDir, "pgedge-nla-kb.db")
 	}
 
 	// Default doc source path

@@ -11,8 +11,8 @@ description: Review the entire codebase for issues and improvements
     * Ensure the code is well structured and modularised
     * Ensure the code is easily readable by a human
     * Ensure that secure and defensive coding practices are employed
-    * Ensure that all MCP server endpoints (except authenticate_user and 
-        /health) require authentication
+    * Ensure that all MCP server endpoints (except authenticate_user,
+        /health, and /api/user/info) require authentication
     * Ensure that all database operations are executed in READ ONLY mode, and 
         that the LLM cannot switch into READ/WRITE mode
     * Ensure code follows best practives for the language used

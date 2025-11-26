@@ -1,6 +1,6 @@
 # Configuration Guide
 
-The pgEdge MCP Server supports multiple configuration methods with the following priority (highest to lowest):
+The Natural Language Agent supports multiple configuration methods with the following priority (highest to lowest):
 
 1. **Command line flags** (highest priority)
 2. **Environment variables**
@@ -45,7 +45,7 @@ The pgEdge MCP Server supports multiple configuration methods with the following
 
 The server can read configuration from a YAML file, making it easier to manage settings without environment variables.
 
-**Default Location**: `pgedge-pg-mcp-svr.yaml` in the same directory as the binary
+**Default Location**: `pgedge-nla-server.yaml` in the same directory as the binary
 
 **Custom Location**: Use the `-config` flag to specify a different path
 
@@ -98,7 +98,7 @@ knowledgebase:
   embedding_ollama_url: "http://localhost:11434"  # For ollama provider
 
 # Encryption secret file path (optional)
-secret_file: ""  # defaults to pgedge-pg-mcp-svr.secret, auto-generated if not present
+secret_file: ""  # defaults to pgedge-nla-server.secret, auto-generated if not present
 
 ```
 
@@ -108,13 +108,13 @@ A complete example configuration file with detailed comments is available at [he
 
 The server uses a separate encryption secret file to store the encryption key used for password encryption. This file contains a 256-bit AES encryption key used to encrypt and decrypt database passwords.
 
-**Default Location**: `pgedge-pg-mcp-svr.secret` in the same directory as the binary
+**Default Location**: `pgedge-nla-server.secret` in the same directory as the binary
 
 **Configuration Priority** (highest to lowest):
 
 1. Environment variable: `PGEDGE_SECRET_FILE=/path/to/secret`
 2. Configuration file: `secret_file: /path/to/secret`
-3. Default: `pgedge-pg-mcp-svr.secret` (same directory as binary)
+3. Default: `pgedge-nla-server.secret` (same directory as binary)
 
 ### Auto-Generation
 
@@ -125,7 +125,7 @@ The secret file is automatically generated on first run if it doesn't exist:
 ./bin/pgedge-nla-server
 
 # Output:
-# Generating new encryption key at /path/to/pgedge-pg-mcp-svr.secret
+# Generating new encryption key at /path/to/pgedge-nla-server.secret
 # Encryption key saved successfully
 ```
 
@@ -151,18 +151,18 @@ base64_encoded_32_byte_key_here==
 
 **Example - Verify Permissions**:
 ```bash
-ls -la pgedge-pg-mcp-svr.secret
+ls -la pgedge-nla-server.secret
 # Should show: -rw------- (600)
 
 # Fix if needed:
-chmod 600 pgedge-pg-mcp-svr.secret
+chmod 600 pgedge-nla-server.secret
 ```
 
 **Server will exit with an error if permissions are incorrect**:
 ```
-ERROR: Failed to load encryption key from /path/to/pgedge-pg-mcp-svr.secret:
+ERROR: Failed to load encryption key from /path/to/pgedge-nla-server.secret:
 insecure permissions on key file: 0644 (expected 0600).
-Please run: chmod 600 /path/to/pgedge-pg-mcp-svr.secret
+Please run: chmod 600 /path/to/pgedge-nla-server.secret
 ```
 
 ## Embedding Generation Configuration
@@ -383,7 +383,7 @@ export PGEDGE_LLM_LOG_LEVEL="trace"   # Very detailed: full request/response det
 
 ```bash
 # Copy the example to the binary directory
-cp configs/pgedge-pg-mcp-svr.yaml.example bin/pgedge-nla-server.yaml
+cp configs/pgedge-nla-server.yaml.example bin/pgedge-nla-server.yaml
 
 # Edit with your settings
 vim bin/pgedge-nla-server.yaml

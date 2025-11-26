@@ -83,7 +83,7 @@ jobs:
             - name: Verify images were built
               run: |
                   echo "Checking built images..."
-                  docker images | grep pgedge-mcp || echo "Warning: No images found"
+                  docker images | grep pgedge-nla || echo "Warning: No images found"
                   docker compose images
 
             - name: Start services

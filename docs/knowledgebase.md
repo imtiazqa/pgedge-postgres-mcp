@@ -28,7 +28,7 @@ To enable knowledgebase search, add to your server configuration:
 ```yaml
 knowledgebase:
     enabled: true
-    database_path: "./pgedge-mcp-kb.db"
+    database_path: "./pgedge-nla-kb.db"
     embedding_provider: "voyage"  # or "openai", "ollama"
     embedding_model: "voyage-3"
 

@@ -751,9 +751,9 @@ func readAPIKeyFromFile(filePath string) (string, error) {
 }
 
 // GetDefaultConfigPath returns the default config file path
-// Searches /etc/pgedge/postgres-mcp/ first, then binary directory
+// Searches /etc/pgedge/ first, then binary directory
 func GetDefaultConfigPath(binaryPath string) string {
-	systemPath := "/etc/pgedge/postgres-mcp/pgedge-nla-server.yaml"
+	systemPath := "/etc/pgedge/pgedge-nla-server.yaml"
 	if _, err := os.Stat(systemPath); err == nil {
 		return systemPath
 	}
@@ -763,9 +763,9 @@ func GetDefaultConfigPath(binaryPath string) string {
 }
 
 // GetDefaultSecretPath returns the default secret file path
-// Searches /etc/pgedge/postgres-mcp/ first, then binary directory
+// Searches /etc/pgedge/ first, then binary directory
 func GetDefaultSecretPath(binaryPath string) string {
-	systemPath := "/etc/pgedge/postgres-mcp/pgedge-nla-server.secret"
+	systemPath := "/etc/pgedge/pgedge-nla-server.secret"
 	if _, err := os.Stat(systemPath); err == nil {
 		return systemPath
 	}

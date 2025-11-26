@@ -21,11 +21,11 @@ RUN npm run build
 FROM registry.access.redhat.com/ubi9/nginx-124:latest
 
 # Add labels for container metadata
-LABEL name="pgedge-postgres-mcp-web-client" \
+LABEL name="pgedge-nla-web" \
       vendor="pgEdge" \
       version="1.0" \
-      summary="pgEdge Postgres MCP Web Client" \
-      description="Web-based chat interface for pgEdge Postgres MCP"
+      summary="pgEdge Natural Language Agent Web Client" \
+      description="Web-based chat interface for pgEdge Natural Language Agent"
 
 # Copy built application from builder
 COPY --from=builder /workspace/dist /opt/app-root/src

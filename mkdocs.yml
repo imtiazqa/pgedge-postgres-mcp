@@ -47,7 +47,7 @@ extra:
   generator: false
 
 copyright: Copyright &copy; 2025 pgEdge, Inc
-repo_url: https://github.com/pgEdge/pgedge-mcp
+repo_url: https://github.com/pgEdge/pgedge-postgres-mcp
 
 nav:
   - Getting Started:

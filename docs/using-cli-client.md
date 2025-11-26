@@ -1,6 +1,6 @@
 # Go Chat Client
 
-The pgEdge Postgres MCP Go Chat Client is a **production-ready, full-featured** native Go implementation that provides an interactive command-line interface for chatting with your PostgreSQL database using natural language.
+The Natural Language Agent Go Chat Client is a **production-ready, full-featured** native Go implementation that provides an interactive command-line interface for chatting with your PostgreSQL database using natural language.
 
 This is the recommended client for production use and provides significantly more features and polish than the [Python examples](building-chat-clients.md), which are intended as simple reference implementations to demonstrate the MCP protocol.
 
@@ -109,11 +109,11 @@ The chat client can be configured in three ways (in order of precedence):
 
 ### Configuration File
 
-Create a `.pgedge-pg-mcp-cli.yaml` file in one of these locations:
+Create a `.pgedge-nla-cli.yaml` file in one of these locations:
 
-- Current directory: `./.pgedge-pg-mcp-cli.yaml`
-- Home directory: `~/.pgedge-pg-mcp-cli.yaml`
-- System-wide: `/etc/pgedge/postgres-mcp/pgedge-pg-mcp-cli.yaml`
+- Current directory: `./.pgedge-nla-cli.yaml`
+- Home directory: `~/.pgedge-nla-cli.yaml`
+- System-wide: `/etc/pgedge/pgedge-nla-cli.yaml`
 
 Example configuration:
 
@@ -575,12 +575,12 @@ This shows the client's elephant-themed UI in action, including the thinking ani
 
 ```
           _
-   ______/ \-.   _           pgEdge Postgres MCP Chat Client
+   ______/ \-.   _           Natural Language Agent Chat Client
 .-/     (    o\_//           Type 'quit' or 'exit' to leave, 'help' for commands
  |  ___  \_/\---'
  |_||  |_||
 
-System: Connected to MCP server (15 tools available)
+System: Connected to MCP server
 System: Using LLM: anthropic (claude-sonnet-4-20250514)
 ────────────────────────────────────────────────────────────────────────────────
 You: What tables are in my database?

@@ -87,7 +87,7 @@ pgedge-postgres-mcp/
 
 ## System Overview
 
-The pgEdge Postgres MCP consists of three main components:
+The Natural Language Agent consists of three main components:
 
 1. **MCP Server**: Go-based server providing MCP protocol, LLM proxy, and
    database tools

@@ -1,4 +1,4 @@
-# pgEdge MCP Server Documentation
+# pgEdge Natural Language Agent Documentation
 
 A Model Context Protocol (MCP) server written in Go that enables natural language queries against PostgreSQL databases.
 
@@ -122,7 +122,7 @@ Production deployment guide for HTTP/HTTPS mode including TLS setup, reverse pro
 #### [Authentication Guide](authentication.md)
 API token management for HTTP/HTTPS mode including token generation, validation, expiration, and security best practices.
 
-#### [Web Interface](https://github.com/pgEdge/pgedge-mcp/blob/main/web/README.md)
+#### [Web Interface](https://github.com/pgEdge/pgedge-postgres-mcp/blob/main/web/README.md)
 Modern React-based web interface for server monitoring and management. Features secure authentication, real-time PostgreSQL system information, and responsive design. Includes quick start guide and deployment instructions.
 
 #### [Go Chat Client](using-cli-client.md)

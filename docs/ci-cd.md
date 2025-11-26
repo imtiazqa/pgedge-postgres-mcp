@@ -1,6 +1,6 @@
 # CI/CD Guide
 
-This document describes the continuous integration and continuous deployment workflows for the pgEdge MCP Server.
+This document describes the continuous integration and continuous deployment workflows for the Natural Language Agent.
 
 ## Overview
 
@@ -269,7 +269,7 @@ jobs:
         go-version: ${{ matrix.go-version }}
 
     - name: Build
-      run: go build -v -o pgedge-pg-mcp-svr ./cmd/pgedge-pg-mcp-svr
+      run: go build -v -o pgedge-nla-server ./cmd/pgedge-pg-mcp-svr
 
     - name: Verify binary
       run: ./pgedge-nla-server -h

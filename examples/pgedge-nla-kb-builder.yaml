@@ -1,6 +1,6 @@
 # pgEdge Knowledgebase Builder Configuration Example
 
-# Output database path (optional, defaults to pgedge-mcp-kb.db in same directory as config)
+# Output database path (optional, defaults to pgedge-nla-kb.db in same directory as config)
 database_path: "pgedge-nla-kb.db"
 
 # Directory for storing downloaded/processed documentation (optional, defaults to doc-source)

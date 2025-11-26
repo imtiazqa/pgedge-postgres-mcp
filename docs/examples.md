@@ -1,6 +1,7 @@
 # Query Examples
 
-This document provides example natural language queries you can use with the pgEdge MCP server. All examples assume you're using Claude Desktop or another MCP client with the server configured.
+This document provides example natural language queries you can use with the
+Natural Language Agent. All examples assume you're using Claude Desktop or another MCP client with the server configured.
 
 ## Table of Contents
 
@@ -68,7 +69,9 @@ Use these queries to understand your database structure:
 
 ## Configuration Management
 
-The pgEdge MCP server provides access to PostgreSQL configuration parameters through the `pg://settings` resource and the `set_pg_configuration` tool.
+The Natural Language Agent provides access to PostgreSQL configuration
+parameters through the `pg://settings` resource and the
+`set_pg_configuration` tool.
 
 ### Viewing Configuration
 
@@ -186,7 +189,8 @@ After changing a setting, you can verify it:
 
 ## Multi-Database Queries
 
-The pgEdge MCP server supports querying multiple PostgreSQL databases without changing configuration files.
+The Natural Language Agent supports querying multiple PostgreSQL databases
+without changing configuration files.
 
 ### Temporary Connection (Single Query)
 

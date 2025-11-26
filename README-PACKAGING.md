@@ -592,8 +592,8 @@ Description: Model Context Protocol (MCP) server that enables natural language
 ```
 Summary: pgEdge Natural Language Agent - CLI Client
 Description: Command-line chat client for interacting with PostgreSQL databases
- using natural language. Connects to pgEdge MCP Server and supports multiple
- LLM providers (Anthropic Claude, OpenAI, Ollama).
+ using natural language. Connects to Natural Language Agent and supports
+ multiple LLM providers (Anthropic Claude, OpenAI, Ollama).
 ```
 
 **pgedge-nla-web:**
@@ -683,8 +683,8 @@ find bin/ -name "*test*"
 └── custom-definitions.yaml         # Custom prompts/resources (optional)
 
 /usr/bin/
-├── pgedge-pg-mcp-svr              # Server binary
-└── pgedge-pg-mcp-cli              # CLI binary
+├── pgedge-nla-server              # Server binary
+└── pgedge-nla-cli                 # CLI binary
 
 /usr/lib/systemd/system/
 ├── pgedge-nla-server.service      # Server systemd unit
@@ -733,7 +733,7 @@ Include these in package documentation:
 ### 1. Server Setup
 ```bash
 # Create initial admin token
-sudo -u pgedge pgedge-pg-mcp-svr -add-token -token-note "Admin token"
+sudo -u pgedge pgedge-nla-server -add-token -token-note "Admin token"
 
 # Configure database connection
 sudo vim /etc/pgedge/nla-server.yaml
@@ -903,7 +903,7 @@ fi
 
 For systems with AppArmor enabled, provide a profile to confine the MCP server.
 
-**AppArmor Profile** (`/etc/apparmor.d/usr.bin.pgedge-pg-mcp-svr`):
+**AppArmor Profile** (`/etc/apparmor.d/usr.bin.pgedge-nla-server`):
 
 ```apparmor
 #include <tunables/global>
@@ -978,11 +978,11 @@ For systems with AppArmor enabled, provide a profile to confine the MCP server.
 # Install AppArmor profile if AppArmor is enabled
 if [ -x /sbin/apparmor_parser ] && [ -d /etc/apparmor.d ]; then
     # Load the profile
-    /sbin/apparmor_parser -r /etc/apparmor.d/usr.bin.pgedge-pg-mcp-svr 2>/dev/null || true
+    /sbin/apparmor_parser -r /etc/apparmor.d/usr.bin.pgedge-nla-server 2>/dev/null || true
 
     # Enable the profile on boot
     if [ -d /etc/apparmor.d/force-complain ]; then
-        ln -sf /etc/apparmor.d/usr.bin.pgedge-pg-mcp-svr \
+        ln -sf /etc/apparmor.d/usr.bin.pgedge-nla-server \
                /etc/apparmor.d/force-complain/ 2>/dev/null || true
     fi
 fi
@@ -1007,7 +1007,7 @@ aa-enforce /usr/bin/pgedge-nla-server
 
 **Include in Package:**
 ```
-/etc/apparmor.d/usr.bin.pgedge-pg-mcp-svr
+/etc/apparmor.d/usr.bin.pgedge-nla-server
 ```
 
 **Package Dependencies** (for Ubuntu/Debian):

@@ -1,4 +1,4 @@
-# pgEdge MCP Server
+# pgEdge Natural Language Agent
 
 [![CI - MCP Server](https://github.com/pgEdge/pgedge-postgres-mcp/workflows/CI%20-%20MCP%20Server/badge.svg)](https://github.com/pgEdge/pgedge-postgres-mcp/actions/workflows/ci-server.yml)
 [![CI - CLI Client](https://github.com/pgEdge/pgedge-postgres-mcp/workflows/CI%20-%20CLI%20Client/badge.svg)](https://github.com/pgEdge/pgedge-postgres-mcp/actions/workflows/ci-cli-client.yml)

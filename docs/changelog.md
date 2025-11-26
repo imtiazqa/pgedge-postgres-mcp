@@ -88,14 +88,24 @@ and this project adheres to
 
 - **Critical**: Fixed Voyage AI API response parsing (was expecting flat
   `embedding` field, actual API returns `data[].embedding`)
+- **Security**: Custom HTTP handlers (`/api/chat/compact`, `/api/llm/chat`)
+  now require authentication when auth is enabled (provider/model listing
+  endpoints remain public for login page)
 - CLI no longer randomly switches to wrong provider/model on startup
 - Invalid provider/model combinations in preferences now automatically
   corrected with warnings
 - Web UI model selection now persists correctly across provider switches
-- Integration tests updated for new tool count (6 tools)
 - Applied consistent code formatting with `gofmt`
 - Removed unused kb-dedup utility
 - Fixed gocritic lint warnings
+- Fixed data race in rate limiter tests
+
+### Infrastructure
+
+- Docker images updated to Go 1.24
+- CI/CD workflows upgraded to Go 1.24 with PostgreSQL 18 testing support
+- Start scripts refactored with variable references for improved
+  maintainability
 
 ## [1.0.0-alpha1] - 2025-11-21
 

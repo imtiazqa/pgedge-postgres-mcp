@@ -22,10 +22,10 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -o pged
 FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
 
 # Add labels for container metadata
-LABEL name="pgedge-postgres-mcp-server" \
+LABEL name="pgedge-nla-server" \
       vendor="pgEdge" \
       version="1.0" \
-      summary="pgEdge Natural Language Agent" \
+      summary="pgEdge Natural Language Agent Server" \
       description="Model Context Protocol server for PostgreSQL database interaction"
 
 # Install util-linux for runuser command (needed for user switching in init script)
