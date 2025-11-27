@@ -11,6 +11,26 @@ and this project adheres to
 
 ### Added
 
+#### Token Usage Optimization
+
+- Smart auto-summary mode for `get_schema_info` tool when database has >10
+  tables
+- New `compact` parameter for `get_schema_info` to return minimal output
+  (table names + column names only)
+- Token estimation and tracking for individual tool calls (visible in debug
+  mode)
+- Resource URI display in activity log for `read_resource` calls
+- Proactive compaction triggered by token count threshold (15,000 tokens)
+- Rate limit handling with automatic 60-second pause and retry
+
+#### Prompt Improvements
+
+- Added `<fresh_data_required>` guidance to prompts to prevent LLM from
+  using stale information when database state may have changed
+- Updated `explore-database` prompt with rate limit awareness and tool
+  call budget guidance
+- Enhanced prompts guide LLMs to minimize tool calls for token efficiency
+
 #### Multiple Database Support
 
 - Configure multiple PostgreSQL database connections with unique names
@@ -104,6 +124,9 @@ and this project adheres to
 - CLI now saves current model when switching providers
 - Web UI correctly remembers per-provider model selections
 - Improved error messages and warnings for invalid configurations
+- CLI `/tools`, `/resources`, and `/prompts` commands now sort output
+  alphabetically
+- Web UI favicon added
 
 ### Fixed
 
