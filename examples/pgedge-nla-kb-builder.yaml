@@ -72,7 +72,7 @@ sources:
       doc_path: "docs/enterprise"
       project_name: "pgEdge Enterprise"
 
-    - git_url: "https://github.com/pgEdge/pgedge-postgres-mcp.git"
+    - git_url: "https://github.com/pgEdge/pgedge-nla.git"
       branch: "v1.0.0-alpha2"
       doc_path: "docs"
       project_name: "pgEdge Natural Language Agent"

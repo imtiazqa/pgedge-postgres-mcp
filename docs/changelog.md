@@ -271,6 +271,6 @@ and this project adheres to
 - CI/CD pipeline documentation
 - Testing guide for contributors
 
-[Unreleased]: https://github.com/pgEdge/pgedge-postgres-mcp/compare/v1.0.0-alpha1...HEAD
-[1.0.0-alpha2]: https://github.com/pgEdge/pgedge-postgres-mcp/releases/tag/v1.0.0-alpha2
-[1.0.0-alpha1]: https://github.com/pgEdge/pgedge-postgres-mcp/releases/tag/v1.0.0-alpha1
+[Unreleased]: https://github.com/pgEdge/pgedge-nla/compare/v1.0.0-alpha1...HEAD
+[1.0.0-alpha2]: https://github.com/pgEdge/pgedge-nla/releases/tag/v1.0.0-alpha2
+[1.0.0-alpha1]: https://github.com/pgEdge/pgedge-nla/releases/tag/v1.0.0-alpha1

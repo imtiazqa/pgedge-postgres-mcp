@@ -47,7 +47,7 @@ bin/pgedge-nla-server
 **Default Configuration File** (`/etc/pgedge/nla-server.yaml`):
 ```yaml
 # pgEdge Natural Language Agent - Server Configuration
-# See: https://github.com/pgEdge/pgedge-postgres-mcp/blob/main/docs/configuration.md
+# See: https://github.com/pgEdge/pgedge-nla/blob/main/docs/configuration.md
 
 # Database connection settings
 database:
@@ -122,7 +122,7 @@ YAML config file. It's loaded by systemd via `EnvironmentFile=`.
 ```ini
 [Unit]
 Description=pgEdge Natural Language Agent - MCP Server
-Documentation=https://github.com/pgEdge/pgedge-postgres-mcp
+Documentation=https://github.com/pgEdge/pgedge-nla
 After=network.target postgresql.service
 Wants=postgresql.service
 
@@ -406,7 +406,7 @@ instead of Nginx. For most deployments, use Nginx as shown above.
 ```ini
 [Unit]
 Description=pgEdge Natural Language Agent - Web UI Server
-Documentation=https://github.com/pgEdge/pgedge-postgres-mcp
+Documentation=https://github.com/pgEdge/pgedge-nla
 After=network.target pgedge-nla-server.service
 Requires=pgedge-nla-server.service
 
@@ -574,7 +574,7 @@ fi
 ### Common Metadata
 ```
 License: PostgreSQL License
-Homepage: https://github.com/pgEdge/pgedge-postgres-mcp
+Homepage: https://github.com/pgEdge/pgedge-nla
 Maintainer: pgEdge, Inc. <support@pgedge.com>
 ```
 

@@ -87,6 +87,6 @@ Released under The PostgreSQL License.
 
 ## Links
 
-- [GitHub Repository](https://github.com/pgEdge/pgedge-postgres-mcp)
+- [GitHub Repository](https://github.com/pgEdge/pgedge-nla)
 - [Model Context Protocol](https://modelcontextprotocol.io/)
 - [pgEdge](https://www.pgedge.com/)
