@@ -159,7 +159,7 @@ const PromptPopover = ({
                         <MenuItem value="">
                             <em>Select a prompt...</em>
                         </MenuItem>
-                        {prompts.map((prompt) => (
+                        {[...prompts].sort((a, b) => a.name.localeCompare(b.name)).map((prompt) => (
                             <MenuItem key={prompt.name} value={prompt.name}>
                                 {prompt.name}
                             </MenuItem>

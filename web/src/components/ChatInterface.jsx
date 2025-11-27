@@ -9,7 +9,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Box, Paper, Alert } from '@mui/material';
+import { Box, Paper } from '@mui/material';
 import { useAuth } from '../contexts/AuthContext';
 import { useLLMProcessing } from '../contexts/LLMProcessingContext';
 import { useLocalStorageBoolean } from '../hooks/useLocalStorage';
@@ -164,7 +164,6 @@ const ChatInterface = () => {
 
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
 
     // Prompt popover state
     const [promptPopoverAnchor, setPromptPopoverAnchor] = useState(null);
@@ -228,7 +227,6 @@ const ChatInterface = () => {
         setMessages(prev => [...prev, userMessage, thinkingMessage]);
         setInput('');
         setLoading(true);
-        setError('');
 
         try {
             // Build conversation history
@@ -309,10 +307,24 @@ const ChatInterface = () => {
                 // Handle session invalidation
                 if (llmResponse.status === 401) {
                     console.log('Session invalidated, logging out...');
+                    // Convert thinking message to error message before logout
+                    setMessages(prev => {
+                        const newMessages = [...prev];
+                        if (newMessages.length > 0 && newMessages[newMessages.length - 1].isThinking) {
+                            const thinkingMsg = newMessages[newMessages.length - 1];
+                            newMessages[newMessages.length - 1] = {
+                                role: 'assistant',
+                                content: 'Error: Your session has expired. Please log in again.',
+                                timestamp: new Date().toISOString(),
+                                provider: thinkingMsg.provider,
+                                model: thinkingMsg.model,
+                                activity: thinkingMsg.activity || [],
+                                isError: true
+                            };
+                        }
+                        return newMessages;
+                    });
                     forceLogout();
-                    setError('Your session has expired. Please log in again.');
-                    // Remove thinking message (keep user message for context)
-                    setMessages(prev => prev.slice(0, -1));
                     return;
                 }
 
@@ -465,12 +477,6 @@ const ChatInterface = () => {
                 return newMessages;
             });
 
-            // Network errors
-            if (err.name === 'TypeError' && err.message.includes('fetch')) {
-                setError('Cannot connect to server. Please check that the server is running.');
-            } else {
-                setError(err.message || 'Failed to send message');
-            }
         } finally {
             setLoading(false);
         }
@@ -507,7 +513,6 @@ const ChatInterface = () => {
 
         setMessages([]);
         queryHistory.clearHistory();
-        setError('');
     }, [queryHistory]);
 
     // Handle prompt selection
@@ -525,10 +530,16 @@ const ChatInterface = () => {
             // Get the prompt with arguments from MCP server
             const promptResult = await mcpClient.getPrompt(promptName, args);
 
-            // Add a system message to indicate prompt execution
+            // Add a system message to indicate prompt execution with parameters
+            const paramStr = Object.entries(args)
+                .filter(([, value]) => value !== '')
+                .map(([key, value]) => `${key}="${value}"`)
+                .join(', ');
             const systemMessage = {
                 role: 'system',
-                content: `Executing prompt: ${promptName}`,
+                content: paramStr
+                    ? `Executing prompt: ${promptName} (${paramStr})`
+                    : `Executing prompt: ${promptName}`,
                 timestamp: new Date().toISOString(),
             };
             setMessages(prev => [...prev, systemMessage]);
@@ -548,17 +559,10 @@ const ChatInterface = () => {
                     });
                 }
             }
-            // Add prompt messages to conversation
+            // Add prompt messages to conversation history (but not to UI display)
             if (promptResult.messages) {
                 for (const msg of promptResult.messages) {
                     if (msg.role === 'user') {
-                        const userMsg = {
-                            role: 'user',
-                            content: msg.content.text,
-                            timestamp: new Date().toISOString(),
-                            fromPrompt: true,
-                        };
-                        setMessages(prev => [...prev, userMsg]);
                         // Add to conversation history (only role and content)
                         conversationMessages.push({
                             role: 'user',
@@ -765,12 +769,6 @@ const ChatInterface = () => {
                 return newMessages;
             });
 
-            // Network errors
-            if (err.name === 'TypeError' && err.message.includes('fetch')) {
-                setError('Cannot connect to server. Please check that the server is running.');
-            } else {
-                setError(err.message || 'Failed to execute prompt');
-            }
         } finally {
             setExecutingPrompt(false);
             setLoading(false);
@@ -794,20 +792,6 @@ const ChatInterface = () => {
                 debug={debug}
                 onClear={handleClear}
             />
-
-            {/* Error Display */}
-            {(error || llmProviders.error) && (
-                <Alert
-                    severity="error"
-                    sx={{ mb: 1 }}
-                    onClose={() => {
-                        setError('');
-                        // Note: Can't clear llmProviders.error as it's from the hook
-                    }}
-                >
-                    {error || llmProviders.error}
-                </Alert>
-            )}
 
             {/* Input Area */}
             <Paper elevation={2} sx={{ p: 2 }}>

@@ -62,7 +62,7 @@ const PromptSelector = React.memo(({
                     <MenuItem value="" disabled>
                         <em>Select a prompt to execute...</em>
                     </MenuItem>
-                    {prompts.map((prompt) => (
+                    {[...prompts].sort((a, b) => a.name.localeCompare(b.name)).map((prompt) => (
                         <MenuItem key={prompt.name} value={prompt.name}>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                 <span>{prompt.name}</span>

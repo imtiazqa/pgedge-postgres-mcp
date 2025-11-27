@@ -24,181 +24,6 @@ contexts
 
 ## Available Prompts
 
-### setup-semantic-search
-
-Sets up semantic search using the similarity_search tool. Guides the LLM
-through discovering vector-capable tables, understanding their structure,
-and executing optimal searches.
-
-**Use Cases**:
-
-- First-time semantic search setup
-- Finding relevant documentation chunks
-- Searching knowledge bases or Wikipedia-style articles
-- RAG (Retrieval-Augmented Generation) workflows
-
-**Arguments**:
-
-- `query_text` (required): The natural language search query
-
-**Workflow Overview**:
-
-1. **Discovery**: Identifies tables with pgvector columns
-2. **Selection**: Chooses the most appropriate table based on schema info
-3. **Execution**: Runs similarity_search with optimal parameters
-4. **Token Optimization**: Manages chunking and token budgets to avoid rate
-limits
-
-**CLI Example**:
-
-```bash
-/prompt setup-semantic-search query_text="What is pgAgent?"
-```
-
-**Web UI Usage**:
-
-1. Click the brain icon (Psychology icon) next to the send button
-2. Select "setup-semantic-search" from the dropdown
-3. Enter your query text in the query_text field
-4. Click "Execute Prompt"
-
-**Parameters Guide**:
-
-The prompt instructs the LLM to use these similarity_search parameters:
-
-- `top_n`: 10 (balance between recall and token usage)
-- `chunk_size_tokens`: 100 (manageable chunk size)
-- `lambda`: 0.6 (balanced relevance vs diversity)
-- `max_output_tokens`: 1000 (prevents rate limit issues)
-
-**Token Budget Management**:
-
-This prompt includes specific guidance on managing token budgets to avoid
-rate limit errors. It instructs the LLM to:
-
-- Start with conservative token limits (1000 tokens)
-- Use moderate chunking (100 tokens per chunk)
-- Limit initial searches to top 10 results
-- Avoid multiple large searches in the same conversation turn
-
-### explore-database
-
-Systematically explores an unfamiliar database to understand its structure,
-capabilities, and available data.
-
-**Use Cases**:
-
-- Understanding a new database you're working with
-- Discovering what data is available
-- Identifying semantic search capabilities
-- Planning queries or analyses
-
-**Arguments**: None (fully automated workflow)
-
-**Workflow Overview**:
-
-1. **System Information**: Identifies which database you're connected to
-2. **Table Overview**: Gets comprehensive schema information
-3. **Structure Analysis**: Identifies table purposes and relationships
-4. **Special Capabilities**: Detects pgvector columns, JSONB, foreign keys
-5. **Data Sampling**: Optionally queries small samples from key tables
-6. **Summary**: Provides findings and suggested next steps
-
-**CLI Example**:
-
-```bash
-/prompt explore-database
-```
-
-**Web UI Usage**:
-
-1. Click the brain icon next to the send button
-2. Select "explore-database" from the dropdown
-3. Click "Execute Prompt" (no arguments needed)
-
-**Rate Limit Management**:
-
-The prompt includes guidance to:
-
-- Use `schema_name="public"` to reduce token usage
-- Use `limit=5` for sample queries
-- Cache results to avoid re-querying
-- Filter by schema for large databases
-
-**Early Exit Conditions**:
-
-The workflow stops if:
-
-- No tables found (wrong/empty database)
-- Permission denied
-- Specific data sought but not found
-
-### diagnose-query-issue
-
-Systematically diagnoses why queries are failing or returning unexpected
-results. Helps identify connection, schema, or data issues.
-
-**Use Cases**:
-
-- Debugging "table not found" errors
-- Understanding why queries return no results
-- Verifying you're connected to the correct database
-- Troubleshooting permission issues
-
-**Arguments**:
-
-- `issue_description` (optional): Description of the problem (e.g., "table
-not found", "no results", "wrong database")
-
-**Workflow Overview**:
-
-1. **Database Connection**: Verifies which database you're connected to
-2. **Schema Availability**: Checks if target table/schema exists
-3. **Table Structure**: Inspects columns, types, and constraints
-4. **Data Sampling**: Verifies table has data
-5. **Common Issues Checklist**: Systematically checks typical problems
-6. **Proposed Solutions**: Suggests fixes based on diagnosis
-
-**CLI Example**:
-
-```bash
-/prompt diagnose-query-issue issue_description="table not found"
-```
-
-**CLI Example without Description**:
-
-```bash
-/prompt diagnose-query-issue
-```
-
-**Web UI Usage**:
-
-1. Click the brain icon next to the send button
-2. Select "diagnose-query-issue" from the dropdown
-3. Optionally enter a description of the issue
-4. Click "Execute Prompt"
-
-**Common Issues Checklist**:
-
-The prompt guides the LLM to check:
-
-- Wrong database connected
-- Table name misspelled or wrong schema
-- No vector columns (for similarity_search)
-- Embedding generation disabled
-- Empty result set (query works but no matching data)
-- Rate limit exceeded
-- Permission denied
-
-**Quick Checks**:
-
-For fastest diagnosis, the prompt prioritizes:
-
-1. Wrong database: Check system-info, switch if needed
-2. Table doesn't exist: Run get_schema_info
-3. No data in table: Sample with limit=1
-4. Semantic search in non-vector table: Check vector_tables_only
-
 ### design-schema
 
 Guides the LLM through designing a PostgreSQL database schema based on
@@ -322,6 +147,181 @@ often differ from the actual extension names.
 - Over-engineering: adding tables/columns "just in case"
 - Using advanced extensions (pgvector) when simpler ones (pg_trgm) suffice
 
+### diagnose-query-issue
+
+Systematically diagnoses why queries are failing or returning unexpected
+results. Helps identify connection, schema, or data issues.
+
+**Use Cases**:
+
+- Debugging "table not found" errors
+- Understanding why queries return no results
+- Verifying you're connected to the correct database
+- Troubleshooting permission issues
+
+**Arguments**:
+
+- `issue_description` (optional): Description of the problem (e.g., "table
+not found", "no results", "wrong database")
+
+**Workflow Overview**:
+
+1. **Database Connection**: Verifies which database you're connected to
+2. **Schema Availability**: Checks if target table/schema exists
+3. **Table Structure**: Inspects columns, types, and constraints
+4. **Data Sampling**: Verifies table has data
+5. **Common Issues Checklist**: Systematically checks typical problems
+6. **Proposed Solutions**: Suggests fixes based on diagnosis
+
+**CLI Example**:
+
+```bash
+/prompt diagnose-query-issue issue_description="table not found"
+```
+
+**CLI Example without Description**:
+
+```bash
+/prompt diagnose-query-issue
+```
+
+**Web UI Usage**:
+
+1. Click the brain icon next to the send button
+2. Select "diagnose-query-issue" from the dropdown
+3. Optionally enter a description of the issue
+4. Click "Execute Prompt"
+
+**Common Issues Checklist**:
+
+The prompt guides the LLM to check:
+
+- Wrong database connected
+- Table name misspelled or wrong schema
+- No vector columns (for similarity_search)
+- Embedding generation disabled
+- Empty result set (query works but no matching data)
+- Rate limit exceeded
+- Permission denied
+
+**Quick Checks**:
+
+For fastest diagnosis, the prompt prioritizes:
+
+1. Wrong database: Check system-info, switch if needed
+2. Table doesn't exist: Run get_schema_info
+3. No data in table: Sample with limit=1
+4. Semantic search in non-vector table: Check vector_tables_only
+
+### explore-database
+
+Systematically explores an unfamiliar database to understand its structure,
+capabilities, and available data.
+
+**Use Cases**:
+
+- Understanding a new database you're working with
+- Discovering what data is available
+- Identifying semantic search capabilities
+- Planning queries or analyses
+
+**Arguments**: None (fully automated workflow)
+
+**Workflow Overview**:
+
+1. **System Information**: Identifies which database you're connected to
+2. **Table Overview**: Gets comprehensive schema information
+3. **Structure Analysis**: Identifies table purposes and relationships
+4. **Special Capabilities**: Detects pgvector columns, JSONB, foreign keys
+5. **Data Sampling**: Optionally queries small samples from key tables
+6. **Summary**: Provides findings and suggested next steps
+
+**CLI Example**:
+
+```bash
+/prompt explore-database
+```
+
+**Web UI Usage**:
+
+1. Click the brain icon next to the send button
+2. Select "explore-database" from the dropdown
+3. Click "Execute Prompt" (no arguments needed)
+
+**Rate Limit Management**:
+
+The prompt includes guidance to:
+
+- Use `schema_name="public"` to reduce token usage
+- Use `limit=5` for sample queries
+- Cache results to avoid re-querying
+- Filter by schema for large databases
+
+**Early Exit Conditions**:
+
+The workflow stops if:
+
+- No tables found (wrong/empty database)
+- Permission denied
+- Specific data sought but not found
+
+### setup-semantic-search
+
+Sets up semantic search using the similarity_search tool. Guides the LLM
+through discovering vector-capable tables, understanding their structure,
+and executing optimal searches.
+
+**Use Cases**:
+
+- First-time semantic search setup
+- Finding relevant documentation chunks
+- Searching knowledge bases or Wikipedia-style articles
+- RAG (Retrieval-Augmented Generation) workflows
+
+**Arguments**:
+
+- `query_text` (required): The natural language search query
+
+**Workflow Overview**:
+
+1. **Discovery**: Identifies tables with pgvector columns
+2. **Selection**: Chooses the most appropriate table based on schema info
+3. **Execution**: Runs similarity_search with optimal parameters
+4. **Token Optimization**: Manages chunking and token budgets to avoid rate
+limits
+
+**CLI Example**:
+
+```bash
+/prompt setup-semantic-search query_text="What is pgAgent?"
+```
+
+**Web UI Usage**:
+
+1. Click the brain icon (Psychology icon) next to the send button
+2. Select "setup-semantic-search" from the dropdown
+3. Enter your query text in the query_text field
+4. Click "Execute Prompt"
+
+**Parameters Guide**:
+
+The prompt instructs the LLM to use these similarity_search parameters:
+
+- `top_n`: 10 (balance between recall and token usage)
+- `chunk_size_tokens`: 100 (manageable chunk size)
+- `lambda`: 0.6 (balanced relevance vs diversity)
+- `max_output_tokens`: 1000 (prevents rate limit issues)
+
+**Token Budget Management**:
+
+This prompt includes specific guidance on managing token budgets to avoid
+rate limit errors. It instructs the LLM to:
+
+- Start with conservative token limits (1000 tokens)
+- Use moderate chunking (100 tokens per chunk)
+- Limit initial searches to top 10 results
+- Avoid multiple large searches in the same conversation turn
+
 ## Using Prompts
 
 ### CLI Client
@@ -337,17 +337,17 @@ Prompts are executed using the `/prompt` slash command:
 **Examples**:
 
 ```bash
-# Setup semantic search
-/prompt setup-semantic-search query_text="What is PostgreSQL?"
-
-# Explore database
-/prompt explore-database
+# Design a database schema
+/prompt design-schema requirements="User management with roles and permissions"
 
 # Diagnose issue
 /prompt diagnose-query-issue issue_description="table not found"
 
-# Design a database schema
-/prompt design-schema requirements="User management with roles and permissions"
+# Explore database
+/prompt explore-database
+
+# Setup semantic search
+/prompt setup-semantic-search query_text="What is PostgreSQL?"
 ```
 
 **Quoted Arguments**:
@@ -420,11 +420,11 @@ each LLM call:
 
 Each prompt includes token budget recommendations:
 
-- `setup-semantic-search`: Limits similarity_search to 1000 tokens by
-default
-- `explore-database`: Uses schema filtering and sample limits
 - `diagnose-query-issue`: Prioritizes quick checks before expensive
 operations
+- `explore-database`: Uses schema filtering and sample limits
+- `setup-semantic-search`: Limits similarity_search to 1000 tokens by
+default
 
 **Best Practices**:
 
@@ -471,11 +471,11 @@ methods:
 
 Prompts are implemented in `internal/prompts/`:
 
+- `design_schema.go`: Schema design workflow
+- `diagnose_query_issue.go`: Query diagnosis workflow
+- `explore_database.go`: Database exploration workflow
 - `registry.go`: Prompt registration and management
 - `setup_semantic_search.go`: Semantic search workflow
-- `explore_database.go`: Database exploration workflow
-- `diagnose_query_issue.go`: Query diagnosis workflow
-- `design_schema.go`: Schema design workflow
 
 Each prompt returns a `mcp.PromptResult` containing:
 

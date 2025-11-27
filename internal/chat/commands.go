@@ -16,6 +16,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 	"time"
 )
@@ -118,23 +119,46 @@ func (c *Client) HandleSlashCommand(ctx context.Context, cmd *SlashCommand) bool
 
 	case "tools":
 		c.ui.PrintSystemMessage(fmt.Sprintf("Available tools (%d):", len(c.tools)))
-		for _, tool := range c.tools {
-			desc := getBriefDescription(tool.Description)
-			fmt.Printf("  - %s: %s\n", tool.Name, desc)
+		// Sort tools alphabetically by name
+		sortedTools := make([]struct{ Name, Desc string }, len(c.tools))
+		for i, tool := range c.tools {
+			sortedTools[i] = struct{ Name, Desc string }{tool.Name, getBriefDescription(tool.Description)}
+		}
+		sort.Slice(sortedTools, func(i, j int) bool {
+			return sortedTools[i].Name < sortedTools[j].Name
+		})
+		for _, tool := range sortedTools {
+			fmt.Printf("  - %s: %s\n", tool.Name, tool.Desc)
 		}
 		return true
 
 	case "resources":
 		c.ui.PrintSystemMessage(fmt.Sprintf("Available resources (%d):", len(c.resources)))
-		for _, resource := range c.resources {
-			fmt.Printf("  - %s: %s\n", resource.Name, resource.Description)
+		// Sort resources alphabetically by name
+		sortedResources := make([]struct{ Name, Desc string }, len(c.resources))
+		for i, resource := range c.resources {
+			sortedResources[i] = struct{ Name, Desc string }{resource.Name, resource.Description}
+		}
+		sort.Slice(sortedResources, func(i, j int) bool {
+			return sortedResources[i].Name < sortedResources[j].Name
+		})
+		for _, resource := range sortedResources {
+			fmt.Printf("  - %s: %s\n", resource.Name, resource.Desc)
 		}
 		return true
 
 	case "prompts":
 		c.ui.PrintSystemMessage(fmt.Sprintf("Available prompts (%d):", len(c.prompts)))
-		for _, prompt := range c.prompts {
-			fmt.Printf("  - %s: %s\n", prompt.Name, prompt.Description)
+		// Sort prompts alphabetically by name
+		sortedPrompts := make([]struct{ Name, Desc string }, len(c.prompts))
+		for i, prompt := range c.prompts {
+			sortedPrompts[i] = struct{ Name, Desc string }{prompt.Name, prompt.Description}
+		}
+		sort.Slice(sortedPrompts, func(i, j int) bool {
+			return sortedPrompts[i].Name < sortedPrompts[j].Name
+		})
+		for _, prompt := range sortedPrompts {
+			fmt.Printf("  - %s: %s\n", prompt.Name, prompt.Desc)
 		}
 		return true
 
