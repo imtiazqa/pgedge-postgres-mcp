@@ -1,4 +1,4 @@
-.PHONY: build build-server build-client build-kb-builder clean clean-server clean-client clean-kb-builder test test-server test-client test-kb-builder run install help lint lint-server lint-client fmt format
+.PHONY: build build-server build-client build-kb-builder clean clean-server clean-client clean-kb-builder test test-server test-client test-kb-builder run install help lint lint-server lint-client fmt format gofmt
 
 # Binary names and directories
 SERVER_BINARY=pgedge-nla-server
@@ -144,6 +144,12 @@ fmt:
 # Alias for fmt
 format: fmt
 
+# Run gofmt directly (shows files that would change, then formats)
+gofmt:
+	@echo "Running gofmt..."
+	@gofmt -l -w .
+	@echo "gofmt complete"
+
 # Run linter on all code (requires golangci-lint)
 lint:
 	@echo "Running linter on all code..."
@@ -208,8 +214,9 @@ help:
 	@echo "  make test-kb-builder - Run kb-builder tests only"
 	@echo ""
 	@echo "Formatting:"
-	@echo "  make format         - Format Go code with gofmt"
-	@echo "  make fmt            - Format Go code with gofmt (alias)"
+	@echo "  make fmt            - Format Go code with go fmt"
+	@echo "  make format         - Format Go code with go fmt (alias)"
+	@echo "  make gofmt          - Format Go code with gofmt directly"
 	@echo ""
 	@echo "Linting:"
 	@echo "  make lint           - Run linter on all code"
