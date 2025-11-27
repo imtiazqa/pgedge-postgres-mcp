@@ -460,6 +460,6 @@ UI)
 
 - [Available Tools](tools.md) - MCP tools for database interaction
 - [Available Resources](resources.md) - MCP resources for system information
-- [Configuration](configuration.md) - Server configuration options
-- [Using the CLI Client](using-cli-client.md) - Command-line interface guide
-- [Building Chat Clients](building-chat-clients.md) - Web interface development
+- [Configuration](../guide/configuration.md) - Server configuration options
+- [Using the CLI Client](../guide/cli-client.md) - Command-line interface guide
+- [Building Chat Clients](../developers/building-chat-clients.md) - Web interface development

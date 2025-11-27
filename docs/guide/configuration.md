@@ -131,7 +131,7 @@ secret_file: ""  # defaults to pgedge-nla-server.secret, auto-generated if not p
 
 ```
 
-A complete example configuration file with detailed comments is available at [here](config-example.md).
+A complete example configuration file with detailed comments is available at [here](../reference/config-examples/server.md).
 
 ## Multiple Database Management
 

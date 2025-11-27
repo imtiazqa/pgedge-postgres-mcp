@@ -2,7 +2,7 @@
 
 The Natural Language Agent Go Chat Client is a **production-ready, full-featured** native Go implementation that provides an interactive command-line interface for chatting with your PostgreSQL database using natural language.
 
-This is the recommended client for production use and provides significantly more features and polish than the [Python examples](building-chat-clients.md), which are intended as simple reference implementations to demonstrate the MCP protocol.
+This is the recommended client for production use and provides significantly more features and polish than the [Python examples](../developers/building-chat-clients.md), which are intended as simple reference implementations to demonstrate the MCP protocol.
 
 ## Features
 
@@ -148,7 +148,7 @@ ui:
     render_markdown: true  # Render markdown with formatting and syntax highlighting
 ```
 
-For a complete configuration file example with all available options and detailed comments, see the [Chat Client Config Example](chat-client-config-example.md).
+For a complete configuration file example with all available options and detailed comments, see the [Chat Client Config Example](../reference/config-examples/cli-client.md).
 
 ### Environment Variables
 
@@ -745,12 +745,12 @@ ollama pull llama3
 ## See Also
 
 **For Users:**
-- [Chat Client Config Example](chat-client-config-example.md) - Complete configuration reference
-- [Chatbot Examples Overview](building-chat-clients.md) - Compare different chatbot approaches
-- [Stdio + Anthropic Claude Chatbot](stdio-anthropic-chatbot.md) - Python stdio example
-- [HTTP + Ollama Chatbot](http-ollama-chatbot.md) - Python HTTP + Ollama example
+- [Chat Client Config Example](../reference/config-examples/cli-client.md) - Complete configuration reference
+- [Chatbot Examples Overview](../developers/building-chat-clients.md) - Compare different chatbot approaches
+- [Stdio + Anthropic Claude Chatbot](../developers/stdio-anthropic-chatbot.md) - Python stdio example
+- [HTTP + Ollama Chatbot](../developers/http-ollama-chatbot.md) - Python HTTP + Ollama example
 - [MCP Server Configuration](configuration.md) - Configure the MCP server
-- [Available Tools](tools.md) - List of database tools you can use
+- [Available Tools](../reference/tools.md) - List of database tools you can use
 
 **For Developers:**
-- [Development Guide](development.md) - Building, testing, and development workflow
+- [Development Guide](../contributing/development.md) - Building, testing, and development workflow

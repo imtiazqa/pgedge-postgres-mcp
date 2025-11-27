@@ -297,7 +297,7 @@ Enable logging to debug embedding API calls:
 export PGEDGE_LLM_LOG_LEVEL="info"  # or "debug" or "trace"
 ```
 
-See [Configuration Guide](configuration.md#embedding-generation-logging) for details.
+See [Configuration Guide](../guide/configuration.md#embedding-generation-logging) for details.
 
 ### read_resource
 

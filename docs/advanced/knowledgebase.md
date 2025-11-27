@@ -63,9 +63,9 @@ independent** from the `embedding` and `llm` sections. This allows you to:
 
 **See also:**
 
-- [Server Configuration Example](config-example.md) - Complete server config
+- [Server Configuration Example](../reference/config-examples/server.md) - Complete server config
     with knowledgebase section
-- [KB Builder Configuration](kb-builder-config-example.md) - Building the
+- [KB Builder Configuration](../reference/config-examples/kb-builder.md) - Building the
     knowledgebase database
 
 ## usage
@@ -239,8 +239,8 @@ valid knowledgebase database file.
 
 ## see also
 
-- [Server Configuration Example](config-example.md) - Complete server config
+- [Server Configuration Example](../reference/config-examples/server.md) - Complete server config
     with knowledgebase section
-- [KB Builder Configuration](kb-builder-config-example.md) - Building the
+- [KB Builder Configuration](../reference/config-examples/kb-builder.md) - Building the
     knowledgebase database
-- [Available Tools](tools.md) - Overview of all MCP tools
+- [Available Tools](../reference/tools.md) - Overview of all MCP tools

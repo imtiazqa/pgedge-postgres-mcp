@@ -240,5 +240,5 @@ The complete source code for this example is available in the [`examples/stdio-a
 ## Next Steps
 
 - Try the [HTTP + Ollama Chatbot](http-ollama-chatbot.md) for a local, privacy-focused alternative
-- Learn about [available tools](tools.md) you can use
-- Set up [authentication](authentication.md) for production deployments
+- Learn about [available tools](../reference/tools.md) you can use
+- Set up [authentication](../guide/authentication.md) for production deployments

@@ -36,7 +36,7 @@ A full-featured native Go implementation with support for both stdio and HTTP mo
 - **Connection**: Supports both stdio and HTTP
 - **LLM Support**: Anthropic Claude, OpenAI (GPT-4o, GPT-5, etc.), and Ollama
 
-[View Go Chat Client →](using-cli-client.md)
+[View Go Chat Client →](../guide/cli-client.md)
 
 ### Stdio + Anthropic Claude (Python)
 
@@ -107,12 +107,12 @@ A simple Python example that connects to the MCP server via HTTP and uses Ollama
 
 Choose the example that best fits your needs:
 
-- [Go Chat Client](using-cli-client.md) - **Recommended** for production use
+- [Go Chat Client](../guide/cli-client.md) - **Recommended** for production use
 - [Stdio + Anthropic Claude Example](stdio-anthropic-chatbot.md) - Great for prototyping with Python
 - [HTTP + Ollama Example](http-ollama-chatbot.md) - Perfect for privacy-sensitive or offline applications
 
 For more information about the MCP server itself, see:
 
-- [Configuration Guide](configuration.md)
-- [Available Tools](tools.md)
-- [Authentication](authentication.md)
+- [Configuration Guide](../guide/configuration.md)
+- [Available Tools](../reference/tools.md)
+- [Authentication](../guide/authentication.md)

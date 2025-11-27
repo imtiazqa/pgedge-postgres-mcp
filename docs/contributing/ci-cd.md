@@ -632,4 +632,4 @@ vim .golangci.yml
 
 - [Testing Guide](testing.md) - Detailed testing procedures
 - [Architecture Guide](architecture.md) - Code structure and organization
-- [Troubleshooting Guide](troubleshooting.md) - Common issues and solutions
+- [Troubleshooting Guide](../guide/troubleshooting.md) - Common issues and solutions

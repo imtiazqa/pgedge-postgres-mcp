@@ -64,7 +64,7 @@ go build -o bin/pgedge-nla-server ./cmd/pgedge-pg-mcp-svr
 ```
 
 **Note:** This example uses `-no-auth` for simplicity. For production deployments,
-use token-based or user-based authentication (see [Authentication Guide](authentication.md)).
+use token-based or user-based authentication (see [Authentication Guide](../guide/authentication.md)).
 
 **5. Set up environment (in a new terminal):**
 
@@ -295,6 +295,6 @@ The complete source code for this example is available in the [`examples/http-ol
 ## Next Steps
 
 - Try the [Stdio + Anthropic Claude Chatbot](stdio-anthropic-chatbot.md) for a simpler setup with more powerful LLM
-- Learn about [HTTP mode configuration](deployment.md) for production
-- Explore [authentication options](authentication.md) for securing your HTTP endpoint
-- Learn about [available tools](tools.md) you can use
+- Learn about [HTTP mode configuration](../guide/deployment.md) for production
+- Explore [authentication options](../guide/authentication.md) for securing your HTTP endpoint
+- Learn about [available tools](../reference/tools.md) you can use

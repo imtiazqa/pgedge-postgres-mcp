@@ -458,5 +458,5 @@ For queries taking too long:
 
 For more complex scenarios, see:
 
-- [Troubleshooting Guide](troubleshooting.md) - Debugging and common issues
-- [Architecture Guide](architecture.md) - Understanding how the server works
+- [Troubleshooting Guide](../guide/troubleshooting.md) - Debugging and common issues
+- [Architecture Guide](../contributing/architecture.md) - Understanding how the server works

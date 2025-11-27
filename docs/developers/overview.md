@@ -21,7 +21,7 @@ The MCP server exposes two main interfaces:
 - **JSON-RPC (MCP Protocol)** - For MCP-compatible clients
 - **REST APIs** - For LLM proxy and utility endpoints
 
-See [Architecture](architecture.md) for the complete system overview.
+See [Architecture](../contributing/architecture.md) for the complete system overview.
 
 ### 2. Choose Your Approach
 
@@ -43,7 +43,7 @@ Best for: Web applications that need AI-powered database access
 - Pre-built LLM provider integration
 - REST API endpoints
 
-See: [LLM Proxy](llm-proxy.md)
+See: [LLM Proxy](../advanced/llm-proxy.md)
 
 **Option C: Direct API Integration**
 
@@ -67,7 +67,7 @@ MCP tools are functions that can be called via the protocol:
 - `hybrid_search` - BM25+MMR semantic search
 - `generate_embedding` - Create vector embeddings
 
-See: [Tools Documentation](tools.md)
+See: [Tools Documentation](../reference/tools.md)
 
 ### MCP Resources
 
@@ -77,7 +77,7 @@ MCP resources provide read-only access to system information:
 - `pg://stat/activity` - Current database activity
 - `pg://stat/database` - Database statistics
 
-See: [Resources Documentation](resources.md)
+See: [Resources Documentation](../reference/resources.md)
 
 ### Authentication
 
@@ -86,7 +86,7 @@ The server supports two authentication modes:
 1. **Token-based** - API tokens for automation
 2. **User-based** - Username/password for interactive clients
 
-See: [Authentication](authentication.md)
+See: [Authentication](../guide/authentication.md)
 
 ## Example: Building a Simple Client
 
@@ -143,33 +143,33 @@ print(result)
 - **[MCP Protocol Reference](mcp-protocol.md)** - Complete protocol
   specification
 - **[API Reference](api-reference.md)** - All available endpoints
-- **[LLM Proxy](llm-proxy.md)** - Building web clients with LLM integration
-- **[Architecture](architecture.md)** - System design and components
+- **[LLM Proxy](../advanced/llm-proxy.md)** - Building web clients with LLM integration
+- **[Architecture](../contributing/architecture.md)** - System design and components
 
 ### Example Implementations
 
 - **[Python Examples](building-chat-clients.md)** - Sample chat clients
   - Stdio + Anthropic Claude
   - HTTP + Ollama
-- **[Go CLI Client](using-cli-client.md)** - Full-featured reference
+- **[Go CLI Client](../guide/cli-client.md)** - Full-featured reference
   implementation
 - **[Web Client](https://github.com/pgEdge/pgedge-postgres-mcp/blob/main/web/README.md)** - React-based web interface
 
 ### Configuration
 
-- **[Server Configuration](configuration.md)** - Configure the MCP server
-- **[Docker Deployment](docker-deployment.md)** - Deploy with Docker
-- **[Query Examples](examples.md)** - Common use cases
+- **[Server Configuration](../guide/configuration.md)** - Configure the MCP server
+- **[Deployment](../guide/deployment.md)** - Deploy with Docker or native
+- **[Query Examples](../reference/examples.md)** - Common use cases
 
 ## Next Steps
 
 1. **Read the Protocol** - Understand [MCP Protocol](mcp-protocol.md)
 2. **Review Examples** - See [Building Chat Clients](building-chat-clients.md)
 3. **Try the APIs** - Use [API Reference](api-reference.md)
-4. **Deploy** - Follow [Docker Deployment](docker-deployment.md)
+4. **Deploy** - Follow [Deployment](../guide/deployment.md)
 
 ## Support
 
-- **Questions?** See [Troubleshooting](troubleshooting.md)
+- **Questions?** See [Troubleshooting](../guide/troubleshooting.md)
 - **Bug reports:** [GitHub Issues](https://github.com/pgEdge/pgedge-postgres-mcp/issues)
-- **Examples:** [Query Examples](examples.md)
+- **Examples:** [Query Examples](../reference/examples.md)

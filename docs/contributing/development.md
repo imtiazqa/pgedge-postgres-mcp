@@ -466,4 +466,4 @@ For VSCode, recommended settings (`.vscode/settings.json`):
 - [Architecture](architecture.md) - System architecture and design
 - [Testing](testing.md) - Detailed testing guide and coverage
 - [CI/CD](ci-cd.md) - Continuous integration and deployment
-- [MCP Protocol Reference](mcp-protocol.md) - MCP protocol details
+- [MCP Protocol Reference](../developers/mcp-protocol.md) - MCP protocol details

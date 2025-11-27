@@ -369,7 +369,7 @@ const processQuery = async (userMessage) => {
 
 ## See Also
 
-- [API Reference](api-reference.md) - Complete API endpoint documentation
-- [MCP Protocol](mcp-protocol.md) - MCP protocol specification
-- [Architecture](architecture.md) - System architecture overview
-- [Configuration](configuration.md) - Server configuration options
+- [API Reference](../developers/api-reference.md) - Complete API endpoint documentation
+- [MCP Protocol](../developers/mcp-protocol.md) - MCP protocol specification
+- [Architecture](../contributing/architecture.md) - System architecture overview
+- [Configuration](../guide/configuration.md) - Server configuration options

@@ -6,7 +6,11 @@ extra_css:
 markdown_extensions:
   - admonition
   - pymdownx.details
-  - pymdownx.superfences
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
 
 plugins:
   - search
@@ -24,6 +28,7 @@ theme:
     - navigation.tracking
     - navigation.prune
     - navigation.top
+    - navigation.sections
     - toc.follow
 
   palette:
@@ -50,46 +55,48 @@ copyright: Copyright &copy; 2025 pgEdge, Inc
 repo_url: https://github.com/pgEdge/pgedge-postgres-mcp
 
 nav:
-  - Getting Started:
-      - Introduction: index.md
+  - Home: index.md
+  - Quick Start: quickstart.md
 
   - User Guide:
-      - Configuration: configuration.md
-      - Authentication: authentication.md
-      - Deployment: deployment.md
-      - Docker Deployment: docker-deployment.md
-      - Using the CLI Client: using-cli-client.md
-      - Available Tools: tools.md
-      - Available Resources: resources.md
-      - Available Prompts: prompts.md
-      - Custom Prompts and Resources: custom-definitions.md
-      - Knowledgebase: knowledgebase.md
-      - Query Examples: examples.md
-      - Security: security.md
-      - Troubleshooting: troubleshooting.md
+      - Deployment: guide/deployment.md
+      - Configuration: guide/configuration.md
+      - Authentication: guide/authentication.md
+      - CLI Client: guide/cli-client.md
+      - Security: guide/security.md
+      - Troubleshooting: guide/troubleshooting.md
+
+  - Reference:
+      - Tools: reference/tools.md
+      - Resources: reference/resources.md
+      - Prompts: reference/prompts.md
+      - Examples: reference/examples.md
       - Configuration Examples:
-          - Server Config: config-example.md
-          - API Tokens: api-tokens-example.md
-          - Chat Client Config: chat-client-config-example.md
-          - KB Builder Config: kb-builder-config-example.md
+          - Server: reference/config-examples/server.md
+          - API Tokens: reference/config-examples/tokens.md
+          - CLI Client: reference/config-examples/cli-client.md
+          - KB Builder: reference/config-examples/kb-builder.md
 
-  - Application Development:
-      - Overview: app-dev-overview.md
-      - MCP Protocol: mcp-protocol.md
-      - Server Architecture: architecture.md
-      - API Reference: api-reference.md
-      - LLM Proxy: llm-proxy.md
+  - For Developers:
+      - Overview: developers/overview.md
+      - MCP Protocol: developers/mcp-protocol.md
+      - API Reference: developers/api-reference.md
       - Building Chat Clients:
-          - Overview: building-chat-clients.md
-          - Python Examples:
-              - Stdio + Anthropic: stdio-anthropic-chatbot.md
-              - HTTP + Ollama: http-ollama-chatbot.md
+          - Overview: developers/building-chat-clients.md
+          - Python (Stdio + Claude): developers/stdio-anthropic-chatbot.md
+          - Python (HTTP + Ollama): developers/http-ollama-chatbot.md
 
-  - Project Development:
-      - Development Setup: development.md
-      - Internal Architecture: internal-architecture.md
-      - KB Builder Architecture: internal/kb-builder-architecture.md
-      - Testing: testing.md
-      - CI/CD: ci-cd.md
+  - Advanced Topics:
+      - Custom Definitions: advanced/custom-definitions.md
+      - Knowledgebase: advanced/knowledgebase.md
+      - LLM Proxy: advanced/llm-proxy.md
+
+  - Contributing:
+      - Development Setup: contributing/development.md
+      - Architecture: contributing/architecture.md
+      - Internal Architecture: contributing/internal-architecture.md
+      - KB Builder: contributing/internal/kb-builder-architecture.md
+      - Testing: contributing/testing.md
+      - CI/CD: contributing/ci-cd.md
 
   - Changelog: changelog.md

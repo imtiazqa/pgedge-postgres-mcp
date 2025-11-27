@@ -1,239 +1,92 @@
-# pgEdge Natural Language Agent Documentation
+# pgEdge Natural Language Agent
 
-A Model Context Protocol (MCP) server written in Go that enables natural language queries against PostgreSQL databases.
+A Model Context Protocol (MCP) server that enables natural language queries
+against PostgreSQL databases.
 
-> 🚧 **WARNING**: This code is in pre-release status and MUST NOT be put into production without thorough testing!
-
-## Quick Links
-
-- **[Configuration Guide](configuration.md)** - Setup and configuration
-- **[Docker Deployment](docker-deployment.md)** - Complete Docker Compose deployment
-- **[Tools Reference](tools.md)** - MCP tools reference
-- **[Resources Reference](resources.md)** - MCP resources reference
-- **[Prompts Reference](prompts.md)** - MCP prompts reference
-- **[Query Examples](examples.md)** - Usage examples
-- **[Deployment Guide](deployment.md)** - HTTP/HTTPS deployment
-- **[Troubleshooting](troubleshooting.md)** - Common issues and solutions
+!!! warning "Pre-Release"
+    This software is in pre-release status. Test thoroughly before production use.
 
 ## Features
 
-- **Natural Language to SQL** - Convert plain English questions into SQL queries
+- **Natural Language to SQL** - Ask questions in plain English
 - **Read-Only Protection** - All queries execute in read-only transactions
-- **Multiple LLM Support** - Anthropic Claude, OpenAI (GPT-4o, GPT-5), or
-  Ollama (local/free)
-- **Resources** - PostgreSQL system info, database schema, and more
-- **Tools** - Query execution, schema analysis, hybrid search, embedding
-  generation, and more
-- **Prompts** - Guided workflows for semantic search, database exploration,
-  query diagnostics, and more
-- **HTTP/HTTPS Mode** - Direct API access with token authentication
-- **Web Interface** - Modern React-based UI for server monitoring and management
-- **Production Chat Client** - Full-featured Go client with Anthropic prompt
-  caching
-- **Secure** - TLS support, token authentication, read-only enforcement
+- **Multiple LLM Support** - Anthropic Claude, OpenAI, or Ollama (local/free)
+- **Web Interface** - Modern React-based chat UI
+- **CLI Client** - Production chat client with Anthropic prompt caching
+- **Secure** - TLS, token/user authentication, read-only enforcement
 
-## Getting Started
+## Quick Start
 
-### Prerequisites
-
-- Go 1.21 or higher
-- PostgreSQL database (any version with pg_description support)
-- LLM Provider: Anthropic Claude API key, OpenAI API key, OR Ollama installation
-
-### Quick Setup
-
-1. **Build the server:**
-
-    ```bash
-    make build
-    ```
-
-2. **Choose your LLM provider:**
-
-    - **Anthropic Claude**: Get API key at https://console.anthropic.com/
-    - **OpenAI**: Get API key at https://platform.openai.com/
-    - **Ollama**: Install from https://ollama.ai/ and download a model
-
-3. **Configure for Claude Desktop:**
-
-    Edit `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS):
-    ```json
-    {
-        "mcpServers": {
-        "pgedge": {
-            "command": "/absolute/path/to/bin/pgedge-nla-server",
-            "env": {
-            "PGHOST": "localhost",
-            "PGPORT": "5432",
-            "PGDATABASE": "mydb",
-            "PGUSER": "myuser",
-            "PGPASSWORD": "mypass",
-            "ANTHROPIC_API_KEY": "sk-ant-your-key"
-            }
-        }
-        }
-    }
-    ```
-
-    **Alternative:** Store API key in a file (more secure):
-
-    ```bash
-    # Create API key file
-    echo "sk-ant-your-key" > ~/.anthropic-api-key
-    chmod 600 ~/.anthropic-api-key
-    ```
-
-    Then omit `ANTHROPIC_API_KEY` from the config - the server will read from
-    `~/.anthropic-api-key` automatically.
-
-4. **Start using:** Restart Claude Desktop and ask questions about your database!
-
-For detailed setup instructions, see **[Configuration Guide](configuration.md)**.
+**[Get started in 5 minutes →](quickstart.md)**
 
 ## Documentation
 
-### Essential Guides
+### User Guide
 
-#### [Configuration Guide](configuration.md)
-Complete configuration reference covering config files, environment variables, command-line flags, and Claude Desktop setup for Anthropic, OpenAI, and Ollama providers.
+For server operators and end users.
 
-#### [Docker Deployment Guide](docker-deployment.md)
-Complete guide for deploying with Docker and Docker Compose. Includes containerized MCP server and web client setup, environment configuration, production deployment with reverse proxy, security hardening, and troubleshooting.
+- [Deployment](guide/deployment.md) - Docker, native, and systemd deployment
+- [Configuration](guide/configuration.md) - All configuration options
+- [Authentication](guide/authentication.md) - Users, tokens, and access control
+- [CLI Client](guide/cli-client.md) - Command-line interface
+- [Security](guide/security.md) - Security best practices
+- [Troubleshooting](guide/troubleshooting.md) - Common issues and solutions
 
-#### [Tools Documentation](tools.md)
-Reference for MCP tools including `query_database`, `get_schema_info`,
-`similarity_search`, `generate_embedding`, and more.
+### Reference
 
-#### [Resources Documentation](resources.md)
-Reference for MCP resources providing access to PostgreSQL system information,
-database schema overview, and more.
+- [Tools](reference/tools.md) - Database query, schema, search tools
+- [Resources](reference/resources.md) - System info and schema resources
+- [Prompts](reference/prompts.md) - Guided workflow prompts
+- [Examples](reference/examples.md) - Query examples
 
-#### [Prompts Documentation](prompts.md)
-Reference for MCP prompts including `setup-semantic-search`, `explore-database`,
-`diagnose-query-issue`, and more. Prompts are guided workflows that help LLMs
-navigate complex multi-step processes efficiently.
+### For Developers
 
-#### [Query Examples](examples.md)
-Comprehensive collection of example queries covering schema discovery, data analysis, system monitoring, and multi-database operations.
+Building applications that use the MCP server.
 
-#### [Deployment Guide](deployment.md)
-Production deployment guide for HTTP/HTTPS mode including TLS setup, reverse proxy configuration, Docker deployment, and systemd services.
+- [Overview](developers/overview.md) - Integration approaches
+- [MCP Protocol](developers/mcp-protocol.md) - Protocol details
+- [API Reference](developers/api-reference.md) - HTTP endpoints
+- [Building Chat Clients](developers/building-chat-clients.md) - Client development
 
-#### [Authentication Guide](authentication.md)
-API token management for HTTP/HTTPS mode including token generation, validation, expiration, and security best practices.
+### Advanced Topics
 
-#### [Web Interface](https://github.com/pgEdge/pgedge-postgres-mcp/blob/main/web/README.md)
-Modern React-based web interface for server monitoring and management. Features secure authentication, real-time PostgreSQL system information, and responsive design. Includes quick start guide and deployment instructions.
+- [Custom Prompts & Resources](advanced/custom-definitions.md) - Extend functionality
+- [Knowledgebase](advanced/knowledgebase.md) - Documentation search system
+- [LLM Proxy](advanced/llm-proxy.md) - Server-side LLM integration
 
-#### [Go Chat Client](using-cli-client.md)
-Production-ready command-line chat client with Anthropic prompt caching (90% cost reduction), support for both stdio and HTTP modes, and comprehensive session management.
+### Contributing
 
-### Technical Guides
+For project contributors.
 
-#### [MCP Protocol Guide](mcp-protocol.md)
-Protocol implementation details covering JSON-RPC 2.0 format, transport layers (stdio, HTTP), tool invocation, and resource access.
-
-#### [Security Guide](security.md)
-Comprehensive security documentation including threat model, security features, best practices, and compliance considerations.
-
-#### [Architecture Guide](architecture.md)
-Internal architecture documentation covering code organization, package structure, and guides for extending the server with new tools and resources.
-
-#### [Testing Guide](testing.md)
-Testing documentation covering unit tests, integration tests, PostgreSQL version compatibility testing, and CI/CD integration.
-
-#### [CI/CD Guide](ci-cd.md)
-Continuous integration documentation covering GitHub Actions workflows, automated testing, release process, and version management.
-
-#### [Troubleshooting Guide](troubleshooting.md)
-Problem-solving guide with common issues, diagnostic procedures, error messages, and debugging tips.
+- [Development Setup](contributing/development.md) - Local development
+- [Architecture](contributing/architecture.md) - System design
+- [Testing](contributing/testing.md) - Test suites
+- [CI/CD](contributing/ci-cd.md) - Automation pipelines
 
 ## How It Works
 
-The server operates in four main steps:
-
-1. **Metadata Extraction** - Connects to PostgreSQL and extracts schema information (tables, columns, types, comments)
-2. **Natural Language Processing** - Sends questions and schema to LLM for SQL generation
-3. **Read-Only Execution** - Executes generated SQL in read-only transactions
-4. **Result Formatting** - Returns formatted results to Claude Desktop
-
-All queries via `query_database` are executed in read-only mode, preventing INSERT, UPDATE, DELETE, and DDL operations.
-
-## HTTP/HTTPS Mode
-
-Run as a standalone HTTP server:
-
-```bash
-# HTTP
-./bin/pgedge-nla-server -http
-
-# HTTPS
-./bin/pgedge-nla-server -http -tls -cert server.crt -key server.key
+```mermaid
+flowchart LR
+    A[User Question] --> B[LLM]
+    B --> C[SQL Query]
+    C --> D[MCP Server]
+    D --> E[PostgreSQL]
+    E --> F[Results]
+    F --> B
+    B --> G[Answer]
 ```
 
-See **[Deployment Guide](deployment.md)** and **[Authentication Guide](authentication.md)** for details.
-
-## Development
-
-### Project Structure
-
-```
-pgedge-postgres-mcp/
-├── cmd/pgedge-pg-mcp-svr/  # Application entry point
-├── internal/                  # Private packages
-│   ├── auth/                  # API token authentication
-│   ├── config/                # Configuration management
-│   ├── database/              # PostgreSQL integration
-│   ├── llm/                   # LLM provider clients
-│   ├── mcp/                   # MCP protocol implementation
-│   ├── resources/             # MCP resource implementations
-│   └── tools/                 # MCP tool implementations
-├── docs/                      # Documentation
-└── test/                      # Integration tests
-```
-
-### Running Tests
-
-```bash
-# All tests
-go test ./...
-
-# With coverage
-go test -v -cover ./...
-
-# Integration tests (requires PostgreSQL)
-export TEST_PGEDGE_POSTGRES_CONNECTION_STRING="postgres://user:pass@localhost/testdb"
-go test ./internal/resources -v -run Integration
-```
-
-See **[Testing Guide](testing.md)** for comprehensive testing documentation.
-
-## Security
-
-Key security features:
-
-- Read-only transaction enforcement
-- API token authentication with expiration
-- TLS/HTTPS support
-- SHA256 token hashing
-- Input validation and sanitization
-
-See **[Security Guide](security.md)** for detailed security documentation.
-
-## Support
-
-- **Documentation**: Browse guides in [docs](index.md) directory
-- **Issues**: [GitHub Issues](https://github.com/pgEdge/pgedge-postgres-mcp/issues)
-- **Examples**: See [Query Examples](examples.md)
+1. **Schema extraction** - Server loads table/column metadata from PostgreSQL
+2. **Query generation** - LLM converts natural language to SQL
+3. **Safe execution** - Queries run in read-only transactions
+4. **Result formatting** - Answers returned to the user
 
 ## License
 
-This software is released under The PostgreSQL License.
+Released under The PostgreSQL License.
 
-## Related Projects
+## Links
 
-- [Model Context Protocol](https://modelcontextprotocol.io/) - MCP specification
-- [Claude Desktop](https://claude.ai/) - Anthropic's Claude AI assistant
-- [Ollama](https://ollama.ai/) - Run LLMs locally
-- [PostgreSQL](https://www.postgresql.org/) - Open source database
-- [pgEdge](https://www.pgedge.com/) - Distributed PostgreSQL
+- [GitHub Repository](https://github.com/pgEdge/pgedge-postgres-mcp)
+- [Model Context Protocol](https://modelcontextprotocol.io/)
+- [pgEdge](https://www.pgedge.com/)

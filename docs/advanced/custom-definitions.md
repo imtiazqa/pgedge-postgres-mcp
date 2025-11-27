@@ -470,7 +470,7 @@ Current limitations (may be addressed in future versions):
 
 ## Related Documentation
 
-- [Introduction](index.md) - Getting started with the server
-- [API Reference](api-reference.md) - MCP protocol details
-- [Built-in Resources](resources.md) - Available built-in resources
-- [Built-in Prompts](prompts.md) - Available built-in prompts
+- [Introduction](../index.md) - Getting started with the server
+- [API Reference](../developers/api-reference.md) - MCP protocol details
+- [Built-in Resources](../reference/resources.md) - Available built-in resources
+- [Built-in Prompts](../reference/prompts.md) - Available built-in prompts

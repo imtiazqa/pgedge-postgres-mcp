@@ -239,7 +239,7 @@ The compactor uses a 5-tier classification system:
 ## LLM Proxy Endpoints
 
 The LLM proxy provides REST API endpoints for chat functionality. See the
-[LLM Proxy Guide](llm-proxy.md) for detailed documentation on these endpoints:
+[LLM Proxy Guide](../advanced/llm-proxy.md) for detailed documentation on these endpoints:
 
 - `GET /api/llm/providers` - List configured LLM providers
 - `GET /api/llm/models?provider=<provider>` - List available models
@@ -247,7 +247,7 @@ The LLM proxy provides REST API endpoints for chat functionality. See the
 
 ## See Also
 
-- [LLM Proxy](llm-proxy.md) - LLM proxy endpoints and usage
+- [LLM Proxy](../advanced/llm-proxy.md) - LLM proxy endpoints and usage
 - [MCP Protocol](mcp-protocol.md) - MCP protocol specification
-- [Tools Documentation](tools.md) - Available MCP tools
-- [Resources Documentation](resources.md) - Available MCP resources
+- [Tools Documentation](../reference/tools.md) - Available MCP tools
+- [Resources Documentation](../reference/resources.md) - Available MCP resources

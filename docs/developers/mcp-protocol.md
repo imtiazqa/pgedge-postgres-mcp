@@ -50,7 +50,7 @@ The server supports two transport modes:
 ./bin/pgedge-nla-server -http -addr ":8080"
 ```
 
-For deployment details, see [Deployment Guide](deployment.md).
+For deployment details, see [Deployment Guide](../guide/deployment.md).
 
 ## MCP Capabilities
 
@@ -78,7 +78,7 @@ Five callable functions for database interaction and management:
 
 **Note:** Database connection is configured at server startup via environment variables, config file, or command-line flags. There are no runtime connection management tools.
 
-For detailed tool documentation, see [Tools Documentation](tools.md).
+For detailed tool documentation, see [Tools Documentation](../reference/tools.md).
 
 ### Resources
 
@@ -89,7 +89,7 @@ Four read-only resources for system information and statistics:
 3. **pg://stat/activity** - Current activity and connections
 4. **pg://stat/replication** - Replication status
 
-For detailed resource documentation, see [Resources Documentation](resources.md).
+For detailed resource documentation, see [Resources Documentation](../reference/resources.md).
 
 ### Prompts
 
@@ -407,7 +407,7 @@ curl -X POST https://localhost:8080/mcp/v1 \
 }
 ```
 
-For token management, see [Authentication Guide](authentication.md).
+For token management, see [Authentication Guide](../guide/authentication.md).
 
 ## Protocol Extensions
 
@@ -568,14 +568,14 @@ Tests verify:
 - Error handling
 - Streaming support (HTTP mode)
 
-For more testing information, see [Testing Guide](testing.md).
+For more testing information, see [Testing Guide](../contributing/testing.md).
 
 ## Related Documentation
 
-- [Tools Documentation](tools.md) - Detailed tool reference
-- [Resources Documentation](resources.md) - Detailed resource reference
-- [Deployment Guide](deployment.md) - HTTP/HTTPS mode deployment
-- [Authentication Guide](authentication.md) - HTTP authentication
-- [Examples](examples.md) - Query examples and patterns
-- [Testing Guide](testing.md) - Testing procedures
-- [Architecture Guide](architecture.md) - Implementation details
+- [Tools Documentation](../reference/tools.md) - Detailed tool reference
+- [Resources Documentation](../reference/resources.md) - Detailed resource reference
+- [Deployment Guide](../guide/deployment.md) - HTTP/HTTPS mode deployment
+- [Authentication Guide](../guide/authentication.md) - HTTP authentication
+- [Examples](../reference/examples.md) - Query examples and patterns
+- [Testing Guide](../contributing/testing.md) - Testing procedures
+- [Architecture Guide](../contributing/architecture.md) - Implementation details

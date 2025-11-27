@@ -430,7 +430,7 @@ After clearing, you can rebuild with:
 
 ## See Also
 
-- [Knowledgebase Search](knowledgebase.md) - Using the search_knowledgebase
+- [Knowledgebase Search](../../advanced/knowledgebase.md) - Using the search_knowledgebase
     tool
-- [MCP Server Configuration](config-example.md) - Configure the MCP server to
+- [MCP Server Configuration](server.md) - Configure the MCP server to
     use the knowledgebase
