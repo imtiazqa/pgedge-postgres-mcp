@@ -225,6 +225,37 @@ func (c *Config) Validate() error {
 	return nil
 }
 
+// IsProviderConfigured returns true if the provider has the required configuration
+func (c *Config) IsProviderConfigured(provider string) bool {
+	switch provider {
+	case "anthropic":
+		return c.LLM.AnthropicAPIKey != ""
+	case "openai":
+		return c.LLM.OpenAIAPIKey != ""
+	case "ollama":
+		// Ollama is configured if URL is set (defaults to localhost)
+		return c.LLM.OllamaURL != ""
+	default:
+		return false
+	}
+}
+
+// GetConfiguredProviders returns a list of providers that are configured
+// in priority order: anthropic, openai, ollama
+func (c *Config) GetConfiguredProviders() []string {
+	providers := []string{}
+	if c.IsProviderConfigured("anthropic") {
+		providers = append(providers, "anthropic")
+	}
+	if c.IsProviderConfigured("openai") {
+		providers = append(providers, "openai")
+	}
+	if c.IsProviderConfigured("ollama") {
+		providers = append(providers, "ollama")
+	}
+	return providers
+}
+
 // getEnvOrDefault returns the environment variable value or default
 func getEnvOrDefault(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {

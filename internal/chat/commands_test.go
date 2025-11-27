@@ -126,12 +126,19 @@ func TestHandleSetStatusMessages(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create a test client with minimal config
 			cfg := &Config{
+				LLM: LLMConfig{
+					Provider:  "ollama",
+					OllamaURL: "http://localhost:11434",
+				},
 				UI: UIConfig{
 					NoColor:               false,
 					DisplayStatusMessages: false,
 				},
 			}
-			client, _ := NewClient(cfg, &ConfigOverrides{})
+			client, err := NewClient(cfg, &ConfigOverrides{ProviderSet: true})
+			if err != nil {
+				t.Fatalf("NewClient failed: %v", err)
+			}
 
 			// Call handleSetStatusMessages
 			client.handleSetStatusMessages(tt.value)
@@ -163,7 +170,7 @@ func TestHandleSetLLMProvider(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Create a test client with Anthropic configured
+			// Create a test client with all providers configured
 			cfg := &Config{
 				LLM: LLMConfig{
 					Provider:        "anthropic",
@@ -176,7 +183,10 @@ func TestHandleSetLLMProvider(t *testing.T) {
 					NoColor: false,
 				},
 			}
-			client, _ := NewClient(cfg, &ConfigOverrides{})
+			client, err := NewClient(cfg, &ConfigOverrides{ProviderSet: true, ModelSet: true})
+			if err != nil {
+				t.Fatalf("NewClient failed: %v", err)
+			}
 
 			// Initialize LLM client
 			_ = client.initializeLLM()
@@ -215,11 +225,14 @@ func TestHandleSetLLMModel(t *testing.T) {
 			NoColor: false,
 		},
 	}
-	client, _ := NewClient(cfg, &ConfigOverrides{})
+	client, err := NewClient(cfg, &ConfigOverrides{ProviderSet: true, ModelSet: true})
+	if err != nil {
+		t.Fatalf("NewClient failed: %v", err)
+	}
 	_ = client.initializeLLM()
 
-	// Test setting a new model
-	newModel := "claude-3-opus-20240229"
+	// Test setting a new model (use a valid model from the Anthropic list)
+	newModel := "claude-3-haiku-20240307"
 	handled := client.handleSetLLMModel(newModel)
 
 	if !handled {

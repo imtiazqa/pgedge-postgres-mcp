@@ -276,12 +276,16 @@ func TestClient_InitializeLLM_InvalidProvider(t *testing.T) {
 
 func TestClient_HandleSlashCommand_Help(t *testing.T) {
 	cfg := &Config{
+		LLM: LLMConfig{
+			Provider:  "ollama",
+			OllamaURL: "http://localhost:11434",
+		},
 		UI: UIConfig{
 			NoColor: true,
 		},
 	}
 
-	client, err := NewClient(cfg, &ConfigOverrides{})
+	client, err := NewClient(cfg, &ConfigOverrides{ProviderSet: true})
 	if err != nil {
 		t.Fatalf("NewClient failed: %v", err)
 	}
@@ -295,12 +299,16 @@ func TestClient_HandleSlashCommand_Help(t *testing.T) {
 
 func TestClient_HandleSlashCommand_Clear(t *testing.T) {
 	cfg := &Config{
+		LLM: LLMConfig{
+			Provider:  "ollama",
+			OllamaURL: "http://localhost:11434",
+		},
 		UI: UIConfig{
 			NoColor: true,
 		},
 	}
 
-	client, err := NewClient(cfg, &ConfigOverrides{})
+	client, err := NewClient(cfg, &ConfigOverrides{ProviderSet: true})
 	if err != nil {
 		t.Fatalf("NewClient failed: %v", err)
 	}
@@ -314,12 +322,16 @@ func TestClient_HandleSlashCommand_Clear(t *testing.T) {
 
 func TestClient_HandleSlashCommand_Tools(t *testing.T) {
 	cfg := &Config{
+		LLM: LLMConfig{
+			Provider:  "ollama",
+			OllamaURL: "http://localhost:11434",
+		},
 		UI: UIConfig{
 			NoColor: true,
 		},
 	}
 
-	client, err := NewClient(cfg, &ConfigOverrides{})
+	client, err := NewClient(cfg, &ConfigOverrides{ProviderSet: true})
 	if err != nil {
 		t.Fatalf("NewClient failed: %v", err)
 	}
@@ -350,12 +362,16 @@ func TestClient_HandleSlashCommand_Resources(t *testing.T) {
 			URL:   server.URL,
 			Token: "test-token",
 		},
+		LLM: LLMConfig{
+			Provider:  "ollama",
+			OllamaURL: "http://localhost:11434",
+		},
 		UI: UIConfig{
 			NoColor: true,
 		},
 	}
 
-	client, err := NewClient(cfg, &ConfigOverrides{})
+	client, err := NewClient(cfg, &ConfigOverrides{ProviderSet: true})
 	if err != nil {
 		t.Fatalf("NewClient failed: %v", err)
 	}
@@ -381,12 +397,16 @@ func TestClient_HandleSlashCommand_Resources(t *testing.T) {
 
 func TestClient_HandleSlashCommand_Unknown(t *testing.T) {
 	cfg := &Config{
+		LLM: LLMConfig{
+			Provider:  "ollama",
+			OllamaURL: "http://localhost:11434",
+		},
 		UI: UIConfig{
 			NoColor: true,
 		},
 	}
 
-	client, err := NewClient(cfg, &ConfigOverrides{})
+	client, err := NewClient(cfg, &ConfigOverrides{ProviderSet: true})
 	if err != nil {
 		t.Fatalf("NewClient failed: %v", err)
 	}
@@ -968,12 +988,16 @@ func TestClient_ConnectToMCP_URLFormatting(t *testing.T) {
 					Token: "test-token",
 					TLS:   tt.useTLS,
 				},
+				LLM: LLMConfig{
+					Provider:  "ollama",
+					OllamaURL: "http://localhost:11434",
+				},
 				UI: UIConfig{
 					NoColor: true,
 				},
 			}
 
-			client, err := NewClient(cfg, &ConfigOverrides{})
+			client, err := NewClient(cfg, &ConfigOverrides{ProviderSet: true})
 			if err != nil {
 				t.Fatalf("NewClient failed: %v", err)
 			}

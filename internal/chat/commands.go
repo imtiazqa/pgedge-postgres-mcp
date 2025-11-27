@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 )
 
 // SlashCommand represents a parsed slash command
@@ -340,7 +341,7 @@ func (c *Client) handleSetDebug(value string) bool {
 func (c *Client) handleSetLLMProvider(provider string) bool {
 	provider = strings.ToLower(provider)
 
-	// Validate provider
+	// Validate provider name
 	validProviders := map[string]bool{
 		"anthropic": true,
 		"openai":    true,
@@ -353,6 +354,12 @@ func (c *Client) handleSetLLMProvider(provider string) bool {
 		return true
 	}
 
+	// Check if provider is configured
+	if !c.config.IsProviderConfigured(provider) {
+		c.ui.PrintError(fmt.Sprintf("Provider %s is not configured (missing API key or URL)", provider))
+		return true
+	}
+
 	// Save current model for current provider before switching
 	if c.config.LLM.Provider != "" && c.config.LLM.Model != "" {
 		c.preferences.SetModelForProvider(c.config.LLM.Provider, c.config.LLM.Model)
@@ -361,28 +368,19 @@ func (c *Client) handleSetLLMProvider(provider string) bool {
 	// Update config to new provider
 	c.config.LLM.Provider = provider
 
-	// Auto-switch to preferred model for this provider
-	preferredModel := c.preferences.GetModelForProvider(provider)
-	if preferredModel != "" {
-		c.config.LLM.Model = preferredModel
-	} else {
-		// No saved model - use default for this provider
-		defaults := getDefaultPreferences()
-		if defaultModel := defaults.ProviderModels[provider]; defaultModel != "" {
-			c.config.LLM.Model = defaultModel
-		}
-	}
+	// Clear model to trigger auto-selection in initializeLLM()
+	c.config.LLM.Model = ""
 
 	// Update preferences
 	c.preferences.LastProvider = provider
 
-	// Reinitialize LLM client
+	// Reinitialize LLM client (will auto-select model)
 	if err := c.initializeLLM(); err != nil {
 		c.ui.PrintError(fmt.Sprintf("Failed to initialize LLM: %v", err))
 		return true
 	}
 
-	// Save preferences
+	// Save preferences (model was already saved in initializeLLM)
 	if err := SavePreferences(c.preferences); err != nil {
 		c.ui.PrintError(fmt.Sprintf("Warning: Failed to save preferences: %v", err))
 	}
@@ -393,13 +391,29 @@ func (c *Client) handleSetLLMProvider(provider string) bool {
 
 // handleSetLLMModel handles setting the LLM model
 func (c *Client) handleSetLLMModel(model string) bool {
+	// Get available models to validate
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	availableModels, err := c.llm.ListModels(ctx)
+	if err != nil {
+		// If we can't validate, warn but allow the change
+		c.ui.PrintSystemMessage(fmt.Sprintf(
+			"Warning: Could not validate model (error: %v)", err))
+	} else if !isModelAvailable(model, availableModels) {
+		c.ui.PrintError(fmt.Sprintf(
+			"Model '%s' not available from %s", model, c.config.LLM.Provider))
+		c.ui.PrintSystemMessage("Use /list models to see available models")
+		return true
+	}
+
 	// Update config
 	c.config.LLM.Model = model
 
 	// Save model preference for current provider
 	c.preferences.SetModelForProvider(c.config.LLM.Provider, model)
 
-	// Reinitialize LLM client
+	// Reinitialize LLM client with the new model
 	if err := c.initializeLLM(); err != nil {
 		c.ui.PrintError(fmt.Sprintf("Failed to initialize LLM: %v", err))
 		return true

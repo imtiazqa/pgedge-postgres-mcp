@@ -361,13 +361,13 @@ When executing tools:
 // ListModels returns available Anthropic Claude models
 // Note: Anthropic doesn't provide a public models API, so we return a static list
 func (c *anthropicClient) ListModels(ctx context.Context) ([]string, error) {
-	// Return a curated list of available Claude models as of early 2025
+	// Return a curated list of available Claude models
+	// Opus is excluded as it throws errors when selected
 	return []string{
 		"claude-sonnet-4-20250514",
 		"claude-3-7-sonnet-20250219",
 		"claude-3-5-sonnet-20241022",
 		"claude-3-5-sonnet-20240620",
-		"claude-3-opus-20240229",
 		"claude-3-sonnet-20240229",
 		"claude-3-haiku-20240307",
 	}, nil
@@ -1279,6 +1279,7 @@ When executing tools:
 }
 
 // ListModels returns available models from OpenAI
+// Filters out embedding, audio, and image models
 func (c *openaiClient) ListModels(ctx context.Context) ([]string, error) {
 	url := "https://api.openai.com/v1/models"
 
@@ -1313,9 +1314,30 @@ func (c *openaiClient) ListModels(ctx context.Context) ([]string, error) {
 
 	models := make([]string, 0, len(response.Data))
 	for _, model := range response.Data {
-		// Only include chat models (filter out embeddings, audio, etc.)
-		if strings.Contains(model.ID, "gpt") || strings.HasPrefix(model.ID, "o1-") || strings.HasPrefix(model.ID, "o3-") {
-			models = append(models, model.ID)
+		id := model.ID
+
+		// Exclude embedding models
+		if strings.Contains(id, "embedding") {
+			continue
+		}
+
+		// Exclude audio/speech models
+		if strings.Contains(id, "whisper") ||
+			strings.Contains(id, "tts") ||
+			strings.Contains(id, "audio") {
+			continue
+		}
+
+		// Exclude image models
+		if strings.Contains(id, "dall-e") {
+			continue
+		}
+
+		// Include only chat-capable models (gpt-*, o1-*, o3-*)
+		if strings.Contains(id, "gpt") ||
+			strings.HasPrefix(id, "o1-") ||
+			strings.HasPrefix(id, "o3-") {
+			models = append(models, id)
 		}
 	}
 

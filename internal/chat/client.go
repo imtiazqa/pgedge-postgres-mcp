@@ -49,31 +49,35 @@ func NewClient(cfg *Config, overrides *ConfigOverrides) (*Client, error) {
 		prefs = getDefaultPreferences()
 	}
 
-	// Apply preferences to config (unless explicitly overridden by command-line flags)
-	// Priority: flags > preferences > env vars > config > defaults
+	// Apply UI preferences from saved prefs
 	cfg.UI.DisplayStatusMessages = prefs.UI.DisplayStatusMessages
 	cfg.UI.RenderMarkdown = prefs.UI.RenderMarkdown
 	cfg.UI.Debug = prefs.UI.Debug
 
-	// Apply preferred provider if not explicitly set via flag
-	if !overrides.ProviderSet && prefs.LastProvider != "" {
-		cfg.LLM.Provider = prefs.LastProvider
-	}
-
-	// Apply preferred model for the current provider if not explicitly set via flag
-	if !overrides.ModelSet {
-		if preferredModel := prefs.GetModelForProvider(cfg.LLM.Provider); preferredModel != "" {
-			cfg.LLM.Model = preferredModel
+	// === PROVIDER SELECTION LOGIC ===
+	// Priority: flags > saved provider (if configured) > first configured provider
+	if !overrides.ProviderSet {
+		// Check if saved provider is configured
+		if prefs.LastProvider != "" && cfg.IsProviderConfigured(prefs.LastProvider) {
+			cfg.LLM.Provider = prefs.LastProvider
+		} else {
+			// Use first configured provider (anthropic > openai > ollama)
+			configuredProviders := cfg.GetConfiguredProviders()
+			if len(configuredProviders) == 0 {
+				return nil, fmt.Errorf("no LLM provider configured (set API key for anthropic, openai, or ollama URL)")
+			}
+			cfg.LLM.Provider = configuredProviders[0]
 		}
 	}
 
-	// Update last provider in preferences
+	// Update prefs with actual provider being used
 	prefs.LastProvider = cfg.LLM.Provider
 
-	// Ensure the current model is saved for this provider
-	// This handles the case where a model was set via flag or config
-	if cfg.LLM.Model != "" {
-		prefs.SetModelForProvider(cfg.LLM.Provider, cfg.LLM.Model)
+	// === MODEL SELECTION ===
+	// If model not set via flag, clear it so initializeLLM() will auto-select
+	// based on saved preferences and available models from the provider
+	if !overrides.ModelSet {
+		cfg.LLM.Model = ""
 	}
 
 	ui := NewUI(cfg.UI.NoColor, cfg.UI.RenderMarkdown)
@@ -307,28 +311,54 @@ func (c *Client) authenticateUser(ctx context.Context, username, password string
 	return authResult.SessionToken, nil
 }
 
-// initializeLLM creates the LLM client
+// initializeLLM creates the LLM client with model validation and auto-selection
 func (c *Client) initializeLLM() error {
-	// Handle Ollama dynamic model selection if no model is set
-	if c.config.LLM.Provider == "ollama" && c.config.LLM.Model == "" {
-		if err := c.selectBestOllamaModel(); err != nil {
-			// If we can't select a model, fall back to a default
-			if c.config.UI.Debug {
-				fmt.Fprintf(os.Stderr, "Warning: Failed to auto-select Ollama model: %v\n", err)
-			}
-			// Use first preferred model as fallback
-			preferredModels := getPreferredOllamaModels()
-			if len(preferredModels) > 0 {
-				c.config.LLM.Model = preferredModels[0]
-			} else {
-				return fmt.Errorf("no Ollama model configured and auto-selection failed")
-			}
-		}
-		// Save the selected model
-		c.preferences.SetModelForProvider("ollama", c.config.LLM.Model)
+	provider := c.config.LLM.Provider
+
+	// Create a temporary client to query available models
+	var tempClient LLMClient
+	switch provider {
+	case "anthropic":
+		tempClient = NewAnthropicClient(
+			c.config.LLM.AnthropicAPIKey, "", 0, 0, false)
+	case "openai":
+		tempClient = NewOpenAIClient(
+			c.config.LLM.OpenAIAPIKey, "", 0, 0, false)
+	case "ollama":
+		tempClient = NewOllamaClient(
+			c.config.LLM.OllamaURL, "", false)
+	default:
+		return fmt.Errorf("unsupported LLM provider: %s", provider)
 	}
 
-	if c.config.LLM.Provider == "anthropic" {
+	// Get available models from the provider
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	availableModels, err := tempClient.ListModels(ctx)
+	if err != nil {
+		// If we can't list models, log warning but continue with defaults
+		if c.config.UI.Debug {
+			fmt.Fprintf(os.Stderr, "Warning: Failed to list models from %s: %v\n", provider, err)
+		}
+		availableModels = nil
+	}
+
+	// Select the best model to use
+	selectedModel := c.selectModel(provider, availableModels)
+	c.config.LLM.Model = selectedModel
+
+	// Save the selected model for this provider
+	c.preferences.SetModelForProvider(provider, selectedModel)
+	if err := SavePreferences(c.preferences); err != nil {
+		if c.config.UI.Debug {
+			fmt.Fprintf(os.Stderr, "Warning: Failed to save preferences: %v\n", err)
+		}
+	}
+
+	// Create the actual LLM client with the selected model
+	switch provider {
+	case "anthropic":
 		c.llm = NewAnthropicClient(
 			c.config.LLM.AnthropicAPIKey,
 			c.config.LLM.Model,
@@ -336,7 +366,7 @@ func (c *Client) initializeLLM() error {
 			c.config.LLM.Temperature,
 			c.config.UI.Debug,
 		)
-	} else if c.config.LLM.Provider == "openai" {
+	case "openai":
 		c.llm = NewOpenAIClient(
 			c.config.LLM.OpenAIAPIKey,
 			c.config.LLM.Model,
@@ -344,57 +374,12 @@ func (c *Client) initializeLLM() error {
 			c.config.LLM.Temperature,
 			c.config.UI.Debug,
 		)
-	} else if c.config.LLM.Provider == "ollama" {
+	case "ollama":
 		c.llm = NewOllamaClient(
 			c.config.LLM.OllamaURL,
 			c.config.LLM.Model,
 			c.config.UI.Debug,
 		)
-	} else {
-		return fmt.Errorf("unsupported LLM provider: %s", c.config.LLM.Provider)
-	}
-
-	return nil
-}
-
-// selectBestOllamaModel queries the Ollama server for available models
-// and selects the first one from the preferred list
-func (c *Client) selectBestOllamaModel() error {
-	// Create a temporary Ollama client to query available models
-	tempClient := NewOllamaClient(c.config.LLM.OllamaURL, "", false)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	availableModels, err := tempClient.ListModels(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to list Ollama models: %w", err)
-	}
-
-	if len(availableModels) == 0 {
-		return fmt.Errorf("no models available on Ollama server")
-	}
-
-	// Get preferred models in priority order
-	preferredModels := getPreferredOllamaModels()
-
-	// Try to find the first preferred model that's available
-	for _, preferred := range preferredModels {
-		for _, available := range availableModels {
-			if available == preferred {
-				c.config.LLM.Model = available
-				if c.config.UI.Debug {
-					fmt.Fprintf(os.Stderr, "Auto-selected Ollama model: %s\n", available)
-				}
-				return nil
-			}
-		}
-	}
-
-	// If no preferred model is available, use the first available model
-	c.config.LLM.Model = availableModels[0]
-	if c.config.UI.Debug {
-		fmt.Fprintf(os.Stderr, "Using first available Ollama model: %s\n", availableModels[0])
 	}
 
 	return nil
@@ -821,9 +806,69 @@ func (c *Client) SavePreferences() error {
 		return nil
 	}
 
-	// Update preferences with current provider and model
-	c.preferences.LastProvider = c.config.LLM.Provider
-	c.preferences.SetModelForProvider(c.config.LLM.Provider, c.config.LLM.Model)
-
+	// Just save preferences as-is. The /set commands already update both
+	// c.preferences and c.config, and save immediately. We don't want to
+	// overwrite c.preferences.LastProvider from c.config here because
+	// c.config may have been loaded from file with different values.
 	return SavePreferences(c.preferences)
+}
+
+// selectModel determines the best model to use based on:
+// 1. Command-line flag (if set via config)
+// 2. Saved preference (if valid for the current provider)
+// 3. Default for provider (if available)
+// 4. First available model from provider's list
+func (c *Client) selectModel(provider string, availableModels []string) string {
+	// If model was already set (via flag), use it (trust the user)
+	if c.config.LLM.Model != "" {
+		return c.config.LLM.Model
+	}
+
+	// Check saved preference for this provider
+	savedModel := c.preferences.GetModelForProvider(provider)
+	if savedModel != "" && isModelAvailable(savedModel, availableModels) {
+		return savedModel
+	}
+
+	// Use default for provider
+	defaultModel := getDefaultModelForProvider(provider)
+	if isModelAvailable(defaultModel, availableModels) {
+		return defaultModel
+	}
+
+	// Fall back to first available model
+	if len(availableModels) > 0 {
+		return availableModels[0]
+	}
+
+	// Last resort: use default even if not validated
+	return defaultModel
+}
+
+// isModelAvailable checks if model is in the available list
+// Returns true if availableModels is nil (couldn't fetch) for graceful degradation
+func isModelAvailable(model string, availableModels []string) bool {
+	if availableModels == nil {
+		return true // Can't validate, assume available
+	}
+	for _, m := range availableModels {
+		if m == model {
+			return true
+		}
+	}
+	return false
+}
+
+// getDefaultModelForProvider returns the default model for a provider
+func getDefaultModelForProvider(provider string) string {
+	switch provider {
+	case "anthropic":
+		return "claude-sonnet-4-20250514"
+	case "openai":
+		return "gpt-5.1"
+	case "ollama":
+		return "qwen3-coder:latest"
+	default:
+		return ""
+	}
 }

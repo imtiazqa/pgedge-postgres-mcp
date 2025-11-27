@@ -14,7 +14,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -103,99 +102,21 @@ func getDefaultPreferences() *Preferences {
 		ProviderModels: map[string]string{
 			"anthropic": "claude-sonnet-4-20250514",
 			"openai":    "gpt-5.1",
-			"ollama":    "", // Will be determined dynamically from available models
+			"ollama":    "qwen3-coder:latest",
 		},
 		LastProvider: "anthropic",
 	}
 }
 
-// getKnownAnthropicModels returns the list of known Anthropic models
-func getKnownAnthropicModels() []string {
-	return []string{
-		"claude-sonnet-4-20250514",
-		"claude-3-7-sonnet-20250219",
-		"claude-3-5-sonnet-20241022",
-		"claude-3-5-sonnet-20240620",
-		"claude-3-opus-20240229",
-		"claude-3-sonnet-20240229",
-		"claude-3-haiku-20240307",
-	}
-}
-
-// getPreferredOllamaModels returns the user's preferred Ollama models in priority order
-// These should all support tool calling
-func getPreferredOllamaModels() []string {
-	return []string{
-		"gpt-oss:20b",
-		"gemma:latest",
-		"qwen3-coder:30b",
-		"llama3.1:latest",
-	}
-}
-
-// isValidModelForProvider checks if a model is valid for a given provider
-// For Anthropic: checks against known static list
-// For OpenAI: assumes all models starting with "gpt", "o1-", or "o3-" are valid
-// For Ollama: we can't validate without querying the server
-func isValidModelForProvider(provider, model string) bool {
-	if model == "" {
-		return false
-	}
-
-	switch provider {
-	case "anthropic":
-		knownModels := getKnownAnthropicModels()
-		for _, known := range knownModels {
-			if model == known {
-				return true
-			}
-		}
-		return false
-
-	case "openai":
-		// OpenAI models: gpt-*, o1-*, o3-*
-		return strings.HasPrefix(model, "gpt-") ||
-			strings.HasPrefix(model, "gpt") ||
-			strings.HasPrefix(model, "o1-") ||
-			strings.HasPrefix(model, "o3-")
-
-	case "ollama":
-		// We can't validate Ollama models without querying the server
-		// Accept any non-empty model name
-		return true
-
-	default:
-		return false
-	}
-}
-
 // sanitizePreferences validates and fixes corrupted preference data
-// Returns a sanitized copy of the preferences
+// Only validates structure, not model validity (done at runtime in initializeLLM)
 func sanitizePreferences(prefs *Preferences) *Preferences {
-	defaults := getDefaultPreferences()
-
 	// Ensure provider_models map exists
 	if prefs.ProviderModels == nil {
 		prefs.ProviderModels = make(map[string]string)
 	}
 
-	// Validate each provider's model
-	for _, provider := range []string{"anthropic", "openai", "ollama"} {
-		if savedModel, exists := prefs.ProviderModels[provider]; exists {
-			// Validate the saved model for this provider
-			if !isValidModelForProvider(provider, savedModel) {
-				// Invalid model for this provider - use default
-				fmt.Fprintf(os.Stderr, "Warning: Invalid model '%s' for provider '%s', using default\n",
-					savedModel, provider)
-				prefs.ProviderModels[provider] = defaults.ProviderModels[provider]
-			}
-		} else {
-			// No saved model for this provider - use default
-			prefs.ProviderModels[provider] = defaults.ProviderModels[provider]
-		}
-	}
-
-	// Validate LastProvider
+	// Validate LastProvider is a known provider name
 	validProviders := map[string]bool{
 		"anthropic": true,
 		"openai":    true,
@@ -203,15 +124,12 @@ func sanitizePreferences(prefs *Preferences) *Preferences {
 	}
 	if !validProviders[prefs.LastProvider] {
 		// Invalid provider - use default
+		defaults := getDefaultPreferences()
 		prefs.LastProvider = defaults.LastProvider
 	}
 
-	// Ensure the saved provider has a valid model
-	if prefs.LastProvider != "" {
-		if model := prefs.ProviderModels[prefs.LastProvider]; model == "" {
-			prefs.ProviderModels[prefs.LastProvider] = defaults.ProviderModels[prefs.LastProvider]
-		}
-	}
+	// Don't validate models here - that requires API access
+	// Model validation happens at runtime in initializeLLM()
 
 	return prefs
 }

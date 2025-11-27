@@ -52,6 +52,11 @@ and this project adheres to
 - Automatic preference validation and sanitization on load
 - Default provider priority order (Anthropic → OpenAI → Ollama)
 - Preferred Ollama models list with tool-calling support verification
+- Runtime model validation against provider APIs before selection
+- Provider selection now validates that provider is actually configured
+- Filtered out Claude Opus models from Anthropic (causes tool-calling
+  errors)
+- Filtered out embedding, audio, and image models from OpenAI model list
 
 #### Security & Authentication
 
