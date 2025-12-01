@@ -76,7 +76,25 @@ sources:
       branch: "v1.0.0-alpha2"
       doc_path: "docs"
       project_name: "pgEdge Natural Language Agent"
+      project_version: "1.0.0-alpha1"
+
+    - git_url: "https://github.com/pgEdge/pgedge-nla.git"
+      branch: "v1.0.0-alpha2"
+      doc_path: "docs"
+      project_name: "pgEdge Natural Language Agent"
       project_version: "1.0.0-alpha2"
+
+    - git_url: "https://github.com/pgEdge/pgedge-docloader.git"
+      branch: "v1.0.0-alpha1"
+      doc_path: "docs"
+      project_name: "pgEdge Docloader"
+      project_version: "1.0.0-alpha1"
+
+    - git_url: "https://github.com/pgEdge/pgedge-rag-server.git"
+      branch: "v1.0.0-alpha1"
+      doc_path: "docs"
+      project_name: "pgEdge RAG Server"
+      project_version: "1.0.0-alpha1"
 
     - git_url: "https://github.com/pgEdge/spock.git"
       branch: "v5_STABLE"
