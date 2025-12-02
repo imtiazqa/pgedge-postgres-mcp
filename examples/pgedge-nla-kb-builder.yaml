@@ -90,11 +90,23 @@ sources:
       project_name: "pgEdge Docloader"
       project_version: "1.0.0-alpha1"
 
+    - git_url: "https://github.com/pgEdge/pgedge-docloader.git"
+      branch: "v1.0.0-alpha2"
+      doc_path: "docs"
+      project_name: "pgEdge Docloader"
+      project_version: "1.0.0-alpha2"
+
     - git_url: "https://github.com/pgEdge/pgedge-rag-server.git"
       branch: "v1.0.0-alpha1"
       doc_path: "docs"
       project_name: "pgEdge RAG Server"
       project_version: "1.0.0-alpha1"
+
+    - git_url: "https://github.com/pgEdge/pgedge-rag-server.git"
+      branch: "v1.0.0-alpha2"
+      doc_path: "docs"
+      project_name: "pgEdge RAG Server"
+      project_version: "1.0.0-alpha2"
 
     - git_url: "https://github.com/pgEdge/spock.git"
       branch: "v5_STABLE"
@@ -137,6 +149,12 @@ sources:
       doc_path: "docs"
       project_name: "pgEdge Vectorizer"
       project_version: "1.0-alpha1"
+
+    - git_url: "https://github.com/pgEdge/pgedge-vectorizer.git"
+      branch: "v1.0-alpha2"
+      doc_path: "docs"
+      project_name: "pgEdge Vectorizer"
+      project_version: "1.0-alpha2"
 
     - git_url: "https://github.com/pgbouncer/pgbouncer.git"
       branch: "pgbouncer_1_25_0"
