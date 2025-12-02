@@ -59,6 +59,7 @@ nav:
   - Quick Start: quickstart.md
 
   - User Guide:
+      - Choosing the Right Solution: guide/mcp-vs-rag.md
       - Deployment: guide/deployment.md
       - Configuration: guide/configuration.md
       - Authentication: guide/authentication.md

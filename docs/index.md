@@ -6,6 +6,14 @@ against PostgreSQL databases.
 !!! warning "Pre-Release"
     This software is in pre-release status. Test thoroughly before production use.
 
+!!! danger "Not for Public-Facing Applications"
+    This MCP server provides LLMs with read access to your entire database
+    schema and data. It should only be used for internal tools, developer
+    workflows, or environments where all users are trusted. For public-facing
+    applications, consider the
+    [pgEdge RAG Server](https://github.com/pgedge/pgedge-rag-server) instead.
+    **[Read the full comparison →](guide/mcp-vs-rag.md)**
+
 ## Features
 
 - **Natural Language to SQL** - Ask questions in plain English
@@ -25,6 +33,7 @@ against PostgreSQL databases.
 
 For server operators and end users.
 
+- [Choosing the Right Solution](guide/mcp-vs-rag.md) - MCP Server vs RAG Server
 - [Deployment](guide/deployment.md) - Docker, native, and systemd deployment
 - [Configuration](guide/configuration.md) - All configuration options
 - [Authentication](guide/authentication.md) - Users, tokens, and access control

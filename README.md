@@ -12,6 +12,14 @@ PostgreSQL databases through MCP-compatible clients like Claude Desktop.
 > 🚧 **WARNING**: This code is in pre-release status and MUST NOT be put
 > into production without thorough testing!
 
+> ⚠️ **NOT FOR PUBLIC-FACING APPLICATIONS**: This MCP server provides LLMs
+> with read access to your entire database schema and data. It should only be
+> used for internal tools, developer workflows, or environments where all users
+> are trusted. For public-facing applications, consider the
+> [pgEdge RAG Server](https://github.com/pgedge/pgedge-rag-server) instead.
+> See the [Choosing the Right Solution](docs/guide/mcp-vs-rag.md) guide for
+> details.
+
 ## Key Features
 
 - 🔒 **Read-Only Protection** - All queries run in read-only transactions
