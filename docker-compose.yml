@@ -42,7 +42,7 @@ services:
             - pgedge-network
         restart: unless-stopped
         healthcheck:
-            test: ["CMD", "/bin/sh", "-c", "test -f /app/pgedge-nla-server"]
+            test: ["CMD", "/bin/sh", "-c", "test -f /app/pgedge-mcp-server"]
             interval: 10s
             timeout: 5s
             retries: 3
