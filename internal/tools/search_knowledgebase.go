@@ -32,6 +32,15 @@ func SearchKnowledgebaseTool(kbPath string, cfg *config.Config) Tool {
 			Name: "search_knowledgebase",
 			Description: `Search the pre-built documentation knowledgebase for relevant information.
 
+<critical>
+IMPORTANT: Product names require EXACT matches. "pgEdge" will NOT match
+"pgEdge RAG Server", "pgEdge Cloud", or "pgEdge Platform" - these are
+separate products.
+
+ALWAYS call with list_products=true FIRST to discover exact product names
+before filtering by project_names.
+</critical>
+
 Use this tool when you need information about:
 - PostgreSQL features, syntax, functions
 - pgEdge products and capabilities
@@ -40,21 +49,28 @@ Use this tool when you need information about:
 The knowledgebase contains chunked, embedded documentation from multiple sources
 with semantic search capabilities.
 
-Note: In this tool, "project" and "product" are used interchangeably - they both refer
-to the software product/project being documented (e.g., PostgreSQL, pgEdge, pgAdmin).
+Note: In this tool, "project" and "product" are used interchangeably - they
+both refer to the software product/project being documented.
 
-<usage>
-This tool performs semantic similarity search across pre-built documentation.
-Results are ranked by relevance and limited by token budget.
-Use list_products=true first to discover available products and versions.
-</usage>
+<workflow>
+1. First call: {"list_products": true} to see available products
+2. Note the EXACT product names from the output
+3. Search with exact names: {"query": "...", "project_names": ["Exact Name"]}
+</workflow>
+
+<troubleshooting>
+If you get zero results:
+- You likely have the wrong product name - call list_products=true
+- Try searching without project_names filter to see what's available
+- Check for typos or partial names (e.g., "pgEdge" vs "pgEdge RAG Server")
+</troubleshooting>
 
 <examples>
-✓ {"list_products": true} - List all available products
+✓ {"list_products": true} - ALWAYS do this first!
 ✓ {"query": "PostgreSQL window functions"}
-✓ {"query": "replication setup", "project_names": ["pgEdge"]}
+✓ {"query": "RAG overview", "project_names": ["pgEdge RAG Server"]}
+✓ {"query": "replication", "project_names": ["pgEdge Platform"]}
 ✓ {"query": "JSON functions", "project_names": ["PostgreSQL"], "project_versions": ["17"]}
-✓ {"query": "backup", "project_names": ["PostgreSQL", "pgEdge"], "project_versions": ["16", "17"]}
 </examples>`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
