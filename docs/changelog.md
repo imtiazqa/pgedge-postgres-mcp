@@ -12,8 +12,16 @@ and this project adheres to
 ### Added
 
 - Web client documentation with screenshots demonstrating all UI features
+- Documentation comparing RAG (Retrieval-Augmented Generation) and MCP
+  approaches
+- Optional Docker container variant with pre-built knowledgebase database
+  included
 
 ### Changed
+
+#### Naming
+
+- Renamed the server to *pgEdge MCP Server* (from *pgEdge NLA Server*)
 
 #### Knowledgebase System
 
@@ -24,6 +32,15 @@ and this project adheres to
   `project_names`/`project_versions` (arrays of strings)
 - Added `list_products` parameter to discover available products and versions
   before searching
+- Improved `search_knowledgebase` tool prompt with:
+    - Critical warning about exact product name matching at the top
+    - Step-by-step workflow guidance (discover products first, then search)
+    - Troubleshooting section for zero-result scenarios
+    - Updated examples showing realistic product names
+
+### Fixed
+
+- Docker Compose health check now uses correctly renamed binary
 
 ## [1.0.0-alpha2] - 2025-11-27
 
