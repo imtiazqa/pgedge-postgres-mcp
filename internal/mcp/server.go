@@ -20,7 +20,7 @@ import (
 
 const (
 	ProtocolVersion = "2024-11-05"
-	ServerName      = "pgedge-nla-server"
+	ServerName      = "pgedge-mcp-server"
 	ServerVersion   = "1.0.0-alpha2"
 )
 

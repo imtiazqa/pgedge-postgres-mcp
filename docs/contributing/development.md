@@ -24,7 +24,7 @@ make build
 ```
 
 This creates:
-- `bin/pgedge-nla-server` - MCP server
+- `bin/pgedge-mcp-server` - MCP server
 - `bin/pgedge-nla-cli` - Go chat client
 
 ### Building Individual Components
@@ -34,7 +34,7 @@ Build only the server:
 ```bash
 make server
 # or
-go build -o bin/pgedge-nla-server ./cmd/pgedge-pg-mcp-svr
+go build -o bin/pgedge-mcp-server ./cmd/pgedge-pg-mcp-svr
 ```
 
 Build only the client:
@@ -244,7 +244,7 @@ make lint
 make build
 
 # Test the binary
-./bin/pgedge-nla-server --version
+./bin/pgedge-mcp-server --version
 ./bin/pgedge-nla-cli --version
 ```
 
@@ -289,7 +289,7 @@ go mod download
 Enable debug logging:
 
 ```bash
-./bin/pgedge-nla-server -debug
+./bin/pgedge-mcp-server -debug
 ```
 
 Debug with specific log levels for different components:
@@ -306,7 +306,7 @@ export PGEDGE_LLM_LOG_LEVEL="debug"  # Detailed: text length, dimensions, timing
 export PGEDGE_LLM_LOG_LEVEL="trace"  # Very detailed: full request/response details
 
 # Run with logging enabled
-./bin/pgedge-nla-server
+./bin/pgedge-mcp-server
 ```
 
 ### Client Debugging

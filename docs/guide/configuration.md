@@ -45,7 +45,7 @@ The Natural Language Agent supports multiple configuration methods with the foll
 
 The server can read configuration from a YAML file, making it easier to manage settings without environment variables.
 
-**Default Location**: `pgedge-nla-server.yaml` in the same directory as the binary
+**Default Location**: `pgedge-mcp-server.yaml` in the same directory as the binary
 
 **Custom Location**: Use the `-config` flag to specify a different path
 
@@ -63,7 +63,7 @@ http:
     chain_file: ""
   auth:
     enabled: true
-    token_file: ""  # defaults to {binary_dir}/pgedge-nla-server-tokens.yaml
+    token_file: ""  # defaults to {binary_dir}/pgedge-mcp-server-tokens.yaml
     max_failed_attempts_before_lockout: 5  # Lock account after N failed attempts (0 = disabled)
     rate_limit_window_minutes: 15  # Time window for rate limiting
     rate_limit_max_attempts: 10  # Max failed attempts per IP per window
@@ -127,7 +127,7 @@ knowledgebase:
   embedding_ollama_url: "http://localhost:11434"  # For ollama provider
 
 # Encryption secret file path (optional)
-secret_file: ""  # defaults to pgedge-nla-server.secret, auto-generated if not present
+secret_file: ""  # defaults to pgedge-mcp-server.secret, auto-generated if not present
 
 ```
 
@@ -250,13 +250,13 @@ When a user selects a database:
 
 The server uses a separate encryption secret file to store the encryption key used for password encryption. This file contains a 256-bit AES encryption key used to encrypt and decrypt database passwords.
 
-**Default Location**: `pgedge-nla-server.secret` in the same directory as the binary
+**Default Location**: `pgedge-mcp-server.secret` in the same directory as the binary
 
 **Configuration Priority** (highest to lowest):
 
 1. Environment variable: `PGEDGE_SECRET_FILE=/path/to/secret`
 2. Configuration file: `secret_file: /path/to/secret`
-3. Default: `pgedge-nla-server.secret` (same directory as binary)
+3. Default: `pgedge-mcp-server.secret` (same directory as binary)
 
 ### Auto-Generation
 
@@ -264,10 +264,10 @@ The secret file is automatically generated on first run if it doesn't exist:
 
 ```bash
 # First run - secret file will be auto-generated
-./bin/pgedge-nla-server
+./bin/pgedge-mcp-server
 
 # Output:
-# Generating new encryption key at /path/to/pgedge-nla-server.secret
+# Generating new encryption key at /path/to/pgedge-mcp-server.secret
 # Encryption key saved successfully
 ```
 
@@ -293,18 +293,18 @@ base64_encoded_32_byte_key_here==
 
 **Example - Verify Permissions**:
 ```bash
-ls -la pgedge-nla-server.secret
+ls -la pgedge-mcp-server.secret
 # Should show: -rw------- (600)
 
 # Fix if needed:
-chmod 600 pgedge-nla-server.secret
+chmod 600 pgedge-mcp-server.secret
 ```
 
 **Server will exit with an error if permissions are incorrect**:
 ```
-ERROR: Failed to load encryption key from /path/to/pgedge-nla-server.secret:
+ERROR: Failed to load encryption key from /path/to/pgedge-mcp-server.secret:
 insecure permissions on key file: 0644 (expected 0600).
-Please run: chmod 600 /path/to/pgedge-nla-server.secret
+Please run: chmod 600 /path/to/pgedge-mcp-server.secret
 ```
 
 ## Embedding Generation Configuration
@@ -475,7 +475,7 @@ export PGEDGE_DB_LOG_LEVEL="debug"   # Detailed: pool config, schema counts, que
 export PGEDGE_DB_LOG_LEVEL="trace"   # Very detailed: full queries, row counts, timings
 
 # Run the server
-./bin/pgedge-nla-server
+./bin/pgedge-mcp-server
 ```
 
 **Log Levels**:
@@ -503,7 +503,7 @@ export PGEDGE_LLM_LOG_LEVEL="debug"   # Detailed: text length, dimensions, timin
 export PGEDGE_LLM_LOG_LEVEL="trace"   # Very detailed: full request/response details
 
 # Run the server
-./bin/pgedge-nla-server
+./bin/pgedge-mcp-server
 ```
 
 **Log Levels**:
@@ -525,13 +525,13 @@ export PGEDGE_LLM_LOG_LEVEL="trace"   # Very detailed: full request/response det
 
 ```bash
 # Copy the example to the binary directory
-cp configs/pgedge-nla-server.yaml.example bin/pgedge-nla-server.yaml
+cp configs/pgedge-mcp-server.yaml.example bin/pgedge-mcp-server.yaml
 
 # Edit with your settings
-vim bin/pgedge-nla-server.yaml
+vim bin/pgedge-mcp-server.yaml
 
 # Run the server (automatically loads config from default location)
-./bin/pgedge-nla-server
+./bin/pgedge-mcp-server
 ```
 
 ## Command Line Flags
@@ -556,7 +556,7 @@ See [Deployment Guide](deployment.md) for details on HTTP/HTTPS server setup.
 ### Authentication Options
 
 - `-no-auth` - Disable API token authentication
-- `-token-file` - Path to token file (default: {binary_dir}/pgedge-nla-server-tokens.yaml)
+- `-token-file` - Path to token file (default: {binary_dir}/pgedge-mcp-server-tokens.yaml)
 - `-add-token` - Add a new API token
 - `-remove-token` - Remove token by ID or hash prefix
 - `-list-tokens` - List all API tokens
@@ -574,13 +574,13 @@ management.
 **Running in stdio mode:**
 ```bash
 # Configure database connection via environment variables, config file, or flags
-./bin/pgedge-nla-server
+./bin/pgedge-mcp-server
 ```
 
 **Running in HTTP mode:**
 ```bash
 # Configure database connection via environment variables, config file, or flags
-./bin/pgedge-nla-server \
+./bin/pgedge-mcp-server \
   -http \
   -addr ":9090"
 ```
@@ -614,9 +614,9 @@ The server supports environment variables for all configuration options. All env
 export PGEDGE_HTTP_ENABLED="true"
 export PGEDGE_HTTP_ADDRESS=":8080"
 export PGEDGE_AUTH_ENABLED="true"
-export PGEDGE_AUTH_TOKEN_FILE="./pgedge-nla-server-tokens.yaml"
+export PGEDGE_AUTH_TOKEN_FILE="./pgedge-mcp-server-tokens.yaml"
 
-./bin/pgedge-nla-server
+./bin/pgedge-mcp-server
 ```
 
 **HTTPS server:**
@@ -627,7 +627,7 @@ export PGEDGE_TLS_ENABLED="true"
 export PGEDGE_TLS_CERT_FILE="./server.crt"
 export PGEDGE_TLS_KEY_FILE="./server.key"
 
-./bin/pgedge-nla-server
+./bin/pgedge-mcp-server
 ```
 
 **For Tests:**
@@ -655,7 +655,7 @@ To use this MCP server with Claude Desktop, add it to your MCP configuration fil
 {
   "mcpServers": {
     "pgedge": {
-      "command": "/absolute/path/to/pgedge-postgres-mcp/bin/pgedge-nla-server"
+      "command": "/absolute/path/to/pgedge-postgres-mcp/bin/pgedge-mcp-server"
     }
   }
 }
@@ -675,7 +675,7 @@ You can also use a YAML configuration file instead of environment variables:
 {
   "mcpServers": {
     "pgedge": {
-      "command": "/absolute/path/to/pgedge-postgres-mcp/bin/pgedge-nla-server",
+      "command": "/absolute/path/to/pgedge-postgres-mcp/bin/pgedge-mcp-server",
       "args": ["-config", "/absolute/path/to/your-config.yaml"]
     }
   }
@@ -692,7 +692,7 @@ Understanding how configuration priority works:
 # Config file has: address: ":8080"
 # Environment has: PGEDGE_HTTP_ENABLED="true"
 
-./bin/pgedge-nla-server \
+./bin/pgedge-mcp-server \
   -http \
   -addr ":3000"
 
@@ -707,7 +707,7 @@ Understanding how configuration priority works:
 # Config file has: http.address: ":8080"
 export PGEDGE_HTTP_ADDRESS=":9090"
 
-./bin/pgedge-nla-server
+./bin/pgedge-mcp-server
 
 # Result:
 # - Address: :9090 (environment overrides config file)
@@ -719,7 +719,7 @@ export PGEDGE_HTTP_ADDRESS=":9090"
 # No command line flags, no environment variables
 # Config file has partial settings
 
-./bin/pgedge-nla-server -config myconfig.yaml
+./bin/pgedge-mcp-server -config myconfig.yaml
 
 # Result:
 # - Values from config file where present
@@ -740,13 +740,13 @@ export PGEDGE_HTTP_ADDRESS=":9090"
 
 ```bash
 # Check if config file exists
-ls -la bin/pgedge-nla-server.yaml
+ls -la bin/pgedge-mcp-server.yaml
 
 # Use explicit path
-./bin/pgedge-nla-server -config /full/path/to/config.yaml
+./bin/pgedge-mcp-server -config /full/path/to/config.yaml
 
 # Check file permissions
-chmod 600 bin/pgedge-nla-server.yaml  # Should be readable
+chmod 600 bin/pgedge-mcp-server.yaml  # Should be readable
 ```
 
 ### Environment Variables Not Working

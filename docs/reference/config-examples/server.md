@@ -7,7 +7,7 @@
 #   3. Configuration file values (this file)
 #   4. Hard-coded defaults
 #
-# Copy this file to pgedge-nla-server.yaml and customize as needed.
+# Copy this file to pgedge-mcp-server.yaml and customize as needed.
 # By default, the server looks for config in the same directory as the binary.
 
 # ============================================================================
@@ -69,7 +69,7 @@ http:
         enabled: true
 
         # Path to API token configuration file
-        # Default: Same directory as binary (pgedge-nla-server-tokens.yaml)
+        # Default: Same directory as binary (pgedge-mcp-server-tokens.yaml)
         # Environment variable: PGEDGE_AUTH_TOKEN_FILE
         # Command line flag: -token-file
         token_file: ""
@@ -91,15 +91,15 @@ http:
         rate_limit_max_attempts: 10
 
         # Token management commands (no database connection required):
-        # - Create token: ./bin/pgedge-nla-server -add-token
-        # - List tokens:  ./bin/pgedge-nla-server -list-tokens
-        # - Remove token: ./bin/pgedge-nla-server -remove-token <id>
+        # - Create token: ./bin/pgedge-mcp-server -add-token
+        # - List tokens:  ./bin/pgedge-mcp-server -list-tokens
+        # - Remove token: ./bin/pgedge-mcp-server -remove-token <id>
 
 # ============================================================================
 # ENCRYPTION SECRET FILE (Optional)
 # ============================================================================
 # Path to encryption secret file used for encrypting database passwords
-# Default: pgedge-nla-server.secret in the same directory as the binary
+# Default: pgedge-mcp-server.secret in the same directory as the binary
 # If the file does not exist, it will be automatically generated on first run
 # IMPORTANT: The secret file must have 0600 permissions (owner read/write only)
 #            The server will refuse to start if permissions are incorrect
@@ -144,7 +144,7 @@ secret_file: ""
 #         enabled: false
 #     auth:
 #         enabled: true
-#         token_file: "./pgedge-nla-server-tokens.yaml"
+#         token_file: "./pgedge-mcp-server-tokens.yaml"
 
 # Example 4: Production HTTPS deployment with authentication
 # http:
@@ -157,8 +157,8 @@ secret_file: ""
 #         chain_file: "/etc/ssl/certs/ca-chain.crt"
 #     auth:
 #         enabled: true
-#         token_file: "/etc/pgedge/pgedge-nla-server-tokens.yaml"
-# secret_file: "/etc/pgedge/pgedge-nla-server-secret.key"
+#         token_file: "/etc/pgedge/pgedge-mcp-server-tokens.yaml"
+# secret_file: "/etc/pgedge/pgedge-mcp-server-secret.key"
 
 # ============================================================================
 # DATABASE CONFIGURATION

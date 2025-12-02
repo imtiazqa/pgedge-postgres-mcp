@@ -73,7 +73,7 @@ func LoadConfig(configPath string) (*Config, error) {
 		MCP: MCPConfig{
 			Mode:             getEnvOrDefault("PGEDGE_MCP_MODE", "stdio"),
 			URL:              os.Getenv("PGEDGE_MCP_URL"),
-			ServerPath:       getEnvOrDefault("PGEDGE_MCP_SERVER_PATH", "../../bin/pgedge-nla-server"),
+			ServerPath:       getEnvOrDefault("PGEDGE_MCP_SERVER_PATH", "../../bin/pgedge-mcp-server"),
 			ServerConfigPath: getEnvOrDefault("PGEDGE_MCP_SERVER_CONFIG_PATH", ""),
 			AuthMode:         getEnvOrDefault("PGEDGE_MCP_AUTH_MODE", "user"),
 			Token:            "", // Will be loaded separately

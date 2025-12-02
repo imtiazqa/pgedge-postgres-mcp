@@ -3,7 +3,7 @@
 This document provides guidance for creating native OS packages (RPM/DEB) for the
 pgEdge Natural Language Agent. The project produces four separate packages:
 
-1. **pgedge-nla-server** - MCP server with HTTP/HTTPS API
+1. **pgedge-mcp-server** - MCP server with HTTP/HTTPS API
 2. **pgedge-nla-cli** - Command-line chat client
 3. **pgedge-nla-web** - Web UI with React frontend
 4. **pgedge-nla-kb** - Pre-built knowledgebase database (optional)
@@ -17,7 +17,7 @@ pgEdge Natural Language Agent. The project produces four separate packages:
 
 ## Build Process
 
-### 1. MCP Server Package (`pgedge-nla-server`)
+### 1. MCP Server Package (`pgedge-mcp-server`)
 
 **Build Command:**
 ```bash
@@ -28,23 +28,23 @@ make build-server
 
 **Binary Location:**
 ```
-bin/pgedge-nla-server
+bin/pgedge-mcp-server
 ```
 
 **Files to Include:**
 
 ```
-/usr/bin/pgedge-nla-server                  # Main server binary
-/etc/pgedge/nla-server.yaml                 # Default configuration
-/etc/pgedge/nla-server.env                  # Environment variables template
-/usr/lib/systemd/system/pgedge-nla-server.service  # Systemd unit
-/usr/share/doc/pgedge-nla-server/README.md  # Documentation
-/usr/share/doc/pgedge-nla-server/LICENSE    # License file
-/var/lib/pgedge/nla-server/                 # Data directory (create empty)
-/var/log/pgedge/nla-server/                 # Log directory (create empty)
+/usr/bin/pgedge-mcp-server                  # Main server binary
+/etc/pgedge/mcp-server.yaml                 # Default configuration
+/etc/pgedge/mcp-server.env                  # Environment variables template
+/usr/lib/systemd/system/pgedge-mcp-server.service  # Systemd unit
+/usr/share/doc/pgedge-mcp-server/README.md  # Documentation
+/usr/share/doc/pgedge-mcp-server/LICENSE    # License file
+/var/lib/pgedge/mcp-server/                 # Data directory (create empty)
+/var/log/pgedge/mcp-server/                 # Log directory (create empty)
 ```
 
-**Default Configuration File** (`/etc/pgedge/nla-server.yaml`):
+**Default Configuration File** (`/etc/pgedge/mcp-server.yaml`):
 ```yaml
 # pgEdge Natural Language Agent - Server Configuration
 # See: https://github.com/pgEdge/pgedge-nla/blob/main/docs/configuration.md
@@ -118,7 +118,7 @@ YAML config file. It's loaded by systemd via `EnvironmentFile=`.
 # PGEDGE_MCP_LOG_LEVEL=info
 ```
 
-**Systemd Unit File** (`/usr/lib/systemd/system/pgedge-nla-server.service`):
+**Systemd Unit File** (`/usr/lib/systemd/system/pgedge-mcp-server.service`):
 ```ini
 [Unit]
 Description=pgEdge Natural Language Agent - MCP Server
@@ -133,7 +133,7 @@ Group=pgedge
 WorkingDirectory=/var/lib/pgedge/nla-server
 
 # Main executable
-ExecStart=/usr/bin/pgedge-nla-server -config /etc/pgedge/nla-server.yaml
+ExecStart=/usr/bin/pgedge-mcp-server -config /etc/pgedge/nla-server.yaml
 
 # Environment
 Environment="PGEDGE_POSTGRES_CONNECTION_STRING=postgres://postgres@localhost/postgres?sslmode=prefer"
@@ -160,7 +160,7 @@ LimitNPROC=4096
 # Logging
 StandardOutput=journal
 StandardError=journal
-SyslogIdentifier=pgedge-nla-server
+SyslogIdentifier=pgedge-mcp-server
 
 # Restart policy
 Restart=on-failure
@@ -187,7 +187,7 @@ chmod 750 /var/lib/pgedge/nla-server
 chmod 750 /var/log/pgedge/nla-server
 
 # Set binary permissions
-chmod 755 /usr/bin/pgedge-nla-server
+chmod 755 /usr/bin/pgedge-mcp-server
 
 # Reload systemd
 systemctl daemon-reload
@@ -407,8 +407,8 @@ instead of Nginx. For most deployments, use Nginx as shown above.
 [Unit]
 Description=pgEdge Natural Language Agent - Web UI Server
 Documentation=https://github.com/pgEdge/pgedge-nla
-After=network.target pgedge-nla-server.service
-Requires=pgedge-nla-server.service
+After=network.target pgedge-mcp-server.service
+Requires=pgedge-mcp-server.service
 
 [Service]
 Type=simple
@@ -542,7 +542,7 @@ fi
 
 ## Package Dependencies
 
-### MCP Server (`pgedge-nla-server`)
+### MCP Server (`pgedge-mcp-server`)
 **Runtime Dependencies:**
 - libc (glibc or musl)
 - systemd (for service management)
@@ -558,14 +558,14 @@ fi
 ### Web UI (`pgedge-nla-web`)
 **Runtime Dependencies:**
 - nginx (or any web server)
-- pgedge-nla-server (for API backend)
+- pgedge-mcp-server (for API backend)
 
 ### Knowledgebase (`pgedge-nla-kb`)
 **Runtime Dependencies:**
 - None (standalone SQLite database)
 
 **Optional for:**
-- pgedge-nla-server (enables similarity_search tool)
+- pgedge-mcp-server (enables similarity_search tool)
 
 ---
 
@@ -580,7 +580,7 @@ Maintainer: pgEdge, Inc. <support@pgedge.com>
 
 ### Package Descriptions
 
-**pgedge-nla-server:**
+**pgedge-mcp-server:**
 ```
 Summary: pgEdge Natural Language Agent - MCP Server
 Description: Model Context Protocol (MCP) server that enables natural language
@@ -655,7 +655,7 @@ Before packaging, verify builds are production-ready:
 
 ```bash
 # 1. Verify binaries are stripped and optimized
-file bin/pgedge-nla-server
+file bin/pgedge-mcp-server
 # Should show: "ELF 64-bit LSB executable ... stripped"
 
 # 2. Verify web build is minified
@@ -663,7 +663,7 @@ ls -lh web/dist/assets/
 # JS files should be small (minified and gzipped)
 
 # 3. Check for debug symbols (should be removed)
-nm bin/pgedge-nla-server | grep -i debug
+nm bin/pgedge-mcp-server | grep -i debug
 # Should return nothing
 
 # 4. Verify no test files in distribution
@@ -683,11 +683,11 @@ find bin/ -name "*test*"
 └── custom-definitions.yaml         # Custom prompts/resources (optional)
 
 /usr/bin/
-├── pgedge-nla-server              # Server binary
+├── pgedge-mcp-server              # Server binary
 └── pgedge-nla-cli                 # CLI binary
 
 /usr/lib/systemd/system/
-├── pgedge-nla-server.service      # Server systemd unit
+├── pgedge-mcp-server.service      # Server systemd unit
 └── pgedge-nla-web.service         # Web UI systemd unit (optional)
 
 /usr/share/pgedge/
@@ -709,7 +709,7 @@ find bin/ -name "*test*"
 └── nla-server/                    # Server logs (if file logging enabled)
 
 /usr/share/doc/
-├── pgedge-nla-server/
+├── pgedge-mcp-server/
 │   ├── README.md
 │   └── LICENSE
 ├── pgedge-nla-cli/
@@ -733,15 +733,15 @@ Include these in package documentation:
 ### 1. Server Setup
 ```bash
 # Create initial admin token
-sudo -u pgedge pgedge-nla-server -add-token -token-note "Admin token"
+sudo -u pgedge pgedge-mcp-server -add-token -token-note "Admin token"
 
 # Configure database connection
 sudo vim /etc/pgedge/nla-server.yaml
 
 # Start service
-sudo systemctl enable pgedge-nla-server
-sudo systemctl start pgedge-nla-server
-sudo systemctl status pgedge-nla-server
+sudo systemctl enable pgedge-mcp-server
+sudo systemctl start pgedge-mcp-server
+sudo systemctl status pgedge-mcp-server
 ```
 
 ### 2. Web UI Setup (with Nginx)
@@ -801,10 +801,10 @@ pgedge-pg-mcp-cli
 For systems with SELinux enabled, you need to provide a custom policy module to allow
 the MCP server to function properly.
 
-**SELinux Policy Module** (`pgedge-nla-server.te`):
+**SELinux Policy Module** (`pgedge-mcp-server.te`):
 
 ```te
-policy_module(pgedge-nla-server, 1.0.0)
+policy_module(pgedge-mcp-server, 1.0.0)
 
 require {
     type unconfined_t;
@@ -859,15 +859,15 @@ allow pgedge_mcp_t self:process { setrlimit };
 
 ```bash
 # Compile the policy
-checkmodule -M -m -o pgedge-nla-server.mod pgedge-nla-server.te
-semodule_package -o pgedge-nla-server.pp -m pgedge-nla-server.mod
+checkmodule -M -m -o pgedge-mcp-server.mod pgedge-mcp-server.te
+semodule_package -o pgedge-mcp-server.pp -m pgedge-mcp-server.mod
 
 # Install the module
-semodule -i pgedge-nla-server.pp
+semodule -i pgedge-mcp-server.pp
 
 # Label the binary
-semanage fcontext -a -t pgedge_mcp_exec_t '/usr/bin/pgedge-nla-server'
-restorecon -v /usr/bin/pgedge-nla-server
+semanage fcontext -a -t pgedge_mcp_exec_t '/usr/bin/pgedge-mcp-server'
+restorecon -v /usr/bin/pgedge-mcp-server
 
 # Label data directories
 semanage fcontext -a -t var_lib_t '/var/lib/pgedge/nla-server(/.*)?'
@@ -880,11 +880,11 @@ restorecon -Rv /var/lib/pgedge/nla-server
 # Install SELinux policy if SELinux is enabled
 if [ -x /usr/sbin/selinuxenabled ] && /usr/sbin/selinuxenabled; then
     # Install policy module
-    /usr/sbin/semodule -i /usr/share/selinux/packages/pgedge-nla-server.pp 2>/dev/null || true
+    /usr/sbin/semodule -i /usr/share/selinux/packages/pgedge-mcp-server.pp 2>/dev/null || true
 
     # Set file contexts
-    /usr/sbin/semanage fcontext -a -t pgedge_mcp_exec_t '/usr/bin/pgedge-nla-server' 2>/dev/null || true
-    /usr/sbin/restorecon -v /usr/bin/pgedge-nla-server 2>/dev/null || true
+    /usr/sbin/semanage fcontext -a -t pgedge_mcp_exec_t '/usr/bin/pgedge-mcp-server' 2>/dev/null || true
+    /usr/sbin/restorecon -v /usr/bin/pgedge-mcp-server 2>/dev/null || true
 
     /usr/sbin/semanage fcontext -a -t var_lib_t '/var/lib/pgedge/nla-server(/.*)?'  2>/dev/null || true
     /usr/sbin/restorecon -Rv /var/lib/pgedge/nla-server 2>/dev/null || true
@@ -893,8 +893,8 @@ fi
 
 **Include in Package:**
 ```
-/usr/share/selinux/packages/pgedge-nla-server.pp
-/usr/share/selinux/devel/include/contrib/pgedge-nla-server.if
+/usr/share/selinux/packages/pgedge-mcp-server.pp
+/usr/share/selinux/devel/include/contrib/pgedge-mcp-server.if
 ```
 
 ---
@@ -903,18 +903,18 @@ fi
 
 For systems with AppArmor enabled, provide a profile to confine the MCP server.
 
-**AppArmor Profile** (`/etc/apparmor.d/usr.bin.pgedge-nla-server`):
+**AppArmor Profile** (`/etc/apparmor.d/usr.bin.pgedge-mcp-server`):
 
 ```apparmor
 #include <tunables/global>
 
-/usr/bin/pgedge-nla-server {
+/usr/bin/pgedge-mcp-server {
   #include <abstractions/base>
   #include <abstractions/nameservice>
   #include <abstractions/openssl>
 
   # Binary execution
-  /usr/bin/pgedge-nla-server mr,
+  /usr/bin/pgedge-mcp-server mr,
 
   # Configuration files
   /etc/pgedge/** r,
@@ -978,11 +978,11 @@ For systems with AppArmor enabled, provide a profile to confine the MCP server.
 # Install AppArmor profile if AppArmor is enabled
 if [ -x /sbin/apparmor_parser ] && [ -d /etc/apparmor.d ]; then
     # Load the profile
-    /sbin/apparmor_parser -r /etc/apparmor.d/usr.bin.pgedge-nla-server 2>/dev/null || true
+    /sbin/apparmor_parser -r /etc/apparmor.d/usr.bin.pgedge-mcp-server 2>/dev/null || true
 
     # Enable the profile on boot
     if [ -d /etc/apparmor.d/force-complain ]; then
-        ln -sf /etc/apparmor.d/usr.bin.pgedge-nla-server \
+        ln -sf /etc/apparmor.d/usr.bin.pgedge-mcp-server \
                /etc/apparmor.d/force-complain/ 2>/dev/null || true
     fi
 fi
@@ -992,22 +992,22 @@ fi
 
 ```bash
 # Load in complain mode first (logs violations but doesn't block)
-aa-complain /usr/bin/pgedge-nla-server
+aa-complain /usr/bin/pgedge-mcp-server
 
 # Test the service
-systemctl start pgedge-nla-server
-systemctl status pgedge-nla-server
+systemctl start pgedge-mcp-server
+systemctl status pgedge-mcp-server
 
 # Check for violations
 aa-logprof
 
 # Once satisfied, switch to enforce mode
-aa-enforce /usr/bin/pgedge-nla-server
+aa-enforce /usr/bin/pgedge-mcp-server
 ```
 
 **Include in Package:**
 ```
-/etc/apparmor.d/usr.bin.pgedge-nla-server
+/etc/apparmor.d/usr.bin.pgedge-mcp-server
 ```
 
 **Package Dependencies** (for Ubuntu/Debian):

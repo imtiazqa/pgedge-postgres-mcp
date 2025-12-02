@@ -74,7 +74,7 @@ make build
 
 ### 2. Configure
 
-Create `bin/pgedge-nla-server.yaml`:
+Create `bin/pgedge-mcp-server.yaml`:
 
 ```yaml
 databases:
@@ -103,10 +103,10 @@ chmod 600 ~/.anthropic-api-key
 
 ```bash
 # Add a user for web access
-./bin/pgedge-nla-server -add-user admin -user-password "your_password"
+./bin/pgedge-mcp-server -add-user admin -user-password "your_password"
 
 # Start the server
-./bin/pgedge-nla-server
+./bin/pgedge-mcp-server
 ```
 
 ### 5. Access
@@ -125,7 +125,7 @@ For Claude Desktop integration (stdio mode), add to your Claude Desktop config:
 {
   "mcpServers": {
     "pgedge": {
-      "command": "/path/to/bin/pgedge-nla-server",
+      "command": "/path/to/bin/pgedge-mcp-server",
       "env": {
         "PGHOST": "localhost",
         "PGPORT": "5432",

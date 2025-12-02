@@ -35,18 +35,18 @@ for security.
 
 ```bash
 # Build all images
-docker build -f Dockerfile.server -t ghcr.io/pgedge/nla-server:latest .
+docker build -f Dockerfile.server -t ghcr.io/pgedge/mcp-server:latest .
 docker build -f Dockerfile.cli -t ghcr.io/pgedge/nla-cli:latest .
 docker build -f Dockerfile.web -t ghcr.io/pgedge/nla-web:latest .
 
 # Tag for versioning
 VERSION=$(git describe --tags --always)
-docker tag ghcr.io/pgedge/nla-server:latest ghcr.io/pgedge/nla-server:${VERSION}
+docker tag ghcr.io/pgedge/mcp-server:latest ghcr.io/pgedge/mcp-server:${VERSION}
 docker tag ghcr.io/pgedge/nla-cli:latest ghcr.io/pgedge/nla-cli:${VERSION}
 docker tag ghcr.io/pgedge/nla-web:latest ghcr.io/pgedge/nla-web:${VERSION}
 
 # Build with BuildKit for better performance
-DOCKER_BUILDKIT=1 docker build -f Dockerfile.server -t ghcr.io/pgedge/nla-server:latest .
+DOCKER_BUILDKIT=1 docker build -f Dockerfile.server -t ghcr.io/pgedge/mcp-server:latest .
 ```
 
 ---
@@ -199,12 +199,12 @@ Images are published to GitHub Container Registry (GHCR).
 
 ```bash
 # Pull latest images
-docker pull ghcr.io/pgedge/nla-server:latest
+docker pull ghcr.io/pgedge/mcp-server:latest
 docker pull ghcr.io/pgedge/nla-web:latest
 docker pull ghcr.io/pgedge/nla-cli:latest
 
 # Pull specific version
-docker pull ghcr.io/pgedge/nla-server:1.0.0
+docker pull ghcr.io/pgedge/mcp-server:1.0.0
 ```
 
 ### Publishing Images
@@ -214,15 +214,15 @@ docker pull ghcr.io/pgedge/nla-server:1.0.0
 echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
 
 # Tag images
-docker tag pgedge/nla-server:latest ghcr.io/pgedge/nla-server:latest
-docker tag pgedge/nla-server:latest ghcr.io/pgedge/nla-server:${VERSION}
+docker tag pgedge/mcp-server:latest ghcr.io/pgedge/mcp-server:latest
+docker tag pgedge/mcp-server:latest ghcr.io/pgedge/mcp-server:${VERSION}
 
 # Push images
-docker push ghcr.io/pgedge/nla-server:latest
-docker push ghcr.io/pgedge/nla-server:${VERSION}
+docker push ghcr.io/pgedge/mcp-server:latest
+docker push ghcr.io/pgedge/mcp-server:${VERSION}
 
 # Push all tags
-docker push ghcr.io/pgedge/nla-server --all-tags
+docker push ghcr.io/pgedge/mcp-server --all-tags
 ```
 
 ### Using GitHub Actions
@@ -261,8 +261,8 @@ jobs:
           file: Dockerfile.server
           push: true
           tags: |
-            ghcr.io/pgedge/nla-server:latest
-            ghcr.io/pgedge/nla-server:${{ github.ref_name }}
+            ghcr.io/pgedge/mcp-server:latest
+            ghcr.io/pgedge/mcp-server:${{ github.ref_name }}
 ```
 
 ---
@@ -281,13 +281,13 @@ jobs:
 
 ```bash
 # Scan with Trivy
-trivy image ghcr.io/pgedge/nla-server:latest
+trivy image ghcr.io/pgedge/mcp-server:latest
 
 # Scan with Docker Scout (if available)
-docker scout cves ghcr.io/pgedge/nla-server:latest
+docker scout cves ghcr.io/pgedge/mcp-server:latest
 
 # Scan for high/critical vulnerabilities only
-trivy image --severity HIGH,CRITICAL ghcr.io/pgedge/nla-server:latest
+trivy image --severity HIGH,CRITICAL ghcr.io/pgedge/mcp-server:latest
 ```
 
 ### Secret Management
@@ -324,7 +324,7 @@ For Kubernetes, restrict network traffic with NetworkPolicies:
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: pgedge-nla-server
+  name: pgedge-mcp-server
 spec:
   podSelector:
     matchLabels:
@@ -363,23 +363,23 @@ spec:
 docker-compose logs -f
 
 # Specific service
-docker-compose logs -f pgedge-nla-server
+docker-compose logs -f pgedge-mcp-server
 
 # Last 100 lines
-docker-compose logs --tail=100 pgedge-nla-server
+docker-compose logs --tail=100 pgedge-mcp-server
 ```
 
 **Kubernetes:**
 
 ```bash
 # Server logs
-kubectl logs -f deployment/pgedge-nla-server -n pgedge
+kubectl logs -f deployment/pgedge-mcp-server -n pgedge
 
 # Web UI logs
 kubectl logs -f deployment/pgedge-nla-web -n pgedge
 
 # Previous container logs (after crash)
-kubectl logs deployment/pgedge-nla-server -n pgedge --previous
+kubectl logs deployment/pgedge-mcp-server -n pgedge --previous
 
 # All pods with label
 kubectl logs -l app.kubernetes.io/component=server -n pgedge --tail=100
@@ -394,7 +394,7 @@ kubectl logs -l app.kubernetes.io/component=server -n pgedge --tail=100
 docker ps
 
 # Inspect health check
-docker inspect pgedge-nla-server | jq '.[0].State.Health'
+docker inspect pgedge-mcp-server | jq '.[0].State.Health'
 
 # Manual health check
 curl http://localhost:8080/health
@@ -407,10 +407,10 @@ curl http://localhost:8080/health
 kubectl get pods -n pgedge
 
 # Describe pod (includes events)
-kubectl describe pod pgedge-nla-server-xxx -n pgedge
+kubectl describe pod pgedge-mcp-server-xxx -n pgedge
 
 # Port forward and test
-kubectl port-forward svc/pgedge-nla-server 8080:8080 -n pgedge
+kubectl port-forward svc/pgedge-mcp-server 8080:8080 -n pgedge
 curl http://localhost:8080/health
 ```
 
@@ -420,26 +420,26 @@ curl http://localhost:8080/health
 
 ```bash
 # Execute shell in running container
-docker exec -it pgedge-nla-server sh
+docker exec -it pgedge-mcp-server sh
 
 # Check processes
-docker exec pgedge-nla-server ps aux
+docker exec pgedge-mcp-server ps aux
 
 # Check network connectivity
-docker exec pgedge-nla-server wget -O- http://postgres:5432
+docker exec pgedge-mcp-server wget -O- http://postgres:5432
 ```
 
 **Kubernetes:**
 
 ```bash
 # Execute shell in pod
-kubectl exec -it deployment/pgedge-nla-server -n pgedge -- sh
+kubectl exec -it deployment/pgedge-mcp-server -n pgedge -- sh
 
 # Debug with ephemeral container (Kubernetes 1.23+)
-kubectl debug -it pgedge-nla-server-xxx -n pgedge --image=alpine --target=server
+kubectl debug -it pgedge-mcp-server-xxx -n pgedge --image=alpine --target=server
 
 # Check connectivity to postgres
-kubectl exec deployment/pgedge-nla-server -n pgedge -- \
+kubectl exec deployment/pgedge-mcp-server -n pgedge -- \
   wget -qO- http://postgres-postgresql:5432 || echo "Cannot connect"
 ```
 
@@ -449,15 +449,15 @@ kubectl exec deployment/pgedge-nla-server -n pgedge -- \
 
 ```bash
 # Check logs for errors
-kubectl logs deployment/pgedge-nla-server -n pgedge | grep -i error
+kubectl logs deployment/pgedge-mcp-server -n pgedge | grep -i error
 
 # Verify database connection
-kubectl exec deployment/pgedge-nla-server -n pgedge -- \
+kubectl exec deployment/pgedge-mcp-server -n pgedge -- \
   env | grep POSTGRES
 
 # Check if config is mounted
-kubectl exec deployment/pgedge-nla-server -n pgedge -- \
-  cat /etc/pgedge/nla-server.yaml
+kubectl exec deployment/pgedge-mcp-server -n pgedge -- \
+  cat /etc/pgedge/mcp-server.yaml
 ```
 
 **Database connection issues:**
@@ -468,7 +468,7 @@ kubectl run -it --rm debug --image=postgres:17-alpine -- \
   psql postgresql://postgres:password@postgres-postgresql:5432/postgres
 
 # Check DNS resolution
-kubectl exec deployment/pgedge-nla-server -n pgedge -- \
+kubectl exec deployment/pgedge-mcp-server -n pgedge -- \
   nslookup postgres-postgresql
 ```
 
@@ -479,7 +479,7 @@ kubectl exec deployment/pgedge-nla-server -n pgedge -- \
 kubectl top pods -n pgedge
 
 # Describe pod to see events
-kubectl describe pod pgedge-nla-server-xxx -n pgedge | grep -A 5 Events
+kubectl describe pod pgedge-mcp-server-xxx -n pgedge | grep -A 5 Events
 
 # Increase resources in values.yaml and upgrade
 helm upgrade pgedge-nla examples/helm/pgedge-nla -f values.yaml

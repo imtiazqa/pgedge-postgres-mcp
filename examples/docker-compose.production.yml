@@ -38,9 +38,9 @@ services:
           memory: 1G
 
   # MCP Server
-  pgedge-nla-server:
-    image: ghcr.io/pgedge/nla-server:${VERSION:-latest}
-    container_name: pgedge-nla-server
+  pgedge-mcp-server:
+    image: ghcr.io/pgedge/mcp-server:${VERSION:-latest}
+    container_name: pgedge-mcp-server
     depends_on:
       postgres:
         condition: service_healthy
@@ -50,10 +50,10 @@ services:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
     volumes:
-      - ./config/nla-server.yaml:/etc/pgedge/nla-server.yaml:ro
+      - ./config/mcp-server.yaml:/etc/pgedge/mcp-server.yaml:ro
       - ./kb/kb.db:/usr/share/pgedge/nla-kb/kb.db:ro
-      - server-data:/var/lib/pgedge/nla-server
-      - server-logs:/var/log/pgedge/nla-server
+      - server-data:/var/lib/pgedge/mcp-server
+      - server-logs:/var/log/pgedge/mcp-server
     ports:
       - "${SERVER_PORT:-8080}:8080"
     healthcheck:
@@ -83,7 +83,7 @@ services:
     image: ghcr.io/pgedge/nla-web:${VERSION:-latest}
     container_name: pgedge-nla-web
     depends_on:
-      pgedge-nla-server:
+      pgedge-mcp-server:
         condition: service_healthy
     ports:
       - "${WEB_PORT:-80}:80"

@@ -5,7 +5,7 @@ metadata:
   labels:
     {{- include "pgedge-nla.labels" . | nindent 4 }}
 data:
-  nla-server.yaml: |
+  mcp-server.yaml: |
     # pgEdge Natural Language Agent - Server Configuration
     database:
       host: {{ .Values.server.database.host }}
@@ -19,7 +19,7 @@ data:
       address: "0.0.0.0:8080"
       auth:
         enabled: true
-        token_file: /var/lib/pgedge/nla-server/tokens.json
+        token_file: /var/lib/pgedge/mcp-server/tokens.json
         max_failed_attempts_before_lockout: 5
         rate_limit_window_minutes: 15
         rate_limit_max_attempts: 10

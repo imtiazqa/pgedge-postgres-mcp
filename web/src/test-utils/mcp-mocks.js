@@ -74,7 +74,7 @@ export function mockInitialize(id = 1) {
             tools: {}
         },
         serverInfo: {
-            name: 'pgedge-nla-server',
+            name: 'pgedge-mcp-server',
             version: '1.0.0-alpha2'
         }
     });

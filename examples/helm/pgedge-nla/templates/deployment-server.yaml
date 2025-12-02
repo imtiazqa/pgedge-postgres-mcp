@@ -63,7 +63,7 @@ spec:
           mountPath: /etc/pgedge
           readOnly: true
         - name: data
-          mountPath: /var/lib/pgedge/nla-server
+          mountPath: /var/lib/pgedge/mcp-server
         - name: tmp
           mountPath: /tmp
         {{- if .Values.server.knowledgebase.enabled }}

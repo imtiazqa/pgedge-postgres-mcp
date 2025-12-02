@@ -21,7 +21,7 @@ project.
 
 **Server-side:**
 
-- User accounts stored in `pgedge-nla-server-users.yaml`
+- User accounts stored in `pgedge-mcp-server-users.yaml`
 - Session tokens stored in memory only (not persisted to disk)
 - Each authenticated user receives a session token with 24-hour expiration
 - Tokens validated on every request via `Authorization: Bearer <token>` header
@@ -168,11 +168,11 @@ WORKDIR /workspace
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN CGO_ENABLED=0 go build -o pgedge-nla-server ./cmd/pgedge-pg-mcp-svr
+RUN CGO_ENABLED=0 go build -o pgedge-mcp-server ./cmd/pgedge-pg-mcp-svr
 
 # Stage 2: Minimal runtime
 FROM ubi9/ubi-minimal:latest
-COPY --from=builder /workspace/pgedge-nla-server /app/
+COPY --from=builder /workspace/pgedge-mcp-server /app/
 COPY docker/init-server.sh /app/
 CMD ["/app/init-server.sh"]
 ```
@@ -184,7 +184,7 @@ CMD ["/app/init-server.sh"]
 ```bash
 # Terminal 1: Start MCP server
 cd bin
-./pgedge-nla-server -http -addr :8080 -config pgedge-pg-mcp-web.yaml
+./pgedge-mcp-server -http -addr :8080 -config pgedge-pg-mcp-web.yaml
 
 # Terminal 2: Start Vite dev server
 cd web

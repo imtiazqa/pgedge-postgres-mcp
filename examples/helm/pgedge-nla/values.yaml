@@ -5,7 +5,7 @@ global:
 # Server configuration
 server:
   image:
-    repository: ghcr.io/pgedge/nla-server
+    repository: ghcr.io/pgedge/mcp-server
     tag: latest
     pullPolicy: IfNotPresent
 

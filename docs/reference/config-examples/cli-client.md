@@ -26,17 +26,17 @@ mcp:
     # Stdio Mode Configuration
     # -------------------------
     # Path to MCP server binary (for stdio mode)
-    # Default: ./bin/pgedge-nla-server
+    # Default: ./bin/pgedge-mcp-server
     # Environment variable: PGEDGE_MCP_SERVER_PATH
     # Command line flag: -mcp-server-path
-    server_path: ./bin/pgedge-nla-server
+    server_path: ./bin/pgedge-mcp-server
 
     # Path to MCP server config file (for stdio mode)
     # If specified, the --config flag will be passed to the server binary
     # If not specified, the server will use its default config file lookup
     # Default: (none - server uses default config lookup)
     # Environment variable: PGEDGE_MCP_SERVER_CONFIG_PATH
-    server_config_path: ./bin/pgedge-nla-server-stdio.yaml
+    server_config_path: ./bin/pgedge-mcp-server-stdio.yaml
 
     # -------------------------
     # HTTP Mode Configuration
@@ -177,8 +177,8 @@ ui:
 ```yaml
 mcp:
     mode: stdio
-    server_path: ./bin/pgedge-nla-server
-    server_config_path: ./bin/pgedge-nla-server-stdio.yaml
+    server_path: ./bin/pgedge-mcp-server
+    server_config_path: ./bin/pgedge-mcp-server-stdio.yaml
 
 llm:
     provider: anthropic
@@ -198,8 +198,8 @@ export PGEDGE_ANTHROPIC_API_KEY="your-key-here"
 ```yaml
 mcp:
     mode: stdio
-    server_path: ./bin/pgedge-nla-server
-    server_config_path: ./bin/pgedge-nla-server-stdio.yaml
+    server_path: ./bin/pgedge-mcp-server
+    server_config_path: ./bin/pgedge-mcp-server-stdio.yaml
 
 llm:
     provider: openai
@@ -240,8 +240,8 @@ export PGEDGE_MCP_TOKEN="your-mcp-token"
 ```yaml
 mcp:
     mode: stdio
-    server_path: ./bin/pgedge-nla-server
-    server_config_path: ./bin/pgedge-nla-server-stdio.yaml
+    server_path: ./bin/pgedge-mcp-server
+    server_config_path: ./bin/pgedge-mcp-server-stdio.yaml
 
 llm:
     provider: ollama

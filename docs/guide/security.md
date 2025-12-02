@@ -52,10 +52,10 @@ export PGPASSWORD=$(vault kv get -field=password secret/pgedge-nla)
 
 ```bash
 # Never hardcode in scripts
-./bin/pgedge-nla-server -db "postgres://admin:SuperSecret123@prod.example.com/maindb"
+./bin/pgedge-mcp-server -db "postgres://admin:SuperSecret123@prod.example.com/maindb"
 
 # Never commit secret files
-git add pgedge-nla-server.secret  # DON'T DO THIS
+git add pgedge-mcp-server.secret  # DON'T DO THIS
 ```
 
 ### Connection Security
@@ -203,10 +203,10 @@ SELECT pg_reload_conf();
 
 ```bash
 # If started with the development scripts (stdout/stderr redirect):
-tail -f /tmp/pgedge-nla-server.log | grep "Generated SQL"
+tail -f /tmp/pgedge-mcp-server.log | grep "Generated SQL"
 
 # If running under systemd:
-journalctl -u pgedge-nla-server -f | grep "Generated SQL"
+journalctl -u pgedge-mcp-server -f | grep "Generated SQL"
 ```
 
 ### Query Validation
@@ -249,7 +249,7 @@ cp /var/lib/postgresql/data/postgresql.auto.conf /backup/
 
 ```bash
 # Apply to staging environment
-./bin/pgedge-nla-server -db "postgres://staging/db"
+./bin/pgedge-mcp-server -db "postgres://staging/db"
 # Tool: set_pg_configuration with test values
 # Monitor impact before applying to production
 ```
@@ -333,7 +333,7 @@ host     all   all           0.0.0.0/0      reject
 ```bash
 # Use TLS 1.2 or higher
 # Server automatically enforces this
-./bin/pgedge-nla-server -http -tls \
+./bin/pgedge-mcp-server -http -tls \
   -cert /path/to/cert.pem \
   -key /path/to/key.pem
 ```
@@ -358,10 +358,10 @@ See [Authentication Guide](authentication.md) for detailed token management.
 
     ```bash
     # Good: 90-day expiration
-    ./bin/pgedge-nla-server -add-token -token-expiry "90d"
+    ./bin/pgedge-mcp-server -add-token -token-expiry "90d"
 
     # Avoid: Never-expiring tokens
-    ./bin/pgedge-nla-server -add-token -token-expiry "never"
+    ./bin/pgedge-mcp-server -add-token -token-expiry "never"
     ```
 
 2. **Rotate tokens regularly:**
@@ -391,10 +391,10 @@ See [Authentication Guide](authentication.md) for detailed token management.
 
     ```bash
     # Verify file permissions
-    ls -la pgedge-nla-server-tokens.yaml  # Should be -rw------- (600)
+    ls -la pgedge-mcp-server-tokens.yaml  # Should be -rw------- (600)
 
     # Fix if needed
-    chmod 600 pgedge-nla-server-tokens.yaml
+    chmod 600 pgedge-mcp-server-tokens.yaml
     ```
 
 ### Connection Isolation
@@ -421,7 +421,7 @@ When authentication is enabled in HTTP/HTTPS mode, the MCP server implements **p
 
 ```bash
 # Start server with authentication enabled
-./bin/pgedge-nla-server -http -tls \
+./bin/pgedge-mcp-server -http -tls \
   -cert /path/to/cert.pem \
   -key /path/to/key.pem
 
@@ -536,14 +536,14 @@ sudo systemctl list-timers | grep certbot
 
     ```bash
     # Binary: 755 (executable by all, writable by owner)
-    chmod 755 /opt/pgedge/bin/pgedge-nla-server
+    chmod 755 /opt/pgedge/bin/pgedge-mcp-server
 
     # Config files: 600 (readable/writable by owner only)
     chmod 600 /etc/pgedge/config.yaml
-    chmod 600 /etc/pgedge/pgedge-nla-server-tokens.yaml
+    chmod 600 /etc/pgedge/pgedge-mcp-server-tokens.yaml
 
     # Secret file: 600 (CRITICAL - contains encryption key)
-    chmod 600 /etc/pgedge/pgedge-nla-server.secret
+    chmod 600 /etc/pgedge/pgedge-mcp-server.secret
 
     # Certificates: 600 for keys, 644 for certs
     chmod 600 /etc/pgedge/certs/server.key
@@ -582,13 +582,13 @@ server {
 
 ```bash
 # Monitor authentication failures
-journalctl -u pgedge-nla-server | grep "Unauthorized"
+journalctl -u pgedge-mcp-server | grep "Unauthorized"
 
 # Count auth failures per IP
-journalctl -u pgedge-nla-server | grep "Unauthorized" | awk '{print $NF}' | sort | uniq -c | sort -rn
+journalctl -u pgedge-mcp-server | grep "Unauthorized" | awk '{print $NF}' | sort | uniq -c | sort -rn
 
 # Monitor configuration changes
-journalctl -u pgedge-nla-server | grep "set_pg_configuration"
+journalctl -u pgedge-mcp-server | grep "set_pg_configuration"
 ```
 
 ### Security Monitoring Checklist
@@ -619,7 +619,7 @@ SELECT pg_reload_conf();
 
 ```bash
 # Log to file with timestamps
-./bin/pgedge-nla-server -http 2>&1 | tee -a /var/log/pgedge/pgedge-nla-server-server.log
+./bin/pgedge-mcp-server -http 2>&1 | tee -a /var/log/pgedge/pgedge-mcp-server-server.log
 ```
 
 ## Incident Response
@@ -630,10 +630,10 @@ SELECT pg_reload_conf();
 
     ```bash
     # Remove compromised token
-    ./bin/pgedge-nla-server -remove-token <token-id>
+    ./bin/pgedge-mcp-server -remove-token <token-id>
 
     # Create new token
-    ./bin/pgedge-nla-server -add-token -token-expiry "30d"
+    ./bin/pgedge-mcp-server -add-token -token-expiry "30d"
 
     # Update application with new token
     ```
@@ -671,7 +671,7 @@ SELECT pg_reload_conf();
     export PGEDGE_POSTGRES_CONNECTION_STRING="postgres://mcp_readonly:new_password@host/db"
 
     # Restart server
-    sudo systemctl restart pgedge-nla-server
+    sudo systemctl restart pgedge-mcp-server
     ```
 
 ### If Server is Compromised
@@ -683,7 +683,7 @@ SELECT pg_reload_conf();
     sudo ufw deny 8080
 
     # Stop service
-    sudo systemctl stop pgedge-nla-server
+    sudo systemctl stop pgedge-mcp-server
     ```
 
 2. **Investigate:**
