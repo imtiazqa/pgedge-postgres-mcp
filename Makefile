@@ -1,4 +1,4 @@
-.PHONY: build build-server build-client build-kb-builder clean clean-server clean-client clean-kb-builder test test-server test-client test-kb-builder run install help lint lint-server lint-client fmt format gofmt
+.PHONY: build build-server build-client build-kb-builder clean clean-server clean-client clean-kb-builder test test-server test-client test-kb-builder run install help lint lint-server lint-client fmt format gofmt kb
 
 # Binary names and directories
 SERVER_BINARY=pgedge-mcp-server
@@ -42,6 +42,12 @@ kb-builder:
 	@mkdir -p $(BIN_DIR)
 	$(GO) build $(GOFLAGS) -o $(BIN_DIR)/$(KB_BUILDER_BINARY) ./$(KB_BUILDER_CMD_DIR)
 	@echo "KB-builder build complete: $(BIN_DIR)/$(KB_BUILDER_BINARY)"
+
+# Build/update the knowledgebase database
+kb: kb-builder
+	@echo "Building knowledgebase database..."
+	$(BIN_DIR)/$(KB_BUILDER_BINARY) -c examples/pgedge-nla-kb-builder.yaml
+	@echo "Knowledgebase build complete: $(BIN_DIR)/pgedge-nla-kb.db"
 
 # Build for multiple platforms (server only for now)
 build-all: build-linux build-darwin build-windows
@@ -228,6 +234,9 @@ help:
 	@echo "  make clean-server   - Remove server artifacts only"
 	@echo "  make clean-client   - Remove client artifacts only"
 	@echo "  make clean-kb-builder - Remove kb-builder artifacts only"
+	@echo ""
+	@echo "Knowledgebase:"
+	@echo "  make kb             - Build/update the knowledgebase database in bin/"
 	@echo ""
 	@echo "Other:"
 	@echo "  make run            - Run server with environment from .env file"

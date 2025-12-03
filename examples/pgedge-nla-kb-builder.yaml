@@ -1,10 +1,10 @@
 # pgEdge Knowledgebase Builder Configuration Example
 
 # Output database path (optional, defaults to pgedge-nla-kb.db in same directory as config)
-database_path: "pgedge-nla-kb.db"
+database_path: "bin/pgedge-nla-kb.db"
 
 # Directory for storing downloaded/processed documentation (optional, defaults to doc-source)
-doc_source_path: "doc-source"
+doc_source_path: "bin/doc-source"
 
 # Documentation sources
 sources:
@@ -161,6 +161,12 @@ sources:
       doc_path: "docs"
       project_name: "pgEdge Vectorizer"
       project_version: "1.0-alpha2"
+
+    - git_url: "https://github.com/pgEdge/pgedge-vectorizer.git"
+      branch: "v1.0-alpha3"
+      doc_path: "docs"
+      project_name: "pgEdge Vectorizer"
+      project_version: "1.0-alpha3"
 
     - git_url: "https://github.com/pgbouncer/pgbouncer.git"
       branch: "pgbouncer_1_25_0"
