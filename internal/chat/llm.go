@@ -358,19 +358,50 @@ When executing tools:
 	}, nil
 }
 
-// ListModels returns available Anthropic Claude models
-// Note: Anthropic doesn't provide a public models API, so we return a static list
+// ListModels returns available Anthropic Claude models from the API
 func (c *anthropicClient) ListModels(ctx context.Context) ([]string, error) {
-	// Return a curated list of available Claude models
-	// Opus is excluded as it throws errors when selected
-	return []string{
-		"claude-sonnet-4-20250514",
-		"claude-3-7-sonnet-20250219",
-		"claude-3-5-sonnet-20241022",
-		"claude-3-5-sonnet-20240620",
-		"claude-3-sonnet-20240229",
-		"claude-3-haiku-20240307",
-	}, nil
+	url := "https://api.anthropic.com/v1/models"
+
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("x-api-key", c.apiKey)
+	req.Header.Set("anthropic-version", "2023-06-01")
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to send request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body) //nolint:errcheck // Error response body read is best effort
+		return nil, fmt.Errorf("API error (%d): %s", resp.StatusCode, string(body))
+	}
+
+	// Parse response: {"data": [{"id": "claude-3-opus-20240229", "type": "model", ...}, ...]}
+	var response struct {
+		Data []struct {
+			ID   string `json:"id"`
+			Type string `json:"type"`
+		} `json:"data"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	models := make([]string, 0, len(response.Data))
+	for _, model := range response.Data {
+		// Only include models (not other types if any)
+		if model.Type == "model" {
+			models = append(models, model.ID)
+		}
+	}
+
+	return models, nil
 }
 
 // ollamaClient implements LLMClient for Ollama
