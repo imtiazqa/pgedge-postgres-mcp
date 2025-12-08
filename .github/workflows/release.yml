@@ -58,8 +58,14 @@ jobs:
                   fi
                   echo "Web UI build successful"
 
-            - name: Run Go tests
-              run: go test -v ./...
+            - name: Build server binary (for integration tests)
+              run: |
+                  mkdir -p bin
+                  go build -v -o bin/pgedge-mcp-server ./cmd/pgedge-pg-mcp-svr
+
+            - name: Run Go unit tests
+              run: |
+                  go test -v ./internal/mcp/... ./internal/auth/... ./internal/config/... ./internal/crypto/... ./internal/database/... ./internal/resources/... ./internal/tools/... ./internal/chat/... ./internal/llmproxy/... ./internal/search/... ./internal/prompts/... ./internal/conversations/... ./internal/kbdatabase/... ./internal/kbembed/... ./internal/kbchunker/...
 
             - name: Install GoReleaser
               uses: goreleaser/goreleaser-action@v6
