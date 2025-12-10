@@ -1,0 +1,125 @@
+# GoReleaser configuration for x86_64 (amd64) architecture
+# This builds only amd64 binaries on native x86_64 runner
+# https://goreleaser.com
+
+version: 2
+
+before:
+    hooks:
+        # Format code
+        - go fmt ./...
+
+builds:
+    # MCP Server - amd64 (all platforms)
+    - id: pgedge-mcp-server-amd64
+      binary: pgedge-mcp-server
+      main: ./cmd/pgedge-pg-mcp-svr
+      env:
+          - CGO_ENABLED=0
+      goos:
+          - linux
+          - darwin
+          - windows
+      goarch:
+          - amd64
+      ldflags:
+          - -s -w
+          - -X main.version={{.Version}}
+          - -X main.commit={{.Commit}}
+          - -X main.date={{.Date}}
+          - -X main.builtBy=goreleaser
+
+    # CLI Client - amd64 (all platforms)
+    - id: pgedge-nla-cli-amd64
+      binary: pgedge-nla-cli
+      main: ./cmd/pgedge-pg-mcp-cli
+      env:
+          - CGO_ENABLED=0
+      goos:
+          - linux
+          - darwin
+          - windows
+      goarch:
+          - amd64
+      ldflags:
+          - -s -w
+          - -X main.version={{.Version}}
+          - -X main.commit={{.Commit}}
+          - -X main.date={{.Date}}
+          - -X main.builtBy=goreleaser
+
+    # KB Builder - LINUX ONLY x86_64 (amd64) - native build with CGO
+    - id: pgedge-nla-kb-builder-linux-amd64
+      binary: pgedge-nla-kb-builder
+      main: ./cmd/kb-builder
+      env:
+          - CGO_ENABLED=1
+      goos:
+          - linux  # Linux only - KB builder is server-side tool
+      goarch:
+          - amd64
+      # Skip if not on Linux (for local testing on macOS/Windows)
+      skip: '{{ ne .Runtime.Goos "linux" }}'
+      ldflags:
+          - -s -w
+          - -X main.version={{.Version}}
+          - -X main.commit={{.Commit}}
+          - -X main.date={{.Date}}
+          - -X main.builtBy=goreleaser
+
+archives:
+    # Server archive - amd64 only
+    - id: server-amd64
+      builds:
+          - pgedge-mcp-server-amd64
+      name_template: >-
+          {{ .ProjectName }}-server_
+          {{- .Version }}_
+          {{- .Os }}_x86_64
+      format_overrides:
+          - goos: windows
+            format: zip
+      files:
+          - README.md
+          - LICENCE.md
+          - docs/**/*
+          - examples/pgedge-mcp-server-custom.yaml
+          - examples/.env.example
+
+    # CLI archive - amd64 only
+    - id: cli-amd64
+      builds:
+          - pgedge-nla-cli-amd64
+      name_template: >-
+          {{ .ProjectName }}-cli_
+          {{- .Version }}_
+          {{- .Os }}_x86_64
+      format_overrides:
+          - goos: windows
+            format: zip
+      files:
+          - README.md
+          - LICENCE.md
+          - docs/**/*
+
+    # KB Builder archive for Linux x86_64
+    - id: kb-builder-linux-amd64
+      builds:
+          - pgedge-nla-kb-builder-linux-amd64
+      name_template: "{{ .ProjectName }}-kb-builder_{{ .Version }}_linux_x86_64"
+      allow_different_binary_count: true
+      files:
+          - README.md
+          - LICENCE.md
+          - examples/pgedge-nla-kb-builder.yaml
+          - kb/README.md
+
+    # Web UI archive (noarch - built in build-web job, not here)
+    # Web UI is architecture-independent and built once in the workflow
+
+snapshot:
+    version_template: "{{ incpatch .Version }}-next"
+
+# Disable release creation - will be done in final job
+release:
+    disable: true
