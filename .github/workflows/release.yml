@@ -10,23 +10,15 @@ permissions:
     packages: write
 
 jobs:
-    release:
-        name: Release Build
+    # Build Web UI once (architecture-independent)
+    build-web:
+        name: Build Web UI
         runs-on: ubuntu-latest
         steps:
             - name: Checkout code
               uses: actions/checkout@v4
               with:
                   fetch-depth: 0
-
-            - name: Fetch all tags
-              run: git fetch --force --tags
-
-            - name: Set up Go
-              uses: actions/setup-go@v5
-              with:
-                  go-version: '1.24'
-                  cache: true
 
             - name: Set up Node.js
               uses: actions/setup-node@v4
@@ -58,35 +50,184 @@ jobs:
                   fi
                   echo "Web UI build successful"
 
-            - name: Build server binary (for integration tests)
-              run: |
-                  mkdir -p bin
-                  go build -v -o bin/pgedge-mcp-server ./cmd/pgedge-pg-mcp-svr
+            - name: Upload Web UI artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: web-dist
+                  path: web/dist/
+                  retention-days: 1
+
+    # Build for x86_64 architecture
+    build-amd64:
+        name: Build x86_64
+        runs-on: ubuntu-latest
+        needs: build-web
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - name: Fetch all tags
+              run: git fetch --force --tags
+
+            - name: Set up Go
+              uses: actions/setup-go@v5
+              with:
+                  go-version: '1.24'
+                  cache: true
+
+            - name: Download Web UI artifact
+              uses: actions/download-artifact@v4
+              with:
+                  name: web-dist
+                  path: web/dist
+
+            - name: Verify Web UI downloaded
+              run: ls -la web/dist/
 
             - name: Run Go unit tests
               run: |
                   go test -v ./internal/mcp/... ./internal/auth/... ./internal/config/... ./internal/crypto/... ./internal/database/... ./internal/resources/... ./internal/tools/... ./internal/chat/... ./internal/llmproxy/... ./internal/search/... ./internal/prompts/... ./internal/conversations/... ./internal/kbdatabase/... ./internal/kbembed/... ./internal/kbchunker/...
 
-            - name: Install GoReleaser
+            - name: Run GoReleaser (amd64 only)
               uses: goreleaser/goreleaser-action@v6
               with:
                   distribution: goreleaser
                   version: latest
-                  install-only: true
-
-            - name: Run GoReleaser
-              uses: goreleaser/goreleaser-action@v6
-              with:
-                  distribution: goreleaser
-                  version: latest
-                  args: release --clean
+                  args: release --clean --config .goreleaser-amd64.yaml
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-            - name: Upload release artifacts
+            - name: Upload amd64 artifacts
               uses: actions/upload-artifact@v4
               with:
-                  name: release-artifacts
+                  name: release-artifacts-amd64
+                  path: |
+                      dist/*.tar.gz
+                      dist/*.zip
+                  retention-days: 1
+
+    # Build for ARM64 architecture
+    build-arm64:
+        name: Build ARM64
+        runs-on: ubuntu-24.04-arm64
+        needs: build-web
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - name: Fetch all tags
+              run: git fetch --force --tags
+
+            - name: Set up Go
+              uses: actions/setup-go@v5
+              with:
+                  go-version: '1.24'
+                  cache: true
+
+            - name: Download Web UI artifact
+              uses: actions/download-artifact@v4
+              with:
+                  name: web-dist
+                  path: web/dist
+
+            - name: Verify Web UI downloaded
+              run: ls -la web/dist/
+
+            - name: Run Go unit tests
+              run: |
+                  go test -v ./internal/mcp/... ./internal/auth/... ./internal/config/... ./internal/crypto/... ./internal/database/... ./internal/resources/... ./internal/tools/... ./internal/chat/... ./internal/llmproxy/... ./internal/search/... ./internal/prompts/... ./internal/conversations/... ./internal/kbdatabase/... ./internal/kbembed/... ./internal/kbchunker/...
+
+            - name: Run GoReleaser (arm64 only)
+              uses: goreleaser/goreleaser-action@v6
+              with:
+                  distribution: goreleaser
+                  version: latest
+                  args: release --clean --config .goreleaser-arm64.yaml
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: Upload arm64 artifacts
+              uses: actions/upload-artifact@v4
+              with:
+                  name: release-artifacts-arm64
+                  path: |
+                      dist/*.tar.gz
+                      dist/*.zip
+                  retention-days: 1
+
+    # Combine artifacts and create release
+    release:
+        name: Create Release
+        runs-on: ubuntu-latest
+        needs: [build-amd64, build-arm64]
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - name: Download amd64 artifacts
+              uses: actions/download-artifact@v4
+              with:
+                  name: release-artifacts-amd64
+                  path: dist/
+
+            - name: Download arm64 artifacts
+              uses: actions/download-artifact@v4
+              with:
+                  name: release-artifacts-arm64
+                  path: dist/
+
+            - name: Download Web UI artifact
+              uses: actions/download-artifact@v4
+              with:
+                  name: web-dist
+                  path: web/dist
+
+            - name: List all artifacts
+              run: |
+                  echo "=== All release artifacts ==="
+                  ls -lh dist/
+                  echo ""
+                  echo "=== Web UI files ==="
+                  ls -lh web/dist/
+
+            - name: Create Web UI archive
+              run: |
+                  mkdir -p dist
+                  cd web
+                  tar -czf ../dist/pgedge-nla-web_${GITHUB_REF_NAME#v}_noarch.tar.gz dist/ README.md ../LICENCE.md
+                  cd ..
+                  echo "Web UI archive created:"
+                  ls -lh dist/pgedge-nla-web_*.tar.gz
+
+            - name: Generate checksums
+              run: |
+                  cd dist
+                  sha256sum *.tar.gz *.zip > checksums.txt
+                  cat checksums.txt
+
+            - name: Create GitHub Release
+              uses: softprops/action-gh-release@v2
+              with:
+                  files: |
+                      dist/*.tar.gz
+                      dist/*.zip
+                      dist/checksums.txt
+                  generate_release_notes: true
+                  draft: false
+                  prerelease: false
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: Upload final artifacts
+              uses: actions/upload-artifact@v4
+              with:
+                  name: release-artifacts-all
                   path: |
                       dist/*.tar.gz
                       dist/*.zip

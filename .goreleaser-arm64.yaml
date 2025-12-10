@@ -1,0 +1,108 @@
+# GoReleaser configuration for ARM64 (aarch64) architecture
+# This builds only arm64 binaries on native ARM64 runner
+# https://goreleaser.com
+
+version: 2
+
+before:
+    hooks:
+        # Format code
+        - go fmt ./...
+
+builds:
+    # MCP Server - arm64 (all platforms)
+    - id: pgedge-mcp-server-arm64
+      binary: pgedge-mcp-server
+      main: ./cmd/pgedge-pg-mcp-svr
+      env:
+          - CGO_ENABLED=0
+      goos:
+          - linux
+          - darwin
+      goarch:
+          - arm64
+      ldflags:
+          - -s -w
+          - -X main.version={{.Version}}
+          - -X main.commit={{.Commit}}
+          - -X main.date={{.Date}}
+          - -X main.builtBy=goreleaser
+
+    # CLI Client - arm64 (all platforms)
+    - id: pgedge-nla-cli-arm64
+      binary: pgedge-nla-cli
+      main: ./cmd/pgedge-pg-mcp-cli
+      env:
+          - CGO_ENABLED=0
+      goos:
+          - linux
+          - darwin
+      goarch:
+          - arm64
+      ldflags:
+          - -s -w
+          - -X main.version={{.Version}}
+          - -X main.commit={{.Commit}}
+          - -X main.date={{.Date}}
+          - -X main.builtBy=goreleaser
+
+    # KB Builder - LINUX ONLY ARM64 - native build with CGO
+    - id: pgedge-nla-kb-builder-linux-arm64
+      binary: pgedge-nla-kb-builder
+      main: ./cmd/kb-builder
+      env:
+          - CGO_ENABLED=1
+      goos:
+          - linux  # Linux only - KB builder is server-side tool
+      goarch:
+          - arm64
+      # Skip if not on Linux (for local testing on macOS)
+      skip: '{{ ne .Runtime.Goos "linux" }}'
+      ldflags:
+          - -s -w
+          - -X main.version={{.Version}}
+          - -X main.commit={{.Commit}}
+          - -X main.date={{.Date}}
+          - -X main.builtBy=goreleaser
+
+archives:
+    # Server archive - arm64 only
+    - id: server-arm64
+      builds:
+          - pgedge-mcp-server-arm64
+      name_template: "{{ .ProjectName }}-server_{{ .Version }}_{{ .Os }}_arm64"
+      files:
+          - README.md
+          - LICENCE.md
+          - docs/**/*
+          - examples/pgedge-mcp-server-custom.yaml
+          - examples/.env.example
+
+    # CLI archive - arm64 only
+    - id: cli-arm64
+      builds:
+          - pgedge-nla-cli-arm64
+      name_template: "{{ .ProjectName }}-cli_{{ .Version }}_{{ .Os }}_arm64"
+      files:
+          - README.md
+          - LICENCE.md
+          - docs/**/*
+
+    # KB Builder archive for Linux ARM64
+    - id: kb-builder-linux-arm64
+      builds:
+          - pgedge-nla-kb-builder-linux-arm64
+      name_template: "{{ .ProjectName }}-kb-builder_{{ .Version }}_linux_arm64"
+      allow_different_binary_count: true
+      files:
+          - README.md
+          - LICENCE.md
+          - examples/pgedge-nla-kb-builder.yaml
+          - kb/README.md
+
+snapshot:
+    version_template: "{{ incpatch .Version }}-next"
+
+# Disable release creation - will be done in final job
+release:
+    disable: true
