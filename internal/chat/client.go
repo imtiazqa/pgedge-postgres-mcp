@@ -744,6 +744,8 @@ func (c *Client) tryServerCompaction(messages []Message, maxTokens, recentWindow
 // localCompactMessages performs basic local compaction.
 // Strategy: Keep the first user message and the last N messages.
 // This preserves the original query context while maintaining recent conversation flow.
+// IMPORTANT: Ensures tool_use/tool_result message pairs are kept together to avoid
+// API errors from orphaned tool references.
 func (c *Client) localCompactMessages(messages []Message, maxRecentMessages int) []Message {
 	compacted := make([]Message, 0, maxRecentMessages+1)
 
@@ -757,6 +759,12 @@ func (c *Client) localCompactMessages(messages []Message, maxRecentMessages int)
 	if startIdx < 1 {
 		startIdx = 1 // Skip first message since we already added it
 	}
+
+	// Ensure we don't break tool_use/tool_result pairs
+	// If the first message we're keeping contains tool_results, we must also
+	// keep the preceding assistant message that contains the tool_use blocks
+	startIdx = c.adjustStartForToolPairs(messages, startIdx)
+
 	compacted = append(compacted, messages[startIdx:]...)
 
 	if c.config.UI.Debug {
@@ -765,6 +773,52 @@ func (c *Client) localCompactMessages(messages []Message, maxRecentMessages int)
 	}
 
 	return compacted
+}
+
+// adjustStartForToolPairs adjusts the start index to ensure tool_use/tool_result
+// message pairs are kept together. If the message at startIdx contains tool_results,
+// we need to include the preceding assistant message with tool_use blocks.
+func (c *Client) adjustStartForToolPairs(messages []Message, startIdx int) int {
+	if startIdx <= 1 || startIdx >= len(messages) {
+		return startIdx
+	}
+
+	// Check if the message at startIdx is a user message with tool_results
+	msg := messages[startIdx]
+	if msg.Role != "user" {
+		return startIdx
+	}
+
+	// Check if this message contains tool_result blocks
+	if c.hasToolResults(msg) {
+		// Include the preceding assistant message (which should have tool_use)
+		if startIdx > 1 {
+			startIdx--
+		}
+	}
+
+	return startIdx
+}
+
+// hasToolResults checks if a message contains tool_result blocks.
+func (c *Client) hasToolResults(msg Message) bool {
+	content, ok := msg.Content.([]ToolResult)
+	if ok && len(content) > 0 {
+		return true
+	}
+
+	// Also check for []interface{} format (from JSON unmarshaling)
+	if contentSlice, ok := msg.Content.([]interface{}); ok {
+		for _, item := range contentSlice {
+			if itemMap, ok := item.(map[string]interface{}); ok {
+				if itemType, ok := itemMap["type"].(string); ok && itemType == "tool_result" {
+					return true
+				}
+			}
+		}
+	}
+
+	return false
 }
 
 func (c *Client) processQuery(ctx context.Context, query string) error {
