@@ -5,12 +5,14 @@
  * Portions copyright (c) 2025, pgEdge, Inc.
  * This software is released under The PostgreSQL License
  *
+ * Styled to match pgEdge Cloud product aesthetics
+ *
  *-------------------------------------------------------------------------
  */
 
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Box, Paper, Typography, useTheme, Chip } from '@mui/material';
+import { Box, Paper, Typography, useTheme, Chip, alpha } from '@mui/material';
 import { Person as PersonIcon, SmartToy as BotIcon, Info as InfoIcon, Psychology as PsychologyIcon } from '@mui/icons-material';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -49,6 +51,7 @@ const getShortModelName = (modelName) => {
 
 const Message = React.memo(({ message, showActivity, renderMarkdown, debug }) => {
     const theme = useTheme();
+    const isDark = theme.palette.mode === 'dark';
     const markdownComponents = createMarkdownComponents(theme);
 
     // System messages have a different layout
@@ -58,12 +61,17 @@ const Message = React.memo(({ message, showActivity, renderMarkdown, debug }) =>
                 <Chip
                     icon={<InfoIcon />}
                     label={message.content}
-                    color="info"
                     variant="outlined"
                     sx={{
                         maxWidth: '100%',
                         height: 'auto',
                         py: 1,
+                        bgcolor: isDark ? alpha('#3B82F6', 0.1) : alpha('#3B82F6', 0.05),
+                        borderColor: isDark ? alpha('#3B82F6', 0.3) : alpha('#3B82F6', 0.2),
+                        color: isDark ? '#60A5FA' : '#2563EB',
+                        '& .MuiChip-icon': {
+                            color: isDark ? '#60A5FA' : '#3B82F6',
+                        },
                         '& .MuiChip-label': {
                             whiteSpace: 'normal',
                             textAlign: 'center',
@@ -93,8 +101,8 @@ const Message = React.memo(({ message, showActivity, renderMarkdown, debug }) =>
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    bgcolor: message.role === 'user' ? 'primary.main' : 'secondary.main',
-                    color: 'white',
+                    bgcolor: message.role === 'user' ? '#15AABF' : (isDark ? '#475569' : '#E5E7EB'),
+                    color: message.role === 'user' ? '#FFFFFF' : (isDark ? '#F1F5F9' : '#374151'),
                     mr: 2,
                     flexShrink: 0,
                 }}
@@ -111,10 +119,17 @@ const Message = React.memo(({ message, showActivity, renderMarkdown, debug }) =>
                 flex: 1,
                 ...(message.isError && {
                     borderLeft: '3px solid',
-                    borderColor: 'error.main',
+                    borderColor: '#EF4444',
                     paddingLeft: 2,
-                    backgroundColor: 'error.light',
-                    opacity: 0.9,
+                    backgroundColor: isDark ? alpha('#EF4444', 0.1) : alpha('#EF4444', 0.05),
+                    borderRadius: 1,
+                    padding: 1
+                }),
+                ...(message.isCancelled && {
+                    borderLeft: '3px solid',
+                    borderColor: '#F59E0B',
+                    paddingLeft: 2,
+                    backgroundColor: isDark ? alpha('#F59E0B', 0.1) : alpha('#F59E0B', 0.05),
                     borderRadius: 1,
                     padding: 1
                 })
@@ -123,7 +138,10 @@ const Message = React.memo(({ message, showActivity, renderMarkdown, debug }) =>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
                     <Typography
                         variant="caption"
-                        color="text.secondary"
+                        sx={{
+                            color: isDark ? '#94A3B8' : '#6B7280',
+                            fontWeight: 500,
+                        }}
                     >
                         {message.role === 'user'
                             ? 'You'
@@ -137,13 +155,16 @@ const Message = React.memo(({ message, showActivity, renderMarkdown, debug }) =>
                             icon={<PsychologyIcon sx={{ fontSize: 14 }} />}
                             label="From Prompt"
                             size="small"
-                            color="primary"
                             variant="outlined"
                             sx={{
                                 height: 20,
                                 fontSize: '0.65rem',
+                                bgcolor: isDark ? alpha('#15AABF', 0.1) : alpha('#15AABF', 0.05),
+                                borderColor: isDark ? alpha('#15AABF', 0.3) : alpha('#15AABF', 0.2),
+                                color: isDark ? '#22B8CF' : '#15AABF',
                                 '& .MuiChip-icon': {
                                     marginLeft: '4px',
+                                    color: isDark ? '#22B8CF' : '#15AABF',
                                 },
                             }}
                         />
@@ -152,11 +173,23 @@ const Message = React.memo(({ message, showActivity, renderMarkdown, debug }) =>
                         <Chip
                             label="Error"
                             size="small"
-                            color="error"
-                            variant="filled"
                             sx={{
                                 height: 20,
                                 fontSize: '0.65rem',
+                                bgcolor: isDark ? alpha('#EF4444', 0.15) : alpha('#EF4444', 0.1),
+                                color: isDark ? '#F87171' : '#DC2626',
+                            }}
+                        />
+                    )}
+                    {message.isCancelled && (
+                        <Chip
+                            label="Cancelled"
+                            size="small"
+                            sx={{
+                                height: 20,
+                                fontSize: '0.65rem',
+                                bgcolor: isDark ? alpha('#F59E0B', 0.15) : alpha('#F59E0B', 0.1),
+                                color: isDark ? '#FBBF24' : '#D97706',
                             }}
                         />
                     )}
@@ -171,8 +204,8 @@ const Message = React.memo(({ message, showActivity, renderMarkdown, debug }) =>
                                 variant="caption"
                                 sx={{
                                     display: 'block',
-                                    color: 'text.secondary',
-                                    fontFamily: 'monospace',
+                                    color: isDark ? '#64748B' : '#9CA3AF',
+                                    fontFamily: '"JetBrains Mono", "Fira Code", monospace',
                                     fontSize: '0.7rem',
                                     mb: 0.2,
                                 }}
@@ -203,8 +236,8 @@ const Message = React.memo(({ message, showActivity, renderMarkdown, debug }) =>
                             variant="caption"
                             sx={{
                                 display: 'block',
-                                color: 'info.main',
-                                fontFamily: 'monospace',
+                                color: '#3B82F6',
+                                fontFamily: '"JetBrains Mono", "Fira Code", monospace',
                                 fontSize: '0.7rem',
                                 mb: 0.2,
                             }}
@@ -236,9 +269,15 @@ const Message = React.memo(({ message, showActivity, renderMarkdown, debug }) =>
                     elevation={0}
                     sx={{
                         p: 2,
-                        bgcolor: message.role === 'user' ? 'primary.light' : 'background.default',
-                        color: message.role === 'user' ? 'primary.contrastText' : 'text.primary',
-                        borderRadius: 2,
+                        bgcolor: message.role === 'user'
+                            ? (isDark ? alpha('#15AABF', 0.15) : alpha('#15AABF', 0.08))
+                            : (isDark ? '#1E293B' : '#F9FAFB'),
+                        color: isDark ? '#F1F5F9' : '#1F2937',
+                        borderRadius: 1,
+                        border: '1px solid',
+                        borderColor: message.role === 'user'
+                            ? (isDark ? alpha('#15AABF', 0.3) : alpha('#15AABF', 0.2))
+                            : (isDark ? '#334155' : '#E5E7EB'),
                     }}
                 >
                     {message.role === 'user' ? (
@@ -295,6 +334,7 @@ Message.propTypes = {
         })),
         isThinking: PropTypes.bool,
         isError: PropTypes.bool,
+        isCancelled: PropTypes.bool,
         fromPreviousSession: PropTypes.bool,
         tokenUsage: PropTypes.shape({
             provider: PropTypes.string,

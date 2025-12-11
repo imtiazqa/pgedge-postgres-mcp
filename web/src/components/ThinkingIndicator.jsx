@@ -5,12 +5,14 @@
  * Portions copyright (c) 2025, pgEdge, Inc.
  * This software is released under The PostgreSQL License
  *
+ * Styled to match pgEdge Cloud product aesthetics
+ *
  *-------------------------------------------------------------------------
  */
 
 import React, { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
-import { Box, CircularProgress, Typography } from '@mui/material';
+import { Box, CircularProgress, Typography, useTheme } from '@mui/material';
 
 // PostgreSQL/Elephant themed action words for thinking animation
 const ELEPHANT_ACTIONS = [
@@ -39,6 +41,8 @@ const ELEPHANT_ACTIONS = [
 const ThinkingIndicator = ({ isThinking }) => {
     const [message, setMessage] = useState('');
     const intervalRef = useRef(null);
+    const theme = useTheme();
+    const isDark = theme.palette.mode === 'dark';
 
     useEffect(() => {
         if (isThinking) {
@@ -70,11 +74,14 @@ const ThinkingIndicator = ({ isThinking }) => {
 
     return (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <CircularProgress size={20} />
+            <CircularProgress
+                size={20}
+                sx={{ color: isDark ? '#22B8CF' : '#15AABF' }}
+            />
             <Typography
                 variant="body2"
                 sx={{
-                    color: 'text.secondary',
+                    color: isDark ? '#64748B' : '#9CA3AF',
                     fontStyle: 'italic',
                 }}
             >

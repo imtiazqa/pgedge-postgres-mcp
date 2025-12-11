@@ -57,7 +57,7 @@ describe('Header Component', () => {
         renderHeader();
 
         await waitFor(() => {
-            expect(screen.getByAltText('pgEdge Natural Language Agent')).toBeInTheDocument();
+            expect(screen.getByAltText('pgEdge')).toBeInTheDocument();
             expect(screen.getByText('Natural Language Agent')).toBeInTheDocument();
         });
     });
@@ -66,7 +66,7 @@ describe('Header Component', () => {
         const { rerender } = renderHeader('light');
 
         await waitFor(() => {
-            const logo = screen.getByAltText('pgEdge Natural Language Agent');
+            const logo = screen.getByAltText('pgEdge');
             expect(logo).toHaveAttribute('src', 'logo-light.png');
         });
 
@@ -82,7 +82,7 @@ describe('Header Component', () => {
         );
 
         await waitFor(() => {
-            const logo = screen.getByAltText('pgEdge Natural Language Agent');
+            const logo = screen.getByAltText('pgEdge');
             expect(logo).toHaveAttribute('src', 'logo-dark.png');
         });
     });
@@ -182,7 +182,7 @@ describe('Header Component', () => {
         await user.click(avatarButton);
 
         await waitFor(() => {
-            expect(screen.getByText('Logout')).toBeInTheDocument();
+            expect(screen.getByText('Sign out')).toBeInTheDocument();
         });
     });
 
@@ -199,12 +199,12 @@ describe('Header Component', () => {
         await user.click(avatarButton);
 
         await waitFor(() => {
-            expect(screen.getByText('Logout')).toBeInTheDocument();
+            expect(screen.getByText('Sign out')).toBeInTheDocument();
         });
 
-        // Click logout
-        const logoutButton = screen.getByText('Logout');
-        await user.click(logoutButton);
+        // Click sign out
+        const signOutButton = screen.getByText('Sign out');
+        await user.click(signOutButton);
 
         // Logout is local-only, verify localStorage is cleared
         await waitFor(() => {
@@ -225,12 +225,12 @@ describe('Header Component', () => {
         await user.click(avatarButton);
 
         await waitFor(() => {
-            expect(screen.getByText('Logout')).toBeInTheDocument();
+            expect(screen.getByText('Sign out')).toBeInTheDocument();
         });
 
-        // Click logout
-        const logoutButton = screen.getByText('Logout');
-        await user.click(logoutButton);
+        // Click sign out
+        const signOutButton = screen.getByText('Sign out');
+        await user.click(signOutButton);
 
         // Logout is local-only, verify localStorage is cleared
         await waitFor(() => {

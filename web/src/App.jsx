@@ -8,8 +8,8 @@
  *-------------------------------------------------------------------------
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { ThemeProvider } from '@mui/material/styles';
 import { Container, Box, CircularProgress, CssBaseline, IconButton, Tooltip } from '@mui/material';
 import { ChevronRight as ChevronRightIcon, ChevronLeft as ChevronLeftIcon } from '@mui/icons-material';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -19,24 +19,7 @@ import Header from './components/Header';
 import MainContent from './components/MainContent';
 import ConversationPanel from './components/ConversationPanel';
 import Login from './components/Login';
-
-// Light theme for login page (always light mode)
-const lightTheme = createTheme({
-  palette: {
-    mode: 'light',
-    primary: {
-      main: '#3f51b5',
-    },
-    background: {
-      default: '#ffffff',
-      paper: '#ffffff',
-    },
-    text: {
-      primary: 'rgba(0, 0, 0, 0.87)',
-      secondary: 'rgba(0, 0, 0, 0.54)',
-    },
-  },
-});
+import { createPgedgeTheme, loginTheme } from './theme/pgedgeTheme';
 
 const AppContent = () => {
   const [mode, setMode] = useState(() => {
@@ -54,36 +37,8 @@ const AppContent = () => {
     localStorage.setItem('theme-mode', mode);
   }, [mode]);
 
-  const theme = createTheme({
-    palette: {
-      mode,
-      ...(mode === 'light' && {
-        primary: {
-          main: '#3f51b5',
-        },
-        background: {
-          default: '#f5f5f5',
-          paper: '#ffffff',
-        },
-        text: {
-          primary: 'rgba(0, 0, 0, 0.87)',
-          secondary: 'rgba(0, 0, 0, 0.54)',
-        },
-      }),
-      ...(mode === 'dark' && {
-        primary: {
-          main: '#1976d2',
-        },
-        secondary: {
-          main: '#dc004e',
-        },
-        background: {
-          default: '#121212',
-          paper: '#1e1e1e',
-        },
-      }),
-    },
-  });
+  // Create theme using pgEdge theme configuration
+  const theme = useMemo(() => createPgedgeTheme(mode), [mode]);
 
   const toggleTheme = () => {
     setMode((prevMode) => (prevMode === 'light' ? 'dark' : 'light'));
@@ -118,7 +73,7 @@ const AppContent = () => {
 
   if (!user) {
     return (
-      <ThemeProvider theme={lightTheme}>
+      <ThemeProvider theme={loginTheme}>
         <CssBaseline />
         <Login />
       </ThemeProvider>
@@ -146,14 +101,19 @@ const AppContent = () => {
                 top: 16,
                 zIndex: 1200,
                 bgcolor: 'background.paper',
-                borderRadius: '0 4px 4px 0',
+                borderRadius: '0 8px 8px 0',
                 boxShadow: 2,
                 width: 24,
                 height: 48,
                 minWidth: 24,
                 padding: 0,
+                border: '1px solid',
+                borderColor: 'divider',
+                borderLeft: 'none',
+                color: 'primary.main',
                 '&:hover': {
                   bgcolor: 'action.hover',
+                  color: 'primary.dark',
                 },
               }}
             >

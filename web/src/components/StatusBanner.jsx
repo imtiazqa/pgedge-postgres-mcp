@@ -5,6 +5,8 @@
  * Portions copyright (c) 2025, pgEdge, Inc.
  * This software is released under The PostgreSQL License
  *
+ * Styled to match pgEdge Cloud product aesthetics
+ *
  *-------------------------------------------------------------------------
  */
 
@@ -18,6 +20,7 @@ import {
     Paper,
     useTheme,
     Tooltip,
+    alpha,
 } from '@mui/material';
 import {
     CheckCircle as CheckCircleIcon,
@@ -42,6 +45,8 @@ const StatusBanner = () => {
     const [expanded, setExpanded] = useState(false);
     const [error, setError] = useState('');
     const [dbPopoverAnchor, setDbPopoverAnchor] = useState(null);
+
+    const isDark = theme.palette.mode === 'dark';
 
     // Database management (shared context)
     const {
@@ -133,11 +138,13 @@ const StatusBanner = () => {
 
     return (
         <Paper
-            elevation={1}
+            elevation={0}
             sx={{
                 mb: 2,
                 borderRadius: 1,
                 overflow: 'hidden',
+                border: '1px solid',
+                borderColor: isDark ? '#334155' : '#E5E7EB',
             }}
         >
             <Box
@@ -146,36 +153,80 @@ const StatusBanner = () => {
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     px: 2,
-                    py: 1,
+                    py: 1.25,
                     bgcolor: connected
-                        ? (theme.palette.mode === 'dark' ? '#1b5e20' : 'success.main')
-                        : 'error.main',
-                    color: 'white',
+                        ? (isDark ? alpha('#22C55E', 0.15) : alpha('#22C55E', 0.1))
+                        : (isDark ? alpha('#EF4444', 0.15) : alpha('#EF4444', 0.1)),
+                    borderBottom: expanded ? '1px solid' : 'none',
+                    borderColor: isDark ? '#334155' : '#E5E7EB',
                 }}
             >
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-                    <Chip
-                        icon={connected ? <CheckCircleIcon /> : <ErrorIcon />}
-                        label={connected ? 'Connected' : 'Disconnected'}
-                        size="small"
-                        sx={{
-                            bgcolor: 'rgba(255, 255, 255, 0.2)',
-                            color: 'white',
-                            '& .MuiChip-icon': { color: 'white' },
-                        }}
-                    />
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        {connected ? (
+                            <CheckCircleIcon
+                                sx={{
+                                    fontSize: 18,
+                                    color: '#22C55E',
+                                }}
+                            />
+                        ) : (
+                            <ErrorIcon
+                                sx={{
+                                    fontSize: 18,
+                                    color: '#EF4444',
+                                }}
+                            />
+                        )}
+                        <Typography
+                            variant="body2"
+                            sx={{
+                                fontWeight: 600,
+                                color: connected
+                                    ? (isDark ? '#4ADE80' : '#16A34A')
+                                    : (isDark ? '#F87171' : '#DC2626'),
+                            }}
+                        >
+                            {connected ? 'Connected' : 'Disconnected'}
+                        </Typography>
+                    </Box>
                     {connected && systemInfo && (
                         <>
-                            <Typography variant="body2" sx={{ display: { xs: 'none', sm: 'block' } }}>
-                                PostgreSQL {systemInfo.postgresql_version}
-                            </Typography>
-                            <Typography variant="body2" sx={{ display: { xs: 'none', md: 'block' }, fontFamily: 'monospace', fontSize: '0.85rem' }}>
+                            <Chip
+                                label={`PostgreSQL ${systemInfo.postgresql_version}`}
+                                size="small"
+                                sx={{
+                                    display: { xs: 'none', sm: 'flex' },
+                                    height: 24,
+                                    bgcolor: 'transparent',
+                                    color: isDark ? '#94A3B8' : '#6B7280',
+                                    fontSize: '0.75rem',
+                                    fontWeight: 500,
+                                    '& .MuiChip-label': {
+                                        px: 1.5,
+                                    },
+                                }}
+                            />
+                            <Typography
+                                variant="body2"
+                                sx={{
+                                    display: { xs: 'none', md: 'block' },
+                                    fontFamily: '"JetBrains Mono", "Fira Code", monospace',
+                                    fontSize: '0.8rem',
+                                    color: isDark ? '#94A3B8' : '#6B7280',
+                                }}
+                            >
                                 {getConnectionString()}
                             </Typography>
                         </>
                     )}
                     {error && (
-                        <Typography variant="body2">
+                        <Typography
+                            variant="body2"
+                            sx={{
+                                color: isDark ? '#F87171' : '#DC2626',
+                            }}
+                        >
                             {error}
                         </Typography>
                     )}
@@ -189,10 +240,14 @@ const StatusBanner = () => {
                                     onClick={handleDbSelectorOpen}
                                     disabled={isProcessing}
                                     sx={{
-                                        color: 'white',
-                                        mr: 1,
+                                        color: isDark ? '#94A3B8' : '#6B7280',
+                                        mr: 0.5,
+                                        '&:hover': {
+                                            bgcolor: isDark ? alpha('#22B8CF', 0.08) : alpha('#15AABF', 0.04),
+                                            color: '#15AABF',
+                                        },
                                         '&.Mui-disabled': {
-                                            color: 'rgba(255, 255, 255, 0.4)',
+                                            color: isDark ? '#475569' : '#D1D5DB',
                                         },
                                     }}
                                 >
@@ -204,7 +259,13 @@ const StatusBanner = () => {
                     <IconButton
                         size="small"
                         onClick={() => setExpanded(!expanded)}
-                        sx={{ color: 'white' }}
+                        sx={{
+                            color: isDark ? '#94A3B8' : '#6B7280',
+                            '&:hover': {
+                                bgcolor: isDark ? alpha('#22B8CF', 0.08) : alpha('#15AABF', 0.04),
+                                color: '#15AABF',
+                            },
+                        }}
                     >
                         {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
                     </IconButton>
@@ -212,96 +273,257 @@ const StatusBanner = () => {
             </Box>
 
             <Collapse in={expanded}>
-                <Box sx={{ p: 2, bgcolor: 'background.paper' }}>
+                <Box sx={{ p: 2.5, bgcolor: 'background.paper' }}>
                     {connected && systemInfo ? (
-                        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' }, gap: 2 }}>
+                        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: 'repeat(4, 1fr)' }, gap: 2.5 }}>
                             <Box>
-                                <Typography variant="caption" color="text.secondary">
+                                <Typography
+                                    variant="caption"
+                                    sx={{
+                                        color: isDark ? '#64748B' : '#9CA3AF',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.05em',
+                                        fontWeight: 600,
+                                        fontSize: '0.65rem',
+                                    }}
+                                >
                                     Database
                                 </Typography>
-                                <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                                <Typography
+                                    variant="body2"
+                                    sx={{
+                                        fontFamily: '"JetBrains Mono", "Fira Code", monospace',
+                                        color: isDark ? '#F1F5F9' : '#1F2937',
+                                        mt: 0.25,
+                                    }}
+                                >
                                     {systemInfo.database || 'N/A'}
                                 </Typography>
                             </Box>
                             <Box>
-                                <Typography variant="caption" color="text.secondary">
+                                <Typography
+                                    variant="caption"
+                                    sx={{
+                                        color: isDark ? '#64748B' : '#9CA3AF',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.05em',
+                                        fontWeight: 600,
+                                        fontSize: '0.65rem',
+                                    }}
+                                >
                                     User
                                 </Typography>
-                                <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                                <Typography
+                                    variant="body2"
+                                    sx={{
+                                        fontFamily: '"JetBrains Mono", "Fira Code", monospace',
+                                        color: isDark ? '#F1F5F9' : '#1F2937',
+                                        mt: 0.25,
+                                    }}
+                                >
                                     {systemInfo.user || 'N/A'}
                                 </Typography>
                             </Box>
                             <Box>
-                                <Typography variant="caption" color="text.secondary">
+                                <Typography
+                                    variant="caption"
+                                    sx={{
+                                        color: isDark ? '#64748B' : '#9CA3AF',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.05em',
+                                        fontWeight: 600,
+                                        fontSize: '0.65rem',
+                                    }}
+                                >
                                     Host
                                 </Typography>
-                                <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                                <Typography
+                                    variant="body2"
+                                    sx={{
+                                        fontFamily: '"JetBrains Mono", "Fira Code", monospace',
+                                        color: isDark ? '#F1F5F9' : '#1F2937',
+                                        mt: 0.25,
+                                    }}
+                                >
                                     {systemInfo.host || 'N/A'}
                                 </Typography>
                             </Box>
                             <Box>
-                                <Typography variant="caption" color="text.secondary">
+                                <Typography
+                                    variant="caption"
+                                    sx={{
+                                        color: isDark ? '#64748B' : '#9CA3AF',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.05em',
+                                        fontWeight: 600,
+                                        fontSize: '0.65rem',
+                                    }}
+                                >
                                     Port
                                 </Typography>
-                                <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                                <Typography
+                                    variant="body2"
+                                    sx={{
+                                        fontFamily: '"JetBrains Mono", "Fira Code", monospace',
+                                        color: isDark ? '#F1F5F9' : '#1F2937',
+                                        mt: 0.25,
+                                    }}
+                                >
                                     {systemInfo.port && systemInfo.port !== 0 ? systemInfo.port : 'N/A'}
                                 </Typography>
                             </Box>
                             <Box>
-                                <Typography variant="caption" color="text.secondary">
+                                <Typography
+                                    variant="caption"
+                                    sx={{
+                                        color: isDark ? '#64748B' : '#9CA3AF',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.05em',
+                                        fontWeight: 600,
+                                        fontSize: '0.65rem',
+                                    }}
+                                >
                                     PostgreSQL Version
                                 </Typography>
-                                <Typography variant="body2">
+                                <Typography
+                                    variant="body2"
+                                    sx={{
+                                        color: isDark ? '#F1F5F9' : '#1F2937',
+                                        mt: 0.25,
+                                    }}
+                                >
                                     {systemInfo.postgresql_version || 'N/A'}
                                 </Typography>
                             </Box>
                             <Box>
-                                <Typography variant="caption" color="text.secondary">
+                                <Typography
+                                    variant="caption"
+                                    sx={{
+                                        color: isDark ? '#64748B' : '#9CA3AF',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.05em',
+                                        fontWeight: 600,
+                                        fontSize: '0.65rem',
+                                    }}
+                                >
                                     Operating System
                                 </Typography>
-                                <Typography variant="body2">
+                                <Typography
+                                    variant="body2"
+                                    sx={{
+                                        color: isDark ? '#F1F5F9' : '#1F2937',
+                                        mt: 0.25,
+                                    }}
+                                >
                                     {systemInfo.operating_system || 'N/A'}
                                 </Typography>
                             </Box>
                             <Box>
-                                <Typography variant="caption" color="text.secondary">
+                                <Typography
+                                    variant="caption"
+                                    sx={{
+                                        color: isDark ? '#64748B' : '#9CA3AF',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.05em',
+                                        fontWeight: 600,
+                                        fontSize: '0.65rem',
+                                    }}
+                                >
                                     Architecture
                                 </Typography>
-                                <Typography variant="body2">
+                                <Typography
+                                    variant="body2"
+                                    sx={{
+                                        color: isDark ? '#F1F5F9' : '#1F2937',
+                                        mt: 0.25,
+                                    }}
+                                >
                                     {systemInfo.architecture || 'N/A'}
                                 </Typography>
                             </Box>
                             <Box>
-                                <Typography variant="caption" color="text.secondary">
+                                <Typography
+                                    variant="caption"
+                                    sx={{
+                                        color: isDark ? '#64748B' : '#9CA3AF',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.05em',
+                                        fontWeight: 600,
+                                        fontSize: '0.65rem',
+                                    }}
+                                >
                                     Bit Version
                                 </Typography>
-                                <Typography variant="body2">
+                                <Typography
+                                    variant="body2"
+                                    sx={{
+                                        color: isDark ? '#F1F5F9' : '#1F2937',
+                                        mt: 0.25,
+                                    }}
+                                >
                                     {systemInfo.bit_version || 'N/A'}
                                 </Typography>
                             </Box>
                             {systemInfo.compiler && (
                                 <Box>
-                                    <Typography variant="caption" color="text.secondary">
+                                    <Typography
+                                        variant="caption"
+                                        sx={{
+                                            color: isDark ? '#64748B' : '#9CA3AF',
+                                            textTransform: 'uppercase',
+                                            letterSpacing: '0.05em',
+                                            fontWeight: 600,
+                                            fontSize: '0.65rem',
+                                        }}
+                                    >
                                         Compiler
                                     </Typography>
-                                    <Typography variant="body2">
+                                    <Typography
+                                        variant="body2"
+                                        sx={{
+                                            color: isDark ? '#F1F5F9' : '#1F2937',
+                                            mt: 0.25,
+                                        }}
+                                    >
                                         {systemInfo.compiler}
                                     </Typography>
                                 </Box>
                             )}
                             {systemInfo.full_version && (
                                 <Box sx={{ gridColumn: { xs: '1', md: '1 / -1' } }}>
-                                    <Typography variant="caption" color="text.secondary">
+                                    <Typography
+                                        variant="caption"
+                                        sx={{
+                                            color: isDark ? '#64748B' : '#9CA3AF',
+                                            textTransform: 'uppercase',
+                                            letterSpacing: '0.05em',
+                                            fontWeight: 600,
+                                            fontSize: '0.65rem',
+                                        }}
+                                    >
                                         Full Version
                                     </Typography>
-                                    <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>
+                                    <Typography
+                                        variant="body2"
+                                        sx={{
+                                            fontFamily: '"JetBrains Mono", "Fira Code", monospace',
+                                            fontSize: '0.7rem',
+                                            color: isDark ? '#94A3B8' : '#6B7280',
+                                            mt: 0.5,
+                                            p: 1.5,
+                                            bgcolor: isDark ? '#0F172A' : '#F9FAFB',
+                                            borderRadius: 1,
+                                            border: '1px solid',
+                                            borderColor: isDark ? '#334155' : '#E5E7EB',
+                                        }}
+                                    >
                                         {systemInfo.full_version}
                                     </Typography>
                                 </Box>
                             )}
                         </Box>
                     ) : (
-                        <Typography variant="body2" color="text.secondary">
+                        <Typography variant="body2" sx={{ color: isDark ? '#64748B' : '#9CA3AF' }}>
                             Unable to load system information
                         </Typography>
                     )}

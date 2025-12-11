@@ -9,7 +9,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Box, Paper } from '@mui/material';
+import { Box, Paper, useTheme } from '@mui/material';
 import { useAuth } from '../contexts/AuthContext';
 import { useLLMProcessing } from '../contexts/LLMProcessingContext';
 import { useDatabaseContext } from '../contexts/DatabaseContext';
@@ -359,6 +359,8 @@ const compactMessages = async (messages, sessionToken, maxTokens = 100000, recen
 const ChatInterface = ({ conversations }) => {
     const { sessionToken, forceLogout } = useAuth();
     const { setIsProcessing } = useLLMProcessing();
+    const theme = useTheme();
+    const isDark = theme.palette.mode === 'dark';
 
     // State management
     const [messages, setMessages] = useState([]);
@@ -441,6 +443,12 @@ const ChatInterface = ({ conversations }) => {
 
             // Update the previous conversation ID ref
             previousConversationIdRef.current = newConversationId;
+
+            // Skip loading if we just saved a new conversation (going from null to an ID)
+            // The messages are already in state, no need to reload them
+            if (!previousConversationId && newConversationId) {
+                return;
+            }
 
             // If no conversation is selected, clear messages for new conversation
             if (!newConversationId) {
@@ -1382,7 +1390,16 @@ const ChatInterface = ({ conversations }) => {
             />
 
             {/* Input Area */}
-            <Paper elevation={2} sx={{ p: 2 }}>
+            <Paper
+                elevation={0}
+                sx={{
+                    p: 2,
+                    bgcolor: isDark ? '#1E293B' : '#FFFFFF',
+                    border: '1px solid',
+                    borderColor: isDark ? '#334155' : '#E5E7EB',
+                    borderRadius: 3,
+                }}
+            >
                 <MessageInput
                     value={input}
                     onChange={handleInputChange}

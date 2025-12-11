@@ -5,17 +5,21 @@
  * Portions copyright (c) 2025, pgEdge, Inc.
  * This software is released under The PostgreSQL License
  *
+ * Styled to match pgEdge Cloud product aesthetics
+ *
  *-------------------------------------------------------------------------
  */
 
 import React, { useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { Box, Paper, Typography } from '@mui/material';
+import { Box, Paper, Typography, useTheme, alpha } from '@mui/material';
 import { SmartToy as BotIcon } from '@mui/icons-material';
 import Message from './Message';
 
 const MessageList = React.memo(({ messages, showActivity, renderMarkdown, debug }) => {
     const messagesEndRef = useRef(null);
+    const theme = useTheme();
+    const isDark = theme.palette.mode === 'dark';
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -27,13 +31,16 @@ const MessageList = React.memo(({ messages, showActivity, renderMarkdown, debug 
 
     return (
         <Paper
-            elevation={1}
+            elevation={0}
             sx={{
                 flex: 1,
                 overflow: 'auto',
                 p: 2,
                 mb: 1,
-                bgcolor: 'background.paper',
+                bgcolor: isDark ? '#0F172A' : '#FFFFFF',
+                border: '1px solid',
+                borderColor: isDark ? '#334155' : '#E5E7EB',
+                borderRadius: 3,
                 position: 'relative',
             }}
         >
@@ -45,15 +52,44 @@ const MessageList = React.memo(({ messages, showActivity, renderMarkdown, debug 
                         alignItems: 'center',
                         justifyContent: 'center',
                         height: '100%',
-                        color: 'text.secondary',
                     }}
                 >
-                    <BotIcon sx={{ fontSize: 64, mb: 2, opacity: 0.3 }} />
-                    <Typography variant="h6" gutterBottom>
+                    <Box
+                        sx={{
+                            width: 80,
+                            height: 80,
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            bgcolor: isDark ? alpha('#22B8CF', 0.1) : alpha('#15AABF', 0.08),
+                            mb: 2,
+                        }}
+                    >
+                        <BotIcon sx={{
+                            fontSize: 40,
+                            color: isDark ? '#22B8CF' : '#15AABF',
+                        }} />
+                    </Box>
+                    <Typography
+                        variant="h6"
+                        gutterBottom
+                        sx={{
+                            color: isDark ? '#F1F5F9' : '#1F2937',
+                            fontWeight: 600,
+                        }}
+                    >
                         Start a conversation
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                        Ask questions about your PostgreSQL database
+                    <Typography
+                        variant="body2"
+                        sx={{
+                            color: isDark ? '#64748B' : '#9CA3AF',
+                            textAlign: 'center',
+                            maxWidth: 300,
+                        }}
+                    >
+                        Ask questions about your PostgreSQL database using natural language
                     </Typography>
                 </Box>
             ) : (
