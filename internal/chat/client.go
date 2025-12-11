@@ -18,6 +18,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -97,8 +98,23 @@ func NewClient(cfg *Config, overrides *ConfigOverrides) (*Client, error) {
 	}, nil
 }
 
+// sanitizeTerminal ensures the terminal is in a sane state.
+// This fixes issues if a previous run exited without restoring terminal settings
+// (e.g., if the program crashed while in raw mode).
+func (c *Client) sanitizeTerminal() {
+	// Use stty sane to reset terminal to a sensible state
+	// This is a no-op if terminal is already in a good state
+	cmd := exec.Command("stty", "sane")
+	cmd.Stdin = os.Stdin
+	_ = cmd.Run() //nolint:errcheck // Best-effort terminal reset, errors are expected on non-TTY
+}
+
 // Run starts the chat client
 func (c *Client) Run(ctx context.Context) error {
+	// Ensure terminal is in a sane state at startup
+	// This fixes issues if a previous run exited without restoring terminal settings
+	c.sanitizeTerminal()
+
 	// Connect to MCP server
 	if err := c.connectToMCP(ctx); err != nil {
 		return fmt.Errorf("failed to connect to MCP server: %w", err)
@@ -853,6 +869,8 @@ func (c *Client) processQuery(ctx context.Context, query string) error {
 		response, err := c.llm.Chat(reqCtx, compactedMessages, c.tools)
 		if err != nil {
 			close(thinkingDone)
+			// Wait for ListenForEscape to restore terminal from raw mode
+			time.Sleep(50 * time.Millisecond)
 			// Check if this was a user cancellation (Escape key)
 			if reqCtx.Err() == context.Canceled && ctx.Err() == nil {
 				// User canceled with Escape - keep the query in history
@@ -942,6 +960,8 @@ func (c *Client) processQuery(ctx context.Context, query string) error {
 
 		// Got final response
 		close(thinkingDone)
+		// Wait for ListenForEscape to restore terminal from raw mode
+		time.Sleep(50 * time.Millisecond)
 
 		// Extract and display text content
 		var textParts []string
@@ -964,6 +984,8 @@ func (c *Client) processQuery(ctx context.Context, query string) error {
 	}
 
 	close(thinkingDone)
+	// Wait for ListenForEscape to restore terminal from raw mode
+	time.Sleep(50 * time.Millisecond)
 	return fmt.Errorf("reached maximum number of tool calls (%d)", maxAgenticLoops)
 }
 
