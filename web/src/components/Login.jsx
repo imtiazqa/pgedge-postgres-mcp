@@ -37,6 +37,27 @@ const pulse = keyframes`
   50% { opacity: 0.6; transform: scale(1.05); }
 `;
 
+// Wave ripple animation - noticeable horizontal movement
+const waveRipple = keyframes`
+  0% { transform: translateX(0) scale(1.15); }
+  50% { transform: translateX(-5%) scale(1.2); }
+  100% { transform: translateX(0) scale(1.15); }
+`;
+
+// Secondary wave with different timing - moves opposite direction
+const waveRipple2 = keyframes`
+  0% { transform: translateX(0) scale(1.2); }
+  50% { transform: translateX(4%) scale(1.15); }
+  100% { transform: translateX(0) scale(1.2); }
+`;
+
+// Shimmer effect for visible light play
+const shimmer = keyframes`
+  0% { opacity: 0.1; }
+  50% { opacity: 0.4; }
+  100% { opacity: 0.1; }
+`;
+
 const Login = () => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
@@ -78,34 +99,83 @@ const Login = () => {
                 justifyContent: 'center',
                 position: 'relative',
                 overflow: 'hidden',
-                // pgEdge Cloud background
-                backgroundImage: 'url(https://a.storyblok.com/f/187930/1200x560/7852cd29b7/home-page-hero-bg-1200.jpg)',
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                backgroundRepeat: 'no-repeat',
-                '&::before': {
-                    content: '""',
+                backgroundColor: '#0F172A',
+            }}
+        >
+            {/* Animated wave background - primary layer */}
+            <Box
+                sx={{
+                    position: 'absolute',
+                    top: '-15%',
+                    left: '-10%',
+                    right: '-10%',
+                    bottom: '-15%',
+                    backgroundImage: 'url(https://a.storyblok.com/f/187930/1200x560/7852cd29b7/home-page-hero-bg-1200.jpg)',
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    backgroundRepeat: 'no-repeat',
+                    animation: `${waveRipple} 12s ease-in-out infinite`,
+                    zIndex: 0,
+                }}
+            />
+
+            {/* Secondary wave layer - moves opposite direction for depth */}
+            <Box
+                sx={{
+                    position: 'absolute',
+                    top: '-20%',
+                    left: '-15%',
+                    right: '-15%',
+                    bottom: '-20%',
+                    backgroundImage: 'url(https://a.storyblok.com/f/187930/1200x560/7852cd29b7/home-page-hero-bg-1200.jpg)',
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    backgroundRepeat: 'no-repeat',
+                    opacity: 0.4,
+                    animation: `${waveRipple2} 15s ease-in-out infinite`,
+                    animationDelay: '-3s',
+                    zIndex: 0,
+                }}
+            />
+
+            {/* Gradient overlay for depth */}
+            <Box
+                sx={{
                     position: 'absolute',
                     top: 0,
                     left: 0,
                     right: 0,
                     bottom: 0,
-                    background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.85) 0%, rgba(30, 41, 59, 0.75) 100%)',
-                    zIndex: 0,
-                },
-            }}
-        >
-            {/* Decorative geometric shapes */}
+                    background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.75) 0%, rgba(30, 41, 59, 0.65) 50%, rgba(15, 23, 42, 0.8) 100%)',
+                    zIndex: 1,
+                }}
+            />
+
+            {/* Shimmer light effect */}
             <Box
                 sx={{
                     position: 'absolute',
                     top: '10%',
-                    left: '5%',
-                    width: 200,
-                    height: 200,
+                    left: '20%',
+                    width: '60%',
+                    height: '80%',
+                    background: `radial-gradient(ellipse at center, ${alpha('#22B8CF', 0.35)} 0%, transparent 60%)`,
+                    animation: `${shimmer} 6s ease-in-out infinite`,
+                    zIndex: 1,
+                }}
+            />
+
+            {/* Decorative glow orbs */}
+            <Box
+                sx={{
+                    position: 'absolute',
+                    top: '5%',
+                    left: '0%',
+                    width: 400,
+                    height: 400,
                     borderRadius: '50%',
-                    background: `linear-gradient(135deg, ${alpha('#15AABF', 0.2)} 0%, ${alpha('#22B8CF', 0.1)} 100%)`,
-                    filter: 'blur(60px)',
+                    background: `radial-gradient(circle, ${alpha('#15AABF', 0.25)} 0%, transparent 60%)`,
+                    filter: 'blur(30px)',
                     animation: `${pulse} 8s ease-in-out infinite`,
                     zIndex: 1,
                 }}
@@ -113,32 +183,15 @@ const Login = () => {
             <Box
                 sx={{
                     position: 'absolute',
-                    bottom: '15%',
-                    right: '10%',
-                    width: 250,
-                    height: 250,
+                    bottom: '5%',
+                    right: '0%',
+                    width: 450,
+                    height: 450,
                     borderRadius: '50%',
-                    background: `linear-gradient(135deg, ${alpha('#3B82F6', 0.15)} 0%, ${alpha('#15AABF', 0.1)} 100%)`,
-                    filter: 'blur(80px)',
+                    background: `radial-gradient(circle, ${alpha('#3B82F6', 0.2)} 0%, transparent 60%)`,
+                    filter: 'blur(35px)',
                     animation: `${pulse} 10s ease-in-out infinite`,
                     animationDelay: '2s',
-                    zIndex: 1,
-                }}
-            />
-
-            {/* Subtle grid pattern overlay */}
-            <Box
-                sx={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    backgroundImage: `
-                        linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
-                        linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px)
-                    `,
-                    backgroundSize: '50px 50px',
                     zIndex: 1,
                 }}
             />
@@ -147,48 +200,77 @@ const Login = () => {
             <Box
                 sx={{
                     position: 'absolute',
-                    top: '20%',
-                    right: '20%',
-                    width: 60,
-                    height: 60,
-                    border: `2px solid ${alpha('#15AABF', 0.3)}`,
-                    borderRadius: '12px',
+                    top: '12%',
+                    right: '12%',
+                    width: 100,
+                    height: 100,
+                    border: `2px solid ${alpha('#15AABF', 0.35)}`,
+                    borderRadius: '20px',
                     transform: 'rotate(15deg)',
                     animation: `${float} 6s ease-in-out infinite`,
-                    zIndex: 1,
+                    zIndex: 2,
                 }}
             />
             <Box
                 sx={{
                     position: 'absolute',
-                    bottom: '25%',
-                    left: '15%',
-                    width: 40,
-                    height: 40,
-                    border: `2px solid ${alpha('#22B8CF', 0.25)}`,
+                    bottom: '18%',
+                    left: '8%',
+                    width: 70,
+                    height: 70,
+                    border: `2px solid ${alpha('#22B8CF', 0.3)}`,
                     borderRadius: '50%',
                     animation: `${float} 8s ease-in-out infinite`,
                     animationDelay: '1s',
-                    zIndex: 1,
+                    zIndex: 2,
                 }}
             />
             <Box
                 sx={{
                     position: 'absolute',
-                    top: '60%',
-                    right: '8%',
-                    width: 30,
-                    height: 30,
+                    top: '50%',
+                    right: '6%',
+                    width: 50,
+                    height: 50,
                     backgroundColor: alpha('#15AABF', 0.2),
-                    borderRadius: '6px',
+                    borderRadius: '12px',
                     transform: 'rotate(45deg)',
                     animation: `${float} 7s ease-in-out infinite`,
                     animationDelay: '3s',
-                    zIndex: 1,
+                    zIndex: 2,
+                }}
+            />
+            <Box
+                sx={{
+                    position: 'absolute',
+                    top: '25%',
+                    left: '6%',
+                    width: 40,
+                    height: 40,
+                    backgroundColor: alpha('#22B8CF', 0.15),
+                    borderRadius: '10px',
+                    animation: `${float} 5s ease-in-out infinite`,
+                    animationDelay: '0.5s',
+                    zIndex: 2,
+                }}
+            />
+            <Box
+                sx={{
+                    position: 'absolute',
+                    bottom: '35%',
+                    right: '18%',
+                    width: 30,
+                    height: 30,
+                    border: `2px solid ${alpha('#15AABF', 0.25)}`,
+                    borderRadius: '8px',
+                    transform: 'rotate(30deg)',
+                    animation: `${float} 9s ease-in-out infinite`,
+                    animationDelay: '2s',
+                    zIndex: 2,
                 }}
             />
 
-            <Container maxWidth="sm" sx={{ position: 'relative', zIndex: 2 }}>
+            <Container maxWidth="sm" sx={{ position: 'relative', zIndex: 3 }}>
                 <Card
                     elevation={24}
                     sx={{
