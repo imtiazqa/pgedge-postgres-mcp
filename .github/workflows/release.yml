@@ -92,13 +92,14 @@ jobs:
 
             - name: Configure kb-builder for Ollama Cloud
               run: |
-                  # Modify the config to use Ollama Cloud and output kb.db
-                  sed -i 's|database_path: "bin/pgedge-nla-kb.db"|database_path: "bin/kb.db"|' examples/pgedge-nla-kb-builder.yaml
-                  sed -i 's|endpoint: "http://localhost:11434"|endpoint: "https://ollama.com"|' examples/pgedge-nla-kb-builder.yaml
-                  sed -i '/openai:/,/enabled:/ s/enabled: true/enabled: false/' examples/pgedge-nla-kb-builder.yaml
-                  sed -i '/voyage:/,/enabled:/ s/enabled: true/enabled: false/' examples/pgedge-nla-kb-builder.yaml
+                  # Create a copy and modify it to use Ollama Cloud and output kb.db
+                  cp examples/pgedge-nla-kb-builder.yaml examples/pgedge-nla-kb-builder-build.yaml
+                  sed -i 's|database_path: "bin/pgedge-nla-kb.db"|database_path: "bin/kb.db"|' examples/pgedge-nla-kb-builder-build.yaml
+                  sed -i 's|endpoint: "http://localhost:11434"|endpoint: "https://ollama.com"|' examples/pgedge-nla-kb-builder-build.yaml
+                  sed -i '/openai:/,/enabled:/ s/enabled: true/enabled: false/' examples/pgedge-nla-kb-builder-build.yaml
+                  sed -i '/voyage:/,/enabled:/ s/enabled: true/enabled: false/' examples/pgedge-nla-kb-builder-build.yaml
                   echo "Modified config for build:"
-                  grep -A2 "database_path:\|ollama:" examples/pgedge-nla-kb-builder.yaml
+                  grep -A2 "database_path:\|ollama:" examples/pgedge-nla-kb-builder-build.yaml
 
             - name: Run GoReleaser (amd64 only)
               uses: goreleaser/goreleaser-action@v6
@@ -154,13 +155,14 @@ jobs:
 
             - name: Configure kb-builder for Ollama Cloud
               run: |
-                  # Modify the config to use Ollama Cloud and output kb.db
-                  sed -i 's|database_path: "bin/pgedge-nla-kb.db"|database_path: "bin/kb.db"|' examples/pgedge-nla-kb-builder.yaml
-                  sed -i 's|endpoint: "http://localhost:11434"|endpoint: "https://ollama.com"|' examples/pgedge-nla-kb-builder.yaml
-                  sed -i '/openai:/,/enabled:/ s/enabled: true/enabled: false/' examples/pgedge-nla-kb-builder.yaml
-                  sed -i '/voyage:/,/enabled:/ s/enabled: true/enabled: false/' examples/pgedge-nla-kb-builder.yaml
+                  # Create a copy and modify it to use Ollama Cloud and output kb.db
+                  cp examples/pgedge-nla-kb-builder.yaml examples/pgedge-nla-kb-builder-build.yaml
+                  sed -i 's|database_path: "bin/pgedge-nla-kb.db"|database_path: "bin/kb.db"|' examples/pgedge-nla-kb-builder-build.yaml
+                  sed -i 's|endpoint: "http://localhost:11434"|endpoint: "https://ollama.com"|' examples/pgedge-nla-kb-builder-build.yaml
+                  sed -i '/openai:/,/enabled:/ s/enabled: true/enabled: false/' examples/pgedge-nla-kb-builder-build.yaml
+                  sed -i '/voyage:/,/enabled:/ s/enabled: true/enabled: false/' examples/pgedge-nla-kb-builder-build.yaml
                   echo "Modified config for build:"
-                  grep -A2 "database_path:\|ollama:" examples/pgedge-nla-kb-builder.yaml
+                  grep -A2 "database_path:\|ollama:" examples/pgedge-nla-kb-builder-build.yaml
 
             - name: Run GoReleaser (arm64 only)
               uses: goreleaser/goreleaser-action@v6
