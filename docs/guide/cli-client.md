@@ -387,6 +387,32 @@ Once the chat client is running, you can use these special commands:
 - `tools` - List available MCP tools
 - `resources` - List available MCP resources
 
+## Keyboard Shortcuts
+
+The CLI supports the following keyboard shortcuts:
+
+| Key | Action |
+|-----|--------|
+| Escape | Cancel the current LLM request and return to prompt |
+| Up/Down | Navigate through command history |
+| Ctrl+R | Reverse search through command history |
+| Ctrl+C | Exit the chat client |
+| Ctrl+D | Exit the chat client (EOF) |
+
+### Cancelling Requests
+
+While waiting for an LLM response (during the "Thinking..." animation), you can
+press the **Escape** key to cancel the request and return to the prompt
+immediately. This is useful when:
+
+- A query is taking too long
+- You realize you made a mistake in your question
+- You want to ask a different question instead
+
+When you cancel a request, your query remains in the conversation history so the
+LLM has context for follow-up questions. The Escape keypress itself is not saved
+to any history.
+
 ## Slash Commands
 
 The chat client supports **slash commands** for managing settings and configuration without restarting. Similar to Claude Code, commands starting with `/` are processed locally, while unknown commands are sent to the LLM for interpretation.

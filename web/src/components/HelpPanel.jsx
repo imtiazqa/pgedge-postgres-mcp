@@ -72,6 +72,12 @@ const HelpPanel = ({ open, onClose, serverInfo }) => {
                     </ListItem>
                     <ListItem>
                         <ListItemText
+                            primary="Canceling Requests"
+                            secondary="While waiting for a response, the send button changes to a stop button. Click it to cancel the current request. The conversation will show that the request was canceled."
+                        />
+                    </ListItem>
+                    <ListItem>
+                        <ListItemText
                             primary="Query History"
                             secondary="Use the up and down arrow keys to navigate through your previous queries in the current conversation. Each conversation maintains its own query history."
                         />

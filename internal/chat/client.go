@@ -778,9 +778,17 @@ func (c *Client) processQuery(ctx context.Context, query string) error {
 		})
 	}
 
+	// Create a cancellable context for this request
+	// This allows the user to cancel with Escape key
+	reqCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	// Start thinking animation
 	thinkingDone := make(chan struct{})
-	go c.ui.ShowThinking(ctx, thinkingDone)
+	go c.ui.ShowThinking(reqCtx, thinkingDone)
+
+	// Start listening for Escape key to cancel the request
+	go ListenForEscape(ctx, thinkingDone, cancel)
 
 	// Agentic loop (allow up to maxAgenticLoops iterations for complex queries)
 	for iteration := 0; iteration < maxAgenticLoops; iteration++ {
@@ -788,9 +796,16 @@ func (c *Client) processQuery(ctx context.Context, query string) error {
 		compactedMessages := c.compactMessages(c.messages)
 
 		// Get response from LLM with compacted history
-		response, err := c.llm.Chat(ctx, compactedMessages, c.tools)
+		response, err := c.llm.Chat(reqCtx, compactedMessages, c.tools)
 		if err != nil {
 			close(thinkingDone)
+			// Check if this was a user cancellation (Escape key)
+			if reqCtx.Err() == context.Canceled && ctx.Err() == nil {
+				// User canceled with Escape - keep the query in history
+				// but don't save the Escape keypress
+				c.ui.PrintCanceled()
+				return nil // Return without error to continue the chat loop
+			}
 			return fmt.Errorf("LLM error: %w", err)
 		}
 
@@ -823,10 +838,20 @@ func (c *Client) processQuery(ctx context.Context, query string) error {
 				time.Sleep(50 * time.Millisecond)
 				c.ui.PrintToolExecution(toolUse.Name, toolUse.Input)
 				thinkingDone = make(chan struct{})
-				go c.ui.ShowThinking(ctx, thinkingDone)
+				go c.ui.ShowThinking(reqCtx, thinkingDone)
+				// Start new Escape listener for this tool execution
+				go ListenForEscape(ctx, thinkingDone, cancel)
 
-				result, err := c.mcp.CallTool(ctx, toolUse.Name, toolUse.Input)
+				result, err := c.mcp.CallTool(reqCtx, toolUse.Name, toolUse.Input)
 				if err != nil {
+					// Check if this was a user cancellation (Escape key)
+					if reqCtx.Err() == context.Canceled && ctx.Err() == nil {
+						close(thinkingDone)
+						// User canceled with Escape - keep the query in history
+						// but don't save the Escape keypress
+						c.ui.PrintCanceled()
+						return nil
+					}
 					toolResults = append(toolResults, ToolResult{
 						Type:      "tool_result",
 						ToolUseID: toolUse.ID,
@@ -844,7 +869,7 @@ func (c *Client) processQuery(ctx context.Context, query string) error {
 					// Refresh tool list after successful manage_connections operation
 					// This ensures we get the updated tool list when database connection changes
 					if toolUse.Name == "manage_connections" && !result.IsError {
-						if newTools, err := c.mcp.ListTools(ctx); err == nil {
+						if newTools, err := c.mcp.ListTools(reqCtx); err == nil {
 							c.tools = newTools
 						}
 					}

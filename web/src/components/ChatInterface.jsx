@@ -8,7 +8,7 @@
  *-------------------------------------------------------------------------
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Box, Paper } from '@mui/material';
 import { useAuth } from '../contexts/AuthContext';
 import { useLLMProcessing } from '../contexts/LLMProcessingContext';
@@ -385,6 +385,9 @@ const ChatInterface = ({ conversations }) => {
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
 
+    // AbortController for cancelling requests
+    const abortControllerRef = useRef(null);
+
     // Prompt popover state
     const [promptPopoverAnchor, setPromptPopoverAnchor] = useState(null);
     const [executingPrompt, setExecutingPrompt] = useState(false);
@@ -569,6 +572,10 @@ const ChatInterface = ({ conversations }) => {
         setInput('');
         setLoading(true);
 
+        // Create AbortController for this request
+        const abortController = new AbortController();
+        abortControllerRef.current = abortController;
+
         try {
             // Build conversation history
             const conversationMessages = [];
@@ -638,6 +645,7 @@ const ChatInterface = ({ conversations }) => {
                         'Authorization': `Bearer ${sessionToken}`,
                     },
                     credentials: 'include',
+                    signal: abortController.signal,
                     body: JSON.stringify({
                         messages: compactedMessages,
                         tools: tools,
@@ -898,6 +906,29 @@ const ChatInterface = ({ conversations }) => {
                 throw new Error('Maximum tool execution loops reached');
             }
         } catch (err) {
+            // Check if this was a user cancellation
+            if (err.name === 'AbortError') {
+                console.log('Request cancelled by user');
+                // Convert thinking message to cancelled message
+                setMessages(prev => {
+                    const newMessages = [...prev];
+                    if (newMessages.length > 0 && newMessages[newMessages.length - 1].isThinking) {
+                        const thinkingMsg = newMessages[newMessages.length - 1];
+                        newMessages[newMessages.length - 1] = {
+                            role: 'assistant',
+                            content: 'Request cancelled',
+                            timestamp: new Date().toISOString(),
+                            provider: thinkingMsg.provider,
+                            model: thinkingMsg.model,
+                            activity: thinkingMsg.activity || [],
+                            isCancelled: true
+                        };
+                    }
+                    return newMessages;
+                });
+                return;
+            }
+
             console.error('Chat error:', err);
 
             // Convert thinking message to error message (preserve activity for debugging)
@@ -920,8 +951,16 @@ const ChatInterface = ({ conversations }) => {
 
         } finally {
             setLoading(false);
+            abortControllerRef.current = null;
         }
     }, [input, loading, mcpClient, messages, sessionToken, tools, llmProviders.selectedProvider, llmProviders.selectedModel, queryHistory, forceLogout, refreshTools]);
+
+    // Handle request cancellation
+    const handleCancel = useCallback(() => {
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
+    }, []);
 
     // Handle keyboard shortcuts
     const handleKeyDown = useCallback((e) => {
@@ -1348,8 +1387,10 @@ const ChatInterface = ({ conversations }) => {
                     value={input}
                     onChange={handleInputChange}
                     onSend={handleSend}
+                    onCancel={handleCancel}
                     onKeyDown={handleKeyDown}
                     disabled={loading}
+                    isLoading={loading}
                     onPromptClick={handlePromptClick}
                     hasPrompts={prompts && prompts.length > 0}
                     messages={messages}

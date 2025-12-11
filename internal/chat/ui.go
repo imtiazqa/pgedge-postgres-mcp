@@ -16,11 +16,15 @@ import (
 	"math/rand"
 	"os"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/charmbracelet/glamour"
 	"golang.org/x/term"
 )
+
+// KeyEscape is the ASCII code for the Escape key
+const KeyEscape = 27
 
 // Color codes for terminal output
 const (
@@ -371,7 +375,8 @@ Commands (all commands start with /):
   /show <setting>              - Show current settings
   /list models                 - List available models from current LLM provider
 
-History navigation:
+Keyboard shortcuts:
+  Escape    - Cancel current LLM request and return to prompt
   Up/Down   - Navigate through command history
   Ctrl+R    - Reverse search history (type to filter, Ctrl+R for next match)
 
@@ -439,4 +444,101 @@ func (ui *UI) PrintHistoricAssistantMessage(text string) {
 func (ui *UI) PrintHistorySeparator(title string) {
 	separator := strings.Repeat("─", 30)
 	fmt.Println(ui.colorize(ColorGray, separator+" "+title+" "+separator))
+}
+
+// PrintCanceled prints a cancellation message
+func (ui *UI) PrintCanceled() {
+	// Clear the thinking animation line
+	ui.ClearThinkingLine()
+	fmt.Print("\n")
+	fmt.Println(ui.colorize(ColorYellow, "Request canceled"))
+}
+
+// ListenForEscape monitors stdin for the Escape key and signals via the cancel
+// function when detected. The function returns when either Escape is pressed,
+// the done channel is closed, or the context is canceled. It puts the terminal
+// into raw mode temporarily to detect key presses.
+//
+// Arrow keys and other special keys send escape sequences (ESC + more bytes),
+// so we need to distinguish between a standalone Escape and escape sequences.
+// We do this by waiting briefly after seeing ESC to check for following bytes.
+func ListenForEscape(ctx context.Context, done <-chan struct{}, cancel context.CancelFunc) {
+	// Save the current terminal state
+	fd := int(os.Stdin.Fd())
+	oldState, err := term.MakeRaw(fd)
+	if err != nil {
+		// Can't enter raw mode - just return without key detection
+		return
+	}
+
+	// Restore terminal state when done
+	defer func() {
+		_ = term.Restore(fd, oldState) //nolint:errcheck // Best effort restore
+	}()
+
+	buf := make([]byte, 1)
+
+	// Poll for input using select() syscall with timeout
+	// This avoids blocking reads that can't be interrupted
+	for {
+		// Check if we should stop
+		select {
+		case <-done:
+			return
+		case <-ctx.Done():
+			return
+		default:
+		}
+
+		// Use select() syscall to check if stdin has data (with 100ms timeout)
+		if !stdinHasData(fd, 100*time.Millisecond) {
+			continue
+		}
+
+		// Data is available - read it
+		n, err := syscall.Read(fd, buf)
+		if err != nil || n == 0 {
+			continue
+		}
+
+		if buf[0] == KeyEscape {
+			// Got ESC - check if more bytes follow (escape sequence)
+			// Wait briefly and check for following bytes
+			if stdinHasData(fd, 50*time.Millisecond) {
+				// More bytes followed - this is an escape sequence, consume them
+				// Read up to 5 more bytes to consume the sequence
+				seqBuf := make([]byte, 5)
+				_, _ = syscall.Read(fd, seqBuf) //nolint:errcheck // Best effort consume
+				// Continue listening - don't cancel
+				continue
+			}
+			// No more bytes - this is a standalone Escape
+			cancel()
+			return
+		}
+		// Ignore other keys while waiting for LLM
+	}
+}
+
+// stdinHasData uses select() syscall to check if stdin has data available
+// Returns true if data is available within the timeout
+func stdinHasData(fd int, timeout time.Duration) bool {
+	// Create fd_set for select()
+	var readFds syscall.FdSet
+	readFds.Bits[fd/64] |= 1 << (uint(fd) % 64)
+
+	// Convert timeout to timeval
+	tv := syscall.Timeval{
+		Sec:  int64(timeout / time.Second),
+		Usec: int32((timeout % time.Second) / time.Microsecond),
+	}
+
+	// Call select() - on Darwin/macOS it only returns error
+	// If no error and readFds is still set, data is available
+	err := syscall.Select(fd+1, &readFds, nil, nil, &tv)
+	if err != nil {
+		return false
+	}
+	// Check if fd is still in the set (has data)
+	return (readFds.Bits[fd/64] & (1 << (uint(fd) % 64))) != 0
 }

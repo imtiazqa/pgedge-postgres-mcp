@@ -65,7 +65,13 @@ the send button:
 ![Query Input](../img/screenshots/05-query-typed.png)
 
 The LLM will analyze your query, interact with your database using the
-available tools, and return a response:
+available tools, and return a response.
+
+### Canceling a Request
+
+While waiting for a response, the send button changes to a red stop button.
+Click it to cancel the current request. The conversation will show that the
+request was canceled, and you can immediately enter a new query.
 
 ![Query Response](../img/screenshots/06-query-response-light.png)
 

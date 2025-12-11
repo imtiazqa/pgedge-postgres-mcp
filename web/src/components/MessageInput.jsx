@@ -11,14 +11,16 @@
 import React, { useRef, useEffect, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { Box, TextField, IconButton, Tooltip } from '@mui/material';
-import { Send as SendIcon, Psychology as PsychologyIcon, SaveAlt as SaveIcon } from '@mui/icons-material';
+import { Send as SendIcon, Stop as StopIcon, Psychology as PsychologyIcon, SaveAlt as SaveIcon } from '@mui/icons-material';
 
 const MessageInput = React.memo(({
     value,
     onChange,
     onSend,
+    onCancel,
     onKeyDown,
     disabled,
+    isLoading = false,
     onPromptClick,
     hasPrompts = false,
     messages = [],
@@ -172,24 +174,26 @@ const MessageInput = React.memo(({
                     </IconButton>
                 </Tooltip>
             )}
-            <IconButton
-                color="primary"
-                onClick={onSend}
-                disabled={!value.trim() || disabled}
-                sx={{
-                    bgcolor: 'primary.main',
-                    color: 'white',
-                    '&:hover': {
-                        bgcolor: 'primary.dark',
-                    },
-                    '&.Mui-disabled': {
-                        bgcolor: 'action.disabledBackground',
-                        color: 'action.disabled',
-                    },
-                }}
-            >
-                <SendIcon />
-            </IconButton>
+            <Tooltip title={isLoading ? "Cancel request" : "Send message"}>
+                <IconButton
+                    color={isLoading ? "error" : "primary"}
+                    onClick={isLoading ? onCancel : onSend}
+                    disabled={isLoading ? false : (!value.trim() || disabled)}
+                    sx={{
+                        bgcolor: isLoading ? 'error.main' : 'primary.main',
+                        color: 'white',
+                        '&:hover': {
+                            bgcolor: isLoading ? 'error.dark' : 'primary.dark',
+                        },
+                        '&.Mui-disabled': {
+                            bgcolor: 'action.disabledBackground',
+                            color: 'action.disabled',
+                        },
+                    }}
+                >
+                    {isLoading ? <StopIcon /> : <SendIcon />}
+                </IconButton>
+            </Tooltip>
         </Box>
     );
 });
@@ -200,8 +204,10 @@ MessageInput.propTypes = {
     value: PropTypes.string.isRequired,
     onChange: PropTypes.func.isRequired,
     onSend: PropTypes.func.isRequired,
+    onCancel: PropTypes.func,
     onKeyDown: PropTypes.func.isRequired,
     disabled: PropTypes.bool.isRequired,
+    isLoading: PropTypes.bool,
     onPromptClick: PropTypes.func,
     hasPrompts: PropTypes.bool,
     messages: PropTypes.arrayOf(PropTypes.object),
