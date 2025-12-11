@@ -518,3 +518,102 @@ func TestUI_PrintUserInput(t *testing.T) {
 		t.Error("PrintUserInput should output 'You:' prompt")
 	}
 }
+
+func TestUI_SetNoColor(t *testing.T) {
+	tests := []struct {
+		name           string
+		initialNoColor bool
+		setNoColor     bool
+		expectNoColor  bool
+	}{
+		{
+			name:           "enable colors (set noColor to false)",
+			initialNoColor: true,
+			setNoColor:     false,
+			expectNoColor:  false,
+		},
+		{
+			name:           "disable colors (set noColor to true)",
+			initialNoColor: false,
+			setNoColor:     true,
+			expectNoColor:  true,
+		},
+		{
+			name:           "keep colors disabled",
+			initialNoColor: true,
+			setNoColor:     true,
+			expectNoColor:  true,
+		},
+		{
+			name:           "keep colors enabled",
+			initialNoColor: false,
+			setNoColor:     false,
+			expectNoColor:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ui := NewUI(tt.initialNoColor, false)
+
+			// Verify initial state
+			if ui.IsNoColor() != tt.initialNoColor {
+				t.Errorf("Initial noColor state expected %v, got %v", tt.initialNoColor, ui.IsNoColor())
+			}
+
+			// Change the state
+			ui.SetNoColor(tt.setNoColor)
+
+			// Verify new state
+			if ui.IsNoColor() != tt.expectNoColor {
+				t.Errorf("After SetNoColor(%v), expected IsNoColor() = %v, got %v",
+					tt.setNoColor, tt.expectNoColor, ui.IsNoColor())
+			}
+		})
+	}
+}
+
+func TestUI_IsNoColor(t *testing.T) {
+	// Test with colors enabled (noColor = false)
+	uiWithColor := NewUI(false, false)
+	if uiWithColor.IsNoColor() {
+		t.Error("IsNoColor() should return false when colors are enabled")
+	}
+
+	// Test with colors disabled (noColor = true)
+	uiNoColor := NewUI(true, false)
+	if !uiNoColor.IsNoColor() {
+		t.Error("IsNoColor() should return true when colors are disabled")
+	}
+}
+
+func TestUI_SetNoColor_AffectsOutput(t *testing.T) {
+	ui := NewUI(false, false) // Start with colors enabled
+
+	// Verify colored output
+	coloredOutput := ui.colorize(ColorRed, "test")
+	if coloredOutput == "test" {
+		t.Error("With colors enabled, colorize should add color codes")
+	}
+	if !strings.Contains(coloredOutput, ColorRed) {
+		t.Error("Colored output should contain ColorRed code")
+	}
+
+	// Disable colors
+	ui.SetNoColor(true)
+
+	// Verify plain output
+	plainOutput := ui.colorize(ColorRed, "test")
+	if plainOutput != "test" {
+		t.Errorf("With colors disabled, colorize should return plain text, got '%s'", plainOutput)
+	}
+
+	// Re-enable colors
+	ui.SetNoColor(false)
+
+	// Verify colored output again
+	coloredAgain := ui.colorize(ColorRed, "test")
+	if coloredAgain == "test" {
+		t.Error("After re-enabling colors, colorize should add color codes")
+	}
+}

@@ -210,12 +210,14 @@ Commands:
   /quit, /exit                         Exit the chat client
 
 Settings:
+  /set color <on|off>                  Enable or disable colored output
   /set status-messages <on|off>        Enable or disable status messages
   /set markdown <on|off>               Enable or disable markdown rendering
   /set debug <on|off>                  Enable or disable debug messages
   /set llm-provider <provider>         Set LLM provider (anthropic, openai, ollama)
   /set llm-model <model>               Set LLM model to use
   /set database <name>                 Select a database connection
+  /show color                          Show current color setting
   /show status-messages                Show current status messages setting
   /show markdown                       Show current markdown rendering setting
   /show debug                          Show current debug setting
@@ -271,6 +273,9 @@ func (c *Client) handleSetCommand(ctx context.Context, args []string) bool {
 	value := args[1]
 
 	switch setting {
+	case "color", "colour": //nolint:misspell // British spelling intentionally supported
+		return c.handleSetColor(value)
+
 	case "status-messages":
 		return c.handleSetStatusMessages(value)
 
@@ -291,9 +296,39 @@ func (c *Client) handleSetCommand(ctx context.Context, args []string) bool {
 
 	default:
 		c.ui.PrintError(fmt.Sprintf("Unknown setting: %s", setting))
-		c.ui.PrintSystemMessage("Available settings: status-messages, markdown, debug, llm-provider, llm-model, database")
+		c.ui.PrintSystemMessage("Available settings: color, status-messages, markdown, debug, llm-provider, llm-model, database")
 		return true
 	}
+}
+
+// handleSetColor handles setting colored output on/off
+func (c *Client) handleSetColor(value string) bool {
+	value = strings.ToLower(value)
+
+	switch value {
+	case "on", "true", "1", "yes":
+		c.config.UI.NoColor = false
+		c.ui.SetNoColor(false)
+		c.preferences.UI.Color = true
+		c.ui.PrintSystemMessage("Colored output enabled")
+
+	case "off", "false", "0", "no":
+		c.config.UI.NoColor = true
+		c.ui.SetNoColor(true)
+		c.preferences.UI.Color = false
+		c.ui.PrintSystemMessage("Colored output disabled")
+
+	default:
+		c.ui.PrintError(fmt.Sprintf("Invalid value for color: %s (use on or off)", value))
+		return true
+	}
+
+	// Save preferences
+	if err := SavePreferences(c.preferences); err != nil {
+		c.ui.PrintError(fmt.Sprintf("Warning: Failed to save preferences: %v", err))
+	}
+
+	return true
 }
 
 // handleSetStatusMessages handles setting status messages on/off
@@ -485,13 +520,20 @@ func (c *Client) handleSetLLMModel(model string) bool {
 func (c *Client) handleShowCommand(ctx context.Context, args []string) bool {
 	if len(args) < 1 {
 		c.ui.PrintError("Usage: /show <setting>")
-		c.ui.PrintSystemMessage("Available settings: status-messages, markdown, debug, llm-provider, llm-model, database, settings")
+		c.ui.PrintSystemMessage("Available settings: color, status-messages, markdown, debug, llm-provider, llm-model, database, settings")
 		return true
 	}
 
 	setting := args[0]
 
 	switch setting {
+	case "color", "colour": //nolint:misspell // British spelling intentionally supported
+		status := "on"
+		if c.config.UI.NoColor {
+			status = "off"
+		}
+		c.ui.PrintSystemMessage(fmt.Sprintf("Colored output: %s", status))
+
 	case "status-messages":
 		status := "off"
 		if c.config.UI.DisplayStatusMessages {
@@ -527,7 +569,7 @@ func (c *Client) handleShowCommand(ctx context.Context, args []string) bool {
 
 	default:
 		c.ui.PrintError(fmt.Sprintf("Unknown setting: %s", setting))
-		c.ui.PrintSystemMessage("Available settings: status-messages, markdown, debug, llm-provider, llm-model, database, settings")
+		c.ui.PrintSystemMessage("Available settings: color, status-messages, markdown, debug, llm-provider, llm-model, database, settings")
 	}
 
 	return true
@@ -555,11 +597,11 @@ func (c *Client) printAllSettings() {
 		debug = "on"
 	}
 	fmt.Printf("  Debug Messages:   %s\n", debug)
-	noColor := "no"
+	color := "on"
 	if c.config.UI.NoColor {
-		noColor = "yes"
+		color = "off"
 	}
-	fmt.Printf("  No Color:         %s\n", noColor)
+	fmt.Printf("  Color:            %s\n", color)
 
 	// LLM Settings
 	fmt.Println("\nLLM:")

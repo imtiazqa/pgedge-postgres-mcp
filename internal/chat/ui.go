@@ -51,6 +51,16 @@ func NewUI(noColor bool, renderMarkdown bool) *UI {
 	}
 }
 
+// SetNoColor sets the noColor flag to enable/disable colored output
+func (ui *UI) SetNoColor(noColor bool) {
+	ui.noColor = noColor
+}
+
+// IsNoColor returns whether colored output is disabled
+func (ui *UI) IsNoColor() bool {
+	return ui.noColor
+}
+
 // colorize applies color if colors are enabled
 func (ui *UI) colorize(color, text string) string {
 	if ui.noColor {
@@ -95,14 +105,6 @@ func (ui *UI) PrintAssistantResponse(text string) {
 
 	// Render markdown if enabled
 	if ui.RenderMarkdown {
-		// Configure glamour renderer based on color settings
-		var style string
-		if ui.noColor {
-			style = "notty"
-		} else {
-			style = "dark" // Default to dark theme for terminal
-		}
-
 		// Get terminal width, but cap at a reasonable maximum for table rendering
 		// This prevents tables from becoming excessively wide on large terminals
 		termWidth := ui.getTerminalWidth()
@@ -111,11 +113,24 @@ func (ui *UI) PrintAssistantResponse(text string) {
 			width = 120 // Cap at 120 columns for better table readability
 		}
 
-		r, err := glamour.NewTermRenderer(
-			glamour.WithAutoStyle(),
-			glamour.WithStylePath(style),
-			glamour.WithWordWrap(width),
-		)
+		// Configure glamour renderer based on color settings
+		var r *glamour.TermRenderer
+		var err error
+		if ui.noColor {
+			// Use "notty" style for no-color mode - don't use WithAutoStyle()
+			// as it would override our explicit style choice
+			r, err = glamour.NewTermRenderer(
+				glamour.WithStylePath("notty"),
+				glamour.WithWordWrap(width),
+			)
+		} else {
+			// Use auto-detection with dark theme fallback for colored output
+			r, err = glamour.NewTermRenderer(
+				glamour.WithAutoStyle(),
+				glamour.WithStylePath("dark"),
+				glamour.WithWordWrap(width),
+			)
+		}
 
 		if err == nil {
 			rendered, err := r.Render(text)
@@ -375,17 +390,49 @@ func (ui *UI) PrintHistoricUserMessage(text string) {
 	fmt.Println(ui.colorize(ColorGray, "You: "+text))
 }
 
-// PrintHistoricAssistantMessage prints a historic assistant message in muted colors
+// PrintHistoricAssistantMessage prints a historic assistant message
 func (ui *UI) PrintHistoricAssistantMessage(text string) {
-	// Print in muted gray without markdown rendering for history replay
+	// Print assistant label in muted gray
 	fmt.Print(ui.colorize(ColorGray, "Assistant: "))
 
-	// Truncate very long messages for readability
-	if len(text) > 500 {
-		text = text[:497] + "..."
+	// Render markdown if enabled (same as regular assistant messages)
+	if ui.RenderMarkdown {
+		// Get terminal width, but cap at a reasonable maximum for table rendering
+		termWidth := ui.getTerminalWidth()
+		width := termWidth
+		if width > 120 {
+			width = 120 // Cap at 120 columns for better table readability
+		}
+
+		// Configure glamour renderer based on color settings
+		var r *glamour.TermRenderer
+		var err error
+		if ui.noColor {
+			// Use "notty" style for no-color mode
+			r, err = glamour.NewTermRenderer(
+				glamour.WithStylePath("notty"),
+				glamour.WithWordWrap(width),
+			)
+		} else {
+			// Use auto-detection for colored output
+			r, err = glamour.NewTermRenderer(
+				glamour.WithAutoStyle(),
+				glamour.WithWordWrap(width),
+			)
+		}
+
+		if err == nil {
+			rendered, err := r.Render(text)
+			if err == nil {
+				fmt.Print(rendered)
+				return
+			}
+			// If rendering fails, fall back to plain text
+		}
 	}
 
-	fmt.Println(ui.colorize(ColorGray, text))
+	// Plain text output (fallback or when markdown is disabled)
+	fmt.Print(text + "\n")
 }
 
 // PrintHistorySeparator prints a separator indicating historic content

@@ -31,6 +31,7 @@ type UIPreferences struct {
 	DisplayStatusMessages bool `yaml:"display_status_messages"`
 	RenderMarkdown        bool `yaml:"render_markdown"`
 	Debug                 bool `yaml:"debug"`
+	Color                 bool `yaml:"color"`
 }
 
 // GetPreferencesPath returns the path to the user preferences file
@@ -98,6 +99,7 @@ func getDefaultPreferences() *Preferences {
 			DisplayStatusMessages: true,
 			RenderMarkdown:        true,
 			Debug:                 false,
+			Color:                 true,
 		},
 		ProviderModels: map[string]string{
 			"anthropic": "claude-sonnet-4-20250514",

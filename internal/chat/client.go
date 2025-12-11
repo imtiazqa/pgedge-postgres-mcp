@@ -55,6 +55,11 @@ func NewClient(cfg *Config, overrides *ConfigOverrides) (*Client, error) {
 	cfg.UI.DisplayStatusMessages = prefs.UI.DisplayStatusMessages
 	cfg.UI.RenderMarkdown = prefs.UI.RenderMarkdown
 	cfg.UI.Debug = prefs.UI.Debug
+	// Color preference (inverted: Color=true means NoColor=false)
+	// Only apply if not already set by environment variable NO_COLOR
+	if os.Getenv("NO_COLOR") == "" {
+		cfg.UI.NoColor = !prefs.UI.Color
+	}
 
 	// === PROVIDER SELECTION LOGIC ===
 	// Priority: flags > saved provider (if configured) > first configured provider

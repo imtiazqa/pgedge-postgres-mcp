@@ -155,6 +155,93 @@ func TestHandleSetStatusMessages(t *testing.T) {
 	}
 }
 
+func TestHandleSetColor(t *testing.T) {
+	tests := []struct {
+		name            string
+		value           string
+		expectedNoColor bool // NoColor is the inverse of Color
+	}{
+		{"on", "on", false},       // color on = noColor false
+		{"ON uppercase", "ON", false},
+		{"true", "true", false},
+		{"1", "1", false},
+		{"yes", "yes", false},
+		{"off", "off", true},      // color off = noColor true
+		{"OFF uppercase", "OFF", true},
+		{"false", "false", true},
+		{"0", "0", true},
+		{"no", "no", true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create a test client with minimal config
+			cfg := &Config{
+				LLM: LLMConfig{
+					Provider:  "ollama",
+					OllamaURL: "http://localhost:11434",
+				},
+				UI: UIConfig{
+					NoColor: !tt.expectedNoColor, // Start with opposite value to verify change
+				},
+			}
+			client, err := NewClient(cfg, &ConfigOverrides{ProviderSet: true})
+			if err != nil {
+				t.Fatalf("NewClient failed: %v", err)
+			}
+
+			// Call handleSetColor
+			client.handleSetColor(tt.value)
+
+			// Check if the config setting was updated correctly
+			if client.config.UI.NoColor != tt.expectedNoColor {
+				t.Errorf("Expected config.UI.NoColor=%v, got %v", tt.expectedNoColor, client.config.UI.NoColor)
+			}
+
+			// Check if the UI setting was updated correctly
+			if client.ui.IsNoColor() != tt.expectedNoColor {
+				t.Errorf("Expected ui.IsNoColor()=%v, got %v", tt.expectedNoColor, client.ui.IsNoColor())
+			}
+
+			// Check if the preferences were updated correctly
+			// preferences.UI.Color should be the opposite of NoColor
+			expectedColor := !tt.expectedNoColor
+			if client.preferences.UI.Color != expectedColor {
+				t.Errorf("Expected preferences.UI.Color=%v, got %v", expectedColor, client.preferences.UI.Color)
+			}
+		})
+	}
+}
+
+func TestHandleSetColorInvalidValue(t *testing.T) {
+	// Create a test client
+	cfg := &Config{
+		LLM: LLMConfig{
+			Provider:  "ollama",
+			OllamaURL: "http://localhost:11434",
+		},
+		UI: UIConfig{
+			NoColor: false, // Start with colors enabled
+		},
+	}
+	client, err := NewClient(cfg, &ConfigOverrides{ProviderSet: true})
+	if err != nil {
+		t.Fatalf("NewClient failed: %v", err)
+	}
+
+	// Store original value
+	originalNoColor := client.config.UI.NoColor
+
+	// Call handleSetColor with invalid value
+	client.handleSetColor("invalid")
+
+	// Config should remain unchanged
+	if client.config.UI.NoColor != originalNoColor {
+		t.Errorf("Config should not change for invalid value, expected NoColor=%v, got %v",
+			originalNoColor, client.config.UI.NoColor)
+	}
+}
+
 func TestHandleSetLLMProvider(t *testing.T) {
 	tests := []struct {
 		name        string

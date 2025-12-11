@@ -158,6 +158,8 @@ llm:
 ui:
     # Disable colored output
     # Useful for environments that don't support ANSI color codes
+    # Can be toggled at runtime with /set color <on|off>
+    # Note: NO_COLOR environment variable takes precedence if set
     # Default: false
     # Command line flag: -no-color
     no_color: false
@@ -168,6 +170,12 @@ ui:
     # Default: true
     # Command line flag: (not available, use /set command at runtime)
     display_status_messages: true
+
+    # Enable markdown rendering in assistant responses
+    # Can be toggled at runtime with /set markdown <on|off>
+    # Default: true
+    # Command line flag: (not available, use /set command at runtime)
+    render_markdown: true
 ```
 
 ## Configuration Examples

@@ -421,6 +421,33 @@ You: /set status-messages on
 System: Status messages enabled
 ```
 
+#### Color Output
+
+```
+/set color <on|off>
+/show color
+```
+
+Enable or disable colored output in the CLI. When enabled, the interface uses
+colors for different message types (errors in red, system messages in yellow,
+etc.). When disabled, all output is plain text without ANSI color codes.
+
+This setting is persisted across sessions.
+
+**Examples:**
+
+```
+You: /set color off
+System: Colored output disabled
+
+You: /set color on
+System: Colored output enabled
+```
+
+**Note:** The `NO_COLOR` environment variable takes precedence over this
+setting. If `NO_COLOR` is set, colors will be disabled regardless of this
+preference.
+
 #### Markdown Rendering
 
 ```
@@ -585,7 +612,7 @@ Current Settings:
 UI:
   Status Messages:  on
   Render Markdown:  on
-  No Color:         no
+  Color:            on
 
 LLM:
   Provider:         anthropic
