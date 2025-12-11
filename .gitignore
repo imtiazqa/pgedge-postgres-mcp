@@ -48,3 +48,6 @@ site/
 
 # Knowledgebase database (for Docker builds)
 kb/kb.db
+
+# Build artifacts
+examples/pgedge-nla-kb-builder-build.yaml

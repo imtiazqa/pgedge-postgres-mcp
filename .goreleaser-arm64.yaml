@@ -11,7 +11,7 @@ before:
         # Build kb-builder for generating kb.db
         - CGO_ENABLED=1 go build -o pgedge-nla-kb-builder ./cmd/kb-builder
         # Generate kb.db using Ollama Cloud (requires OLLAMA_API_KEY env var)
-        - ./pgedge-nla-kb-builder --config examples/pgedge-nla-kb-builder.yaml
+        - ./pgedge-nla-kb-builder --config examples/pgedge-nla-kb-builder-build.yaml
 
 builds:
     # MCP Server - arm64 (all platforms)
