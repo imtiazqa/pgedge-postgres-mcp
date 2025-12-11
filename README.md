@@ -213,7 +213,7 @@ The CLI client supports three ways to provide LLM API keys (in priority order):
 3. **Configuration file values** (not recommended - use env vars or files
    instead)
 
-See **[Using the CLI Client](docs/using-cli-client.md)** for detailed
+See **[Using the CLI Client](docs/guide/cli-client.md)** for detailed
 documentation.
 
 ## Web Client
@@ -263,7 +263,7 @@ docker-compose up -d
 - Web Interface: http://localhost:8081
 - MCP API: http://localhost:8080
 
-See **[Docker Deployment Guide](docs/docker-deployment.md)** for complete
+See **[Deployment Guide](docs/guide/deployment.md)** for complete
 documentation including:
 - Individual container builds
 - Production deployment with reverse proxy
@@ -278,31 +278,33 @@ references
 
 ### Essential Guides
 
-- **[Configuration Guide](docs/configuration.md)** - Config file, environment
-  variables, CLI flags
-- **[Docker Deployment Guide](docs/docker-deployment.md)** - Complete Docker
+- **[Configuration Guide](docs/guide/configuration.md)** - Config file,
+  environment variables, CLI flags
+- **[Deployment Guide](docs/guide/deployment.md)** - HTTP/HTTPS and Docker
   Compose deployment
-- **[Using the CLI Client](docs/using-cli-client.md)** - Production-ready chat
+- **[Using the CLI Client](docs/guide/cli-client.md)** - Production-ready chat
   client with prompt caching
-- **[Tools Documentation](docs/tools.md)** - MCP tools reference
-- **[Resources Documentation](docs/resources.md)** - MCP resources reference
-- **[Prompts Documentation](docs/prompts.md)** - MCP prompts reference
-- **[Query Examples](docs/examples.md)** - Comprehensive usage examples
-- **[Deployment Guide](docs/deployment.md)** - HTTP/HTTPS production
-  deployment
-- **[Authentication Guide](docs/authentication.md)** - API token management
+- **[Tools Documentation](docs/reference/tools.md)** - MCP tools reference
+- **[Resources Documentation](docs/reference/resources.md)** - MCP resources
+  reference
+- **[Prompts Documentation](docs/reference/prompts.md)** - MCP prompts reference
+- **[Query Examples](docs/reference/examples.md)** - Comprehensive usage
+  examples
+- **[Authentication Guide](docs/guide/authentication.md)** - API token
+  management
 
 ### Technical Guides
 
-- **[MCP Protocol Guide](docs/mcp-protocol.md)** - Protocol implementation
-  details
-- **[Security Guide](docs/security.md)** - Security best practices
-- **[Architecture Guide](docs/architecture.md)** - Code structure and
-  extension
-- **[LLM Proxy](docs/llm-proxy.md)** - LLM proxy for web applications
-- **[API Reference](docs/api-reference.md)** - Complete API documentation
-- **[Testing Guide](docs/testing.md)** - Unit and integration tests
-- **[Troubleshooting Guide](docs/troubleshooting.md)** - Common issues and
+- **[MCP Protocol Guide](docs/developers/mcp-protocol.md)** - Protocol
+  implementation details
+- **[Security Guide](docs/guide/security.md)** - Security best practices
+- **[Architecture Guide](docs/contributing/architecture.md)** - Code structure
+  and extension
+- **[LLM Proxy](docs/advanced/llm-proxy.md)** - LLM proxy for web applications
+- **[API Reference](docs/developers/api-reference.md)** - Complete API
+  documentation
+- **[Testing Guide](docs/contributing/testing.md)** - Unit and integration tests
+- **[Troubleshooting Guide](docs/guide/troubleshooting.md)** - Common issues and
   solutions
 
 ## How It Works
@@ -383,7 +385,7 @@ npm run test:coverage   # With coverage
 - ✅ File permission enforcement (0600)
 - ✅ Input validation and sanitization
 
-See **[Security Guide](docs/security.md)** for comprehensive security
+See **[Security Guide](docs/guide/security.md)** for comprehensive security
 documentation.
 
 ## Troubleshooting
@@ -400,7 +402,7 @@ documentation.
 - Check connection parameters are correct (host, port, database, user,
   password)
 
-See **[Troubleshooting Guide](docs/troubleshooting.md)** for detailed
+See **[Troubleshooting Guide](docs/guide/troubleshooting.md)** for detailed
 solutions.
 
 ## License
@@ -411,8 +413,8 @@ This software is released under The PostgreSQL License.
 
 - **📖 Documentation**: [docs/index.md](docs/index.md)
 - **🐛 Issues**:
-  [GitHub Issues](https://github.com/pgEdge/pgedge-mcp/issues)
-- **💡 Examples**: [Query Examples](docs/examples.md)
+  [GitHub Issues](https://github.com/pgEdge/pgedge-nla/issues)
+- **💡 Examples**: [Query Examples](docs/reference/examples.md)
 
 ## Related Projects
 
