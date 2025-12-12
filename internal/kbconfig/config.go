@@ -167,8 +167,9 @@ func applyDefaults(config *Config, configPath string) error {
 		}
 		if config.Embeddings.Ollama.ContextLength == 0 {
 			// Default to 8192 tokens - nomic-embed-text v1.5 supports up to 8192
-			// This provides headroom since our chunks target ~800 words which
-			// can translate to 1200+ tokens with subword tokenization
+			// This provides headroom since our chunks target ~250 words which
+			// can translate to 750+ tokens with subword tokenization (technical
+			// content with long terms can tokenize to 3-4x more than word count)
 			config.Embeddings.Ollama.ContextLength = 8192
 		}
 	}

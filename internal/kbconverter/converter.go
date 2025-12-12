@@ -86,6 +86,23 @@ func Convert(content []byte, docType kbtypes.DocumentType) (markdown string, tit
 // CleanMarkdownForRAG removes or simplifies markdown elements that add noise
 // to semantic search and RAG systems while preserving useful content.
 func CleanMarkdownForRAG(content string) string {
+	// Simplify ASCII table borders - these tokenize heavily
+	// +------+------+ -> +-+-+
+	// Replace repeated dashes/equals in table borders
+	tableBorderRe := regexp.MustCompile(`([+|])[-=]{3,}`)
+	content = tableBorderRe.ReplaceAllString(content, "$1--")
+
+	// Also simplify standalone separator lines (RST tables)
+	// Lines that are mostly dashes/equals/plus signs
+	separatorLineRe := regexp.MustCompile(`(?m)^[+\-=|]+$`)
+	content = separatorLineRe.ReplaceAllStringFunc(content, func(line string) string {
+		// Collapse to a minimal separator
+		if strings.Contains(line, "+") {
+			return "+-+-+"
+		}
+		return "---"
+	})
+
 	// Strip image references but keep alt text
 	// ![alt text](path) -> alt text
 	// ![](path) -> (removed entirely)

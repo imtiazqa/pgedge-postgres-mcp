@@ -370,6 +370,16 @@ func TestCleanMarkdownForRAG(t *testing.T) {
 			input:    "# Guide\n\nSee the ![icon](img/icon.png) and read [the docs](http://example.com).\n\n\n\nNext section with   extra spaces.",
 			expected: "# Guide\n\nSee the icon and read the docs.\n\nNext section with extra spaces.",
 		},
+		{
+			name:     "simplify ASCII table borders",
+			input:    "+------------------------------+---------------------------------------------------+\n| Column 1                     | Description                                       |\n+------------------------------+---------------------------------------------------+",
+			expected: "+-+-+\n| Column 1 | Description |\n+-+-+",
+		},
+		{
+			name:     "simplify RST separator lines",
+			input:    "Header\n======\n\nContent\n------",
+			expected: "Header\n---\n\nContent\n---",
+		},
 	}
 
 	for _, tt := range tests {
