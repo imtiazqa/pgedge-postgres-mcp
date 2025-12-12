@@ -124,7 +124,10 @@ mcp:
     server_config_path: ./bin/pgedge-postgres-mcp-stdio.yaml
     # For HTTP mode:
     # url: http://localhost:8080
-    # token: your-token-here
+    # auth_mode: user  # Options: none, token, or user
+    # token: your-token-here  # For token auth mode
+    # username: your-username  # For user auth mode
+    # password: your-password  # For user auth mode
 
 llm:
     provider: anthropic  # Options: anthropic, openai, or ollama
@@ -155,7 +158,11 @@ For a complete configuration file example with all available options and detaile
 - `PGEDGE_MCP_MODE`: Connection mode (stdio or http)
 - `PGEDGE_MCP_URL`: MCP server URL (for HTTP mode)
 - `PGEDGE_MCP_SERVER_PATH`: Path to MCP server binary (for stdio mode)
-- `PGEDGE_MCP_TOKEN`: Authentication token (for HTTP mode)
+- `PGEDGE_MCP_AUTH_MODE`: Authentication mode (none, token, or user) for HTTP
+  mode
+- `PGEDGE_MCP_TOKEN`: Authentication token (for HTTP mode with token auth)
+- `PGEDGE_MCP_USERNAME`: Username (for HTTP mode with user auth)
+- `PGEDGE_MCP_PASSWORD`: Password (for HTTP mode with user auth)
 - `PGEDGE_LLM_PROVIDER`: LLM provider (anthropic, openai, or ollama)
 - `PGEDGE_LLM_MODEL`: LLM model name
 - `PGEDGE_ANTHROPIC_API_KEY`: Anthropic API key
@@ -182,6 +189,10 @@ Flags:
   -mcp-mode string          MCP connection mode: stdio or http
   -mcp-url string           MCP server URL (for HTTP mode)
   -mcp-server-path string   Path to MCP server binary (for stdio mode)
+  -mcp-auth-mode string     MCP authentication mode: none, token, or user
+  -mcp-token string         MCP server authentication token (for token mode)
+  -mcp-username string      MCP server username (for user mode)
+  -mcp-password string      MCP server password (for user mode)
   -llm-provider string      LLM provider: anthropic, openai, or ollama
   -llm-model string         LLM model to use
   -anthropic-api-key string API key for Anthropic
@@ -336,7 +347,23 @@ export PGEDGE_MCP_TOKEN="your-token-here"
 ./bin/pgedge-nla-cli -mcp-mode http
 ```
 
-Or, if you don't set the token, the client will prompt you for it.
+Or, if you don't set the token, the client will prompt you for credentials.
+
+**Authentication modes:**
+
+- `none`: No authentication (for servers with auth disabled)
+- `token`: API token authentication (default)
+- `user`: Username/password authentication
+
+```bash
+# Connect without authentication (server has auth disabled)
+./bin/pgedge-nla-cli -mcp-mode http -mcp-url http://localhost:8080 \
+    -mcp-auth-mode none
+
+# Connect with username/password
+./bin/pgedge-nla-cli -mcp-mode http -mcp-url http://localhost:8080 \
+    -mcp-auth-mode user -mcp-username admin -mcp-password secret
+```
 
 ### Example 4: Ollama for Local LLM
 
