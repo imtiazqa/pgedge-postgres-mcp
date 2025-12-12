@@ -1,10 +1,10 @@
 site_name: pgEdge Natural Language Agent
 
 extra_css:
-  - stylesheets/extra.
+  - stylesheets/extra.css
 
 extra_javascript:
-  - js/mermaid.min.js
+  - https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js
 
 markdown_extensions:
   - admonition
@@ -66,7 +66,8 @@ nav:
       - Configuration: guide/configuration.md
       - Quick Start: quickstart.md
   - Selecting and Using a Client Application:
-      - Web Client: guide/web-client.md
+      - Connecting with the Web Client: guide/web-client.md
+      - Connecting with Claude Desktop: guide/claude_desktop.md
       - CLI Client: guide/cli-client.md
       - Authentication: guide/authentication.md
       - Security: guide/security.md

@@ -1,36 +1,22 @@
 # Deployment Guide
 
-Deploy the Natural Language Agent as an HTTP/HTTPS service. Choose your method:
+The pgEdge MCS server and Natural Language Agent run as an HTTP/HTTPS service. Choose your installation method from the following:
 
 - [Docker Compose](#docker-compose) - Recommended for production
 - [Native Binary](#native-binary) - Direct installation
 - [Systemd Service](#systemd-service) - Linux service management
 
-For Claude Desktop integration (stdio mode), see the
-[Quick Start](../quickstart.md#using-with-claude-desktop).
-
 ---
 
-## Docker Compose
+## Deploying into Docker Containers
 
-The recommended deployment method using pre-built containers.
+On a high-level, deployment into Docker containers is a simple three-step process:
 
-### Quick Start
+1. Clone the pgedge-mcp repository.
+2. Copy the sample configuration file, and edit the copy with your preferences.
+3. Start Docker Compose.
 
-```bash
-# Clone repository
-git clone https://github.com/pgEdge/pgedge-mcp.git
-cd pgedge-postgres-mcp
-
-# Configure
-cp .env.example .env
-# Edit .env with your settings
-
-# Start all services
-docker-compose up -d
-```
-
-### Available Containers
+This process creates the following containers:
 
 | Container | Port | Description |
 |-----------|------|-------------|
@@ -134,7 +120,7 @@ On Linux, you may need to use the Docker bridge IP (`172.17.0.1`).
 
 ---
 
-## Native Binary
+## Building from Source
 
 ### Build
 
@@ -284,47 +270,3 @@ Response:
 ```
 
 ---
-
-## Troubleshooting
-
-### Port Already in Use
-
-```bash
-lsof -i :8080
-# Kill the process or use a different port with -addr
-```
-
-### Database Connection Failed
-
-```bash
-# Test connection directly
-psql -h localhost -U postgres -d mydb -c "SELECT 1"
-
-# Check environment variables
-env | grep PG
-```
-
-### Docker Can't Reach Host Database
-
-- macOS/Windows: Use `host.docker.internal`
-- Linux: Use `172.17.0.1` or configure Docker network
-
-### Certificate Issues
-
-```bash
-# Verify certificate matches key
-openssl x509 -noout -modulus -in server.crt | openssl md5
-openssl rsa -noout -modulus -in server.key | openssl md5
-# Both should match
-
-# Check expiration
-openssl x509 -in server.crt -noout -dates
-```
-
----
-
-## See Also
-
-- [Configuration](configuration.md) - All configuration options
-- [Authentication](authentication.md) - User and token setup
-- [Security](security.md) - Security best practices

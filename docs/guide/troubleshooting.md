@@ -1,5 +1,44 @@
 # Troubleshooting Guide
 
+## Troubleshooting Build Issues
+
+When building and deploying the MCP server and agent, you might encounter the following issues:
+
+### Port Already in Use
+
+```bash
+lsof -i :8080
+# Kill the process or use a different port with -addr
+```
+
+### Database Connection Failed
+
+```bash
+# Test connection directly
+psql -h localhost -U postgres -d mydb -c "SELECT 1"
+
+# Check environment variables
+env | grep PG
+```
+
+### Docker Can't Reach Host Database
+
+- macOS/Windows: Use `host.docker.internal`
+- Linux: Use `172.17.0.1` or configure Docker network
+
+### Certificate Issues
+
+```bash
+# Verify certificate matches key
+openssl x509 -noout -modulus -in server.crt | openssl md5
+openssl rsa -noout -modulus -in server.key | openssl md5
+# Both should match
+
+# Check expiration
+openssl x509 -in server.crt -noout -dates
+```
+
+
 ## Server Exits Immediately After Initialize
 
 ### Symptoms
@@ -270,7 +309,7 @@ Look for:
 4. **Review generated SQL:**
 
     The response includes the generated SQL. If it's wrong, you can:
-    
+
     - Provide feedback in your next message
     - Add more schema comments
     - Rephrase your question
