@@ -74,7 +74,7 @@ make build
 
 ### 2. Configure
 
-Create `bin/pgedge-mcp-server.yaml`:
+Create `bin/pgedge-postgres-mcp.yaml`:
 
 ```yaml
 databases:
@@ -103,10 +103,10 @@ chmod 600 ~/.anthropic-api-key
 
 ```bash
 # Add a user for web access
-./bin/pgedge-mcp-server -add-user admin -user-password "your_password"
+./bin/pgedge-postgres-mcp -add-user admin -user-password "your_password"
 
 # Start the server
-./bin/pgedge-mcp-server
+./bin/pgedge-postgres-mcp
 ```
 
 ### 5. Access
@@ -125,7 +125,7 @@ For Claude Desktop integration (stdio mode), add to your Claude Desktop config:
 {
   "mcpServers": {
     "pgedge": {
-      "command": "/path/to/bin/pgedge-mcp-server",
+      "command": "/path/to/bin/pgedge-postgres-mcp",
       "env": {
         "PGHOST": "localhost",
         "PGPORT": "5432",

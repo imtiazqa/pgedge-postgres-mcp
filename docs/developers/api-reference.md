@@ -120,7 +120,7 @@ Health check endpoint (no authentication required).
 ```json
 {
   "status": "ok",
-  "server": "pgedge-mcp-server",
+  "server": "pgedge-postgres-mcp",
   "version": "1.0.0-alpha2"
 }
 ```

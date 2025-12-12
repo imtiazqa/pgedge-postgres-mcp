@@ -120,8 +120,8 @@ Example configuration:
 ```yaml
 mcp:
     mode: stdio
-    server_path: ./bin/pgedge-mcp-server
-    server_config_path: ./bin/pgedge-mcp-server-stdio.yaml
+    server_path: ./bin/pgedge-postgres-mcp
+    server_config_path: ./bin/pgedge-postgres-mcp-stdio.yaml
     # For HTTP mode:
     # url: http://localhost:8080
     # token: your-token-here
@@ -648,7 +648,7 @@ LLM:
 
 MCP:
   Mode:             stdio
-  Server Path:      ./bin/pgedge-mcp-server
+  Server Path:      ./bin/pgedge-postgres-mcp
 
 Database:
   Current:          production
@@ -863,7 +863,7 @@ System: Goodbye!
 
 **Solutions**:
 
-- In stdio mode, verify the server path is correct: `-mcp-server-path ./bin/pgedge-mcp-server`
+- In stdio mode, verify the server path is correct: `-mcp-server-path ./bin/pgedge-postgres-mcp`
 - In HTTP mode, verify the URL is correct: `-mcp-url http://localhost:8080`
 - Check if the MCP server is running (in HTTP mode)
 - Verify authentication token is set (in HTTP mode with auth enabled)

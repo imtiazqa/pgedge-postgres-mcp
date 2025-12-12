@@ -152,7 +152,7 @@ export PGHOST=localhost PGPORT=5432 PGDATABASE=mydb
 export PGUSER=myuser PGPASSWORD=mypass
 
 # Start HTTP server
-./bin/pgedge-mcp-server -http
+./bin/pgedge-postgres-mcp -http
 ```
 
 ### HTTPS with TLS
@@ -163,13 +163,13 @@ openssl req -x509 -newkey rsa:4096 -keyout server.key -out server.crt \
   -days 365 -nodes -subj "/CN=localhost"
 
 # Start HTTPS server
-./bin/pgedge-mcp-server -http -tls -cert server.crt -key server.key
+./bin/pgedge-postgres-mcp -http -tls -cert server.crt -key server.key
 ```
 
 For production, use certificates from Let's Encrypt or your CA:
 
 ```bash
-./bin/pgedge-mcp-server -http -tls \
+./bin/pgedge-postgres-mcp -http -tls \
   -cert /etc/letsencrypt/live/domain.com/fullchain.pem \
   -key /etc/letsencrypt/live/domain.com/privkey.pem
 ```
@@ -194,7 +194,7 @@ For Linux production deployments.
 
 ### Create Service File
 
-`/etc/systemd/system/pgedge-mcp-server.service`:
+`/etc/systemd/system/pgedge-postgres-mcp.service`:
 
 ```ini
 [Unit]
@@ -206,7 +206,7 @@ Type=simple
 User=pgedge
 Group=pgedge
 WorkingDirectory=/opt/pgedge
-ExecStart=/opt/pgedge/bin/pgedge-mcp-server -config /etc/pgedge/config.yaml
+ExecStart=/opt/pgedge/bin/pgedge-postgres-mcp -config /etc/pgedge/config.yaml
 Restart=always
 RestartSec=10
 
@@ -224,15 +224,15 @@ WantedBy=multi-user.target
 
 ```bash
 sudo systemctl daemon-reload
-sudo systemctl enable pgedge-mcp-server
-sudo systemctl start pgedge-mcp-server
-sudo systemctl status pgedge-mcp-server
+sudo systemctl enable pgedge-postgres-mcp
+sudo systemctl start pgedge-postgres-mcp
+sudo systemctl status pgedge-postgres-mcp
 ```
 
 ### View Logs
 
 ```bash
-journalctl -u pgedge-mcp-server -f
+journalctl -u pgedge-postgres-mcp -f
 ```
 
 ---
@@ -280,7 +280,7 @@ curl http://localhost:8080/health
 
 Response:
 ```json
-{"status": "ok", "server": "pgedge-mcp-server", "version": "1.0.0"}
+{"status": "ok", "server": "pgedge-postgres-mcp", "version": "1.0.0"}
 ```
 
 ---
