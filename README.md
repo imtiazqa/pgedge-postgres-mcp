@@ -1,4 +1,4 @@
-# pgEdge Natural Language Agent
+# pgEdge Postgres MCP Server
 
 [![CI - MCP Server](https://github.com/pgEdge/pgedge-mcp/workflows/CI%20-%20MCP%20Server/badge.svg)](https://github.com/pgEdge/pgedge-mcp/actions/workflows/ci-server.yml)
 [![CI - CLI Client](https://github.com/pgEdge/pgedge-mcp/workflows/CI%20-%20CLI%20Client/badge.svg)](https://github.com/pgEdge/pgedge-mcp/actions/workflows/ci-cli-client.yml)
@@ -49,9 +49,11 @@ cd pgedge-postgres-mcp
 make build
 ```
 
-### 2. Configure for Claude Desktop
+### 2. Configure for Claude Code and/or Claude Desktop
 
-**macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+**Claude Code**: `.mcp.json` in each of your project directories  
+**Claude Desktop on macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`  
+**Claude Desktop on Windows**: `%APPDATA%\\Claude\\claude_desktop_config.json`
 
 ```json
 {
@@ -65,7 +67,7 @@ make build
 
 ### 3. Connect to Your Database
 
-Update your Claude Desktop configuration to include database connection
+Update your Claude Code and/or Claude Desktop configuration to include database connection
 parameters:
 
 ```json
@@ -265,6 +267,7 @@ docker-compose up -d
 
 See **[Deployment Guide](docs/guide/deployment.md)** for complete
 documentation including:
+
 - Individual container builds
 - Production deployment with reverse proxy
 - Security hardening
@@ -413,7 +416,7 @@ This software is released under The PostgreSQL License.
 
 - **📖 Documentation**: [docs/index.md](docs/index.md)
 - **🐛 Issues**:
-  [GitHub Issues](https://github.com/pgEdge/pgedge-nla/issues)
+  [GitHub Issues](https://github.com/pgEdge/pgedge-mcp/issues)
 - **💡 Examples**: [Query Examples](docs/reference/examples.md)
 
 ## Related Projects
