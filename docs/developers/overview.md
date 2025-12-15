@@ -158,8 +158,8 @@ print(result)
 ### Configuration
 
 - **[Server Configuration](../guide/configuration.md)** - Configure the MCP server
-- **[Deploying the MCP Server with Docker](../deploy_docker.md)** - Deploy with Docker
-- **[Deploying the MCP Server from Source](../deploy_source.md)** - Deploy with Docker
+- **[Deploying the MCP Server with Docker](../guide/deploy_docker.md)** - Deploy with Docker
+- **[Deploying the MCP Server from Source](../guide/deploy_source.md)** - Deploy with Docker
 - **[Query Examples](../reference/examples.md)** - Common use cases
 
 ## Support

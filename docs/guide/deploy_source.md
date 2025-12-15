@@ -7,16 +7,16 @@ Deployment of the pgEdge Postgres MCP Server is easy; you can get up and running
   [OpenAI](https://platform.openai.com/), or [Ollama](https://ollama.ai/)
   (local/free)
 
-In your Postgres database, you'll need to [create a `LOGIN` user](https://www.postgresql.org/docs/18/sql-createrole.html) for this demo; the user name and password will be shared in the configuration file used for deployment.
+In your Postgres database, you'll [create a `LOGIN` user](https://www.postgresql.org/docs/18/sql-createrole.html); the user name and password will be shared in the configuration file used for deployment.
 
 After meeting the prerequisites, use the steps that follow to build the MCP server.
 
 **Clone the Repository**
 
-To build from source, first, clone the `pgedge-mcp` repository and navigate into the repository's root directory:
+To build from source, first, clone the `pgedge-postgres-mcp` repository and navigate into the repository's root directory:
 
 ```bash
-git clone https://github.com/pgEdge/pgedge-mcp.git
+git clone https://github.com/pgEdge/pgedge-postgres-mcp.git
 cd pgedge-postgres-mcp
 ```
 
@@ -147,3 +147,19 @@ Then, use your browser to open [http://localhost:8080](http://localhost:8080) an
 
 !!! success "You're ready!"
     Start asking questions about your database in natural language.
+
+
+## Performing a Health Check
+
+All deployment methods expose a health endpoint:
+
+```bash
+curl http://localhost:8080/health
+```
+
+Response:
+```json
+{"status": "ok", "server": "pgedge-mcp-server", "version": "1.0.0"}
+```
+
+---

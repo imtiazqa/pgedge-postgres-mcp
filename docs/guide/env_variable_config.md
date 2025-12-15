@@ -1,8 +1,6 @@
 # Using Environment Variables to Specify Options
 
-The server supports environment variables for all configuration options. All environment variables use the **`PGEDGE_`** prefix to avoid collisions with other software.
-
-The following environment variables specify HTTP/HTTPS Server preferences:
+The server supports environment variables for all configuration options. All environment variables use the **`PGEDGE_`** prefix to avoid collisions with other software.  The following environment variables specify HTTP/HTTPS Server preferences:
 
 - **`PGEDGE_HTTP_ENABLED`**: Enable HTTP transport mode ("true", "1", "yes" to enable)
 - **`PGEDGE_HTTP_ADDRESS`**: HTTP server address (default: ":8080")
@@ -30,7 +28,7 @@ export PGEDGE_HTTP_ENABLED="true"
 export PGEDGE_HTTP_ADDRESS=":8080"
 ```
 
-## Examples
+**Examples - Deploying the MCP Server with Environment Variables**
 
 **Configuring an HTTP server with authentication:**
 

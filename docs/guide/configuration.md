@@ -4,7 +4,7 @@ You can provide your configuration preferences in multiple locations; the MCP se
 
 1. [**Command line flags**](#command-line-flags) (highest priority)
 2. [**Environment variables**](env_variable_config.md)
-3. **Configuration file**
+3. [**Configuration file**](#specifying-properties-in-a-configuration-file)
 4. **Hard-coded defaults** (lowest priority)
 
 The server can read configuration preferences from a YAML file, making it easier to manage settings without environment variables.  When configuring your MCP server and Natural Language Agent, keep your use and environment in mind:
@@ -15,11 +15,14 @@ The server can read configuration preferences from a YAML file, making it easier
 * **Secrets Management**: Never commit API keys or passwords to version control.
 * **Connection Strings**: Should use SSL/TLS in production (`sslmode=require` or `sslmode=verify-full`).
 
+
+## Specifying Properties in a Configuration File
+
 By default, the configuration file is named `pgedge-mcp-server.yaml`, and resides in the same directory as the binary.  On the command line, you can use the `-config` flag to specify a different location.
 
 A complete example configuration file with detailed comments is available [here](../reference/config-examples/server.md).
 
-The following table lists the available configuration options:
+The following table lists the configuration options you can use to specify property values:
 
 | Configuration File Option | CLI Flag | Environment Variable | Description |
 |--------------------------|----------|---------------------|-------------|
@@ -69,7 +72,7 @@ The following table lists the available configuration options:
 
 ## Configuration Priority Examples
 
-Understanding how configuration priority works:
+The following examples demonstrate how the MCP server's configuration priority works.
 
 Example 1: Command Line Override
 
@@ -144,15 +147,17 @@ Any configuration option specified in the configuration file can be overridden w
 
 See [Authentication Guide](authentication.md) for details on API token management.
 
-### Examples
+### Examples - Running the MCP Server
 
-**Running in stdio mode:**
+Starting the server in stdio mode with properties specified in a configuration file in the default location:
+
 ```bash
 # Configure database connection via environment variables, config file, or flags
 ./bin/pgedge-mcp-server
 ```
 
-**Running in HTTP mode:**
+The following example starts the MCP server in HTTP mode using properties specified on the command line and in a configuration file:
+
 ```bash
 # Configure database connection via environment variables, config file, or flags
 ./bin/pgedge-mcp-server \

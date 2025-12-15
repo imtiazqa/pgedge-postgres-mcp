@@ -1,8 +1,18 @@
-# Configuring an HTTP Server
+# Managing your Services
+
+The MCP configuration properties allow you to streamline configuration of:
+
+* an HTTP server.
+* the systemd service manager.
+* the nginx reverse proxy.
+
+Each component serves a specific role: the HTTP server handles requests, systemd keeps the service running, and nginx provides TLS termination and routing.
+
+## Configuring an HTTP Server
 
 The pgEdge MCP server and Natural Language Agent run as an HTTP/HTTPS service. After building and deploying the server in either containers or from source, you'll need to configure the deployment to work with your HTTP Server.
 
-## Configuring a Basic HTTP Server
+The following properties are required to configure a basic HTTP server:
 
 ```bash
 # Set database connection
@@ -13,7 +23,7 @@ export PGUSER=myuser PGPASSWORD=mypass
 ./bin/pgedge-mcp-server -http
 ```
 
-### HTTPS with TLS
+To use HTTPS with TLS, you will need to add in certificate properties:
 
 ```bash
 # Self-signed certificate (testing only)
@@ -32,7 +42,7 @@ For production, use certificates from Let's Encrypt or your CA:
   -key /etc/letsencrypt/live/domain.com/privkey.pem
 ```
 
-### Command Line Options
+You can use the following command line options to manage your HTTP service; these properties override properties specified in the configuration file:
 
 | Flag | Description |
 |------|-------------|
@@ -44,9 +54,7 @@ For production, use certificates from Let's Encrypt or your CA:
 | `-no-auth` | Disable authentication (dev only) |
 | `-config PATH` | Configuration file path |
 
----
-
-## Example Configuration
+### Example - HTTP/HTTPS Configuration Properties
 
 ```yaml
 # HTTP/HTTPS server (optional)
@@ -145,4 +153,85 @@ secret_file: ""  # defaults to pgedge-mcp-server.secret, auto-generated if not p
 #     diagnose_query_issue: true
 #     design_schema: true
 
+```
+
+
+## Adding the Deployment to your Systemd Service
+
+When deploying the MCP server or Natural Language Agent in a Linux production environment, include the appropriate configuration in your systemd service unit.
+
+To add the MCP server to your systemd service, you will need to specify server properties in a file located in:
+
+`/etc/systemd/system/pgedge-mcp-server.service`
+
+Include the following properties in the service definition:
+
+```ini
+[Unit]
+Description=pgEdge Natural Language Agent
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=pgedge
+Group=pgedge
+WorkingDirectory=/opt/pgedge
+ExecStart=/opt/pgedge/bin/pgedge-mcp-server -config /etc/pgedge/config.yaml
+Restart=always
+RestartSec=10
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target
+```
+
+After creating the file, enable and start the service:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable pgedge-mcp-server
+sudo systemctl start pgedge-mcp-server
+sudo systemctl status pgedge-mcp-server
+```
+
+Use the following command to view the service logs:
+
+```bash
+journalctl -u pgedge-mcp-server -f
+```
+
+---
+
+## Configuring a Reverse Proxy
+
+If you're running the MCP server in a production environment, we recommend running behind [nginx](https://nginx.org/en/docs/index.html) with TLS termination.  The following code snippet is the content of a server block that configures nginx with the MCP server:
+
+```nginx
+server {
+    listen 443 ssl http2;
+    server_name mcp.example.com;
+
+    ssl_certificate /etc/letsencrypt/live/mcp.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/mcp.example.com/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+
+    location / {
+        proxy_pass http://localhost:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+server {
+    listen 80;
+    server_name mcp.example.com;
+    return 301 https://$host$request_uri;
+}
 ```
