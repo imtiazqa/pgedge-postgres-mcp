@@ -166,7 +166,7 @@ export PGEDGE_DB_LOG_LEVEL="debug"   # Detailed: pool config, schema counts, que
 export PGEDGE_DB_LOG_LEVEL="trace"   # Very detailed: full queries, row counts, timings
 
 # Run the server
-./bin/pgedge-mcp-server
+./bin/pgedge-postgres-mcp
 ```
 
 **Log Levels**:
@@ -194,7 +194,7 @@ export PGEDGE_LLM_LOG_LEVEL="debug"   # Detailed: text length, dimensions, timin
 export PGEDGE_LLM_LOG_LEVEL="trace"   # Very detailed: full request/response details
 
 # Run the server
-./bin/pgedge-mcp-server
+./bin/pgedge-postgres-mcp
 ```
 
 **Log Levels**:
@@ -216,11 +216,11 @@ export PGEDGE_LLM_LOG_LEVEL="trace"   # Very detailed: full request/response det
 
 ```bash
 # Copy the example to the binary directory
-cp configs/pgedge-mcp-server.yaml.example bin/pgedge-mcp-server.yaml
+cp configs/pgedge-postgres-mcp.yaml.example bin/pgedge-postgres-mcp.yaml
 
 # Edit with your settings
-vim bin/pgedge-mcp-server.yaml
+vim bin/pgedge-postgres-mcp.yaml
 
 # Run the server (automatically loads config from default location)
-./bin/pgedge-mcp-server
+./bin/pgedge-postgres-mcp
 ```

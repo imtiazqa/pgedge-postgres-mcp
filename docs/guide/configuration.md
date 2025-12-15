@@ -18,7 +18,7 @@ The server can read configuration preferences from a YAML file, making it easier
 
 ## Specifying Properties in a Configuration File
 
-By default, the configuration file is named `pgedge-mcp-server.yaml`, and resides in the same directory as the binary.  On the command line, you can use the `-config` flag to specify a different location.
+By default, the configuration file is named `pgedge-postgres-mcp.yaml`, and resides in the same directory as the binary.  On the command line, you can use the `-config` flag to specify a different location.
 
 A complete example configuration file with detailed comments is available [here](../reference/config-examples/server.md).
 
@@ -80,7 +80,7 @@ Example 1: Command Line Override
 # Config file has: address: ":8080"
 # Environment has: PGEDGE_HTTP_ENABLED="true"
 
-./bin/pgedge-mcp-server \
+./bin/pgedge-postgres-mcp \
   -http \
   -addr ":3000"
 
@@ -95,7 +95,7 @@ Example 2: Environment Override
 # Config file has: http.address: ":8080"
 export PGEDGE_HTTP_ADDRESS=":9090"
 
-./bin/pgedge-mcp-server
+./bin/pgedge-postgres-mcp
 
 # Result:
 # - Address: :9090 (environment overrides config file)
@@ -107,7 +107,7 @@ Example 3: Config File with Defaults
 # No command line flags, no environment variables
 # Config file has partial settings
 
-./bin/pgedge-mcp-server -config myconfig.yaml
+./bin/pgedge-postgres-mcp -config myconfig.yaml
 
 # Result:
 # - Values from config file where present
@@ -135,7 +135,7 @@ Any configuration option specified in the configuration file can be overridden w
 **Authentication Options:**
 
 - `-no-auth` - Disable API token authentication
-- `-token-file` - Path to token file (default: {binary_dir}/pgedge-mcp-server-tokens.yaml)
+- `-token-file` - Path to token file (default: {binary_dir}/pgedge-postgres-mcp-tokens.yaml)
 - `-add-token` - Add a new API token
 - `-remove-token` - Remove token by ID or hash prefix
 - `-list-tokens` - List all API tokens
@@ -153,14 +153,14 @@ Starting the server in stdio mode with properties specified in a configuration f
 
 ```bash
 # Configure database connection via environment variables, config file, or flags
-./bin/pgedge-mcp-server
+./bin/pgedge-postgres-mcp
 ```
 
 The following example starts the MCP server in HTTP mode using properties specified on the command line and in a configuration file:
 
 ```bash
 # Configure database connection via environment variables, config file, or flags
-./bin/pgedge-mcp-server \
+./bin/pgedge-postgres-mcp \
   -http \
   -addr ":9090"
 ```

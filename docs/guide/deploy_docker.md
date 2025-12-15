@@ -158,5 +158,5 @@ curl http://localhost:8080/health
 
 Response:
 ```json
-{"status": "ok", "server": "pgedge-mcp-server", "version": "1.0.0"}
+{"status": "ok", "server": "pgedge-postgres-mcp", "version": "1.0.0"}
 ```

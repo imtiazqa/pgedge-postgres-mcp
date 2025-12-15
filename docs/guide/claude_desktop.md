@@ -12,7 +12,7 @@ Add your connection details for the Postgres server to the `mcpServers` property
 {
   "mcpServers": {
     "pgedge": {
-      "command": "/path/to/bin/pgedge-mcp-server",
+      "command": "/path/to/bin/pgedge-postgres-mcp",
       "env": {
         "PGHOST": "localhost",
         "PGPORT": "5432",

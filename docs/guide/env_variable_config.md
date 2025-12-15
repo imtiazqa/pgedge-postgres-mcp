@@ -36,9 +36,9 @@ export PGEDGE_HTTP_ADDRESS=":8080"
 export PGEDGE_HTTP_ENABLED="true"
 export PGEDGE_HTTP_ADDRESS=":8080"
 export PGEDGE_AUTH_ENABLED="true"
-export PGEDGE_AUTH_TOKEN_FILE="./pgedge-mcp-server-tokens.yaml"
+export PGEDGE_AUTH_TOKEN_FILE="./pgedge-postgres-mcp-tokens.yaml"
 
-./bin/pgedge-mcp-server
+./bin/pgedge-postgres-mcp
 ```
 
 **Configuring a HTTPS server:**
@@ -49,7 +49,7 @@ export PGEDGE_TLS_ENABLED="true"
 export PGEDGE_TLS_CERT_FILE="./server.crt"
 export PGEDGE_TLS_KEY_FILE="./server.key"
 
-./bin/pgedge-mcp-server
+./bin/pgedge-postgres-mcp
 ```
 
 **Using Environment Variables for Tests:**

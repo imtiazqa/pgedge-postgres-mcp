@@ -20,7 +20,7 @@ git clone https://github.com/pgEdge/pgedge-postgres-mcp.git
 cd pgedge-postgres-mcp
 ```
 
-Then, build the `pgedge-mcp-server` binary; the file is created in the `bin` directory under your current directory:
+Then, build the `pgedge-postgres-mcp` binary; the file is created in the `bin` directory under your current directory:
 
 ```
 make build
@@ -28,10 +28,10 @@ make build
 
 **Create a Configuration File**
 
-The `.env.example` file contains a sample configuration file that we can use for deployment; instead of updating the original, we copy the sample file to `bin/pgedge-mcp-server.yaml`:
+The `.env.example` file contains a sample configuration file that we can use for deployment; instead of updating the original, we copy the sample file to `bin/pgedge-postgres-mcp.yaml`:
 
 ```bash
-cp .env.example bin/pgedge-mcp-server.yaml
+cp .env.example bin/pgedge-postgres-mcp.yaml
 ```
 
 Then, edit the configuration file, adding deployment details.  In the `DATABASE CONNECTION` section, provide Postgres connection details:
@@ -130,15 +130,15 @@ PGEDGE_LLM_MODEL=claude-sonnet-4-20250514
 
 ```bash
 # Add a user for web access
-./bin/pgedge-mcp-server -add-user admin -user-password "your_password"
+./bin/pgedge-postgres-mcp -add-user admin -user-password "your_password"
 ```
 
 **Deploy the Server**
 
-Then, use the following command to start the `pgedge-mcp-server`:
+Then, use the following command to start the `pgedge-postgres-mcp`:
 
 ```bash
-./bin/pgedge-mcp-server
+./bin/pgedge-postgres-mcp
 ```
 
 **Connect with a Browser and Authenticate**
@@ -159,7 +159,7 @@ curl http://localhost:8080/health
 
 Response:
 ```json
-{"status": "ok", "server": "pgedge-mcp-server", "version": "1.0.0"}
+{"status": "ok", "server": "pgedge-postgres-mcp", "version": "1.0.0"}
 ```
 
 ---

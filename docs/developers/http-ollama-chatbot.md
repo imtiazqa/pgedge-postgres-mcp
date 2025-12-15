@@ -57,10 +57,10 @@ ollama==0.3.3
 
 ```bash
 cd ../..
-go build -o bin/pgedge-mcp-server ./cmd/pgedge-pg-mcp-svr
+go build -o bin/pgedge-postgres-mcp ./cmd/pgedge-pg-mcp-svr
 
 # Start the server in HTTP mode (with authentication disabled for this example)
-./bin/pgedge-mcp-server -http -addr :8080 -no-auth
+./bin/pgedge-postgres-mcp -http -addr :8080 -no-auth
 ```
 
 **Note:** This example uses `-no-auth` for simplicity. For production deployments,
@@ -257,7 +257,7 @@ export OLLAMA_MODEL="mistral"
 Make sure the MCP server is running in HTTP mode:
 
 ```bash
-./bin/pgedge-mcp-server -http -addr :8080 -no-auth
+./bin/pgedge-postgres-mcp -http -addr :8080 -no-auth
 export PGEDGE_MCP_SERVER_URL="http://localhost:8080/mcp/v1"
 ```
 

@@ -19,8 +19,8 @@ The following properties are required to configure a basic HTTP server:
 export PGHOST=localhost PGPORT=5432 PGDATABASE=mydb
 export PGUSER=myuser PGPASSWORD=mypass
 
-# Start HTTP server
-./bin/pgedge-mcp-server -http
+# Start the HTTP server
+./bin/pgedge-postgres-mcp -http
 ```
 
 To use HTTPS with TLS, you will need to add in certificate properties:
@@ -30,14 +30,14 @@ To use HTTPS with TLS, you will need to add in certificate properties:
 openssl req -x509 -newkey rsa:4096 -keyout server.key -out server.crt \
   -days 365 -nodes -subj "/CN=localhost"
 
-# Start HTTPS server
-./bin/pgedge-mcp-server -http -tls -cert server.crt -key server.key
+# Start the HTTPS server
+./bin/pgedge-postgres-mcp -http -tls -cert server.crt -key server.key
 ```
 
 For production, use certificates from Let's Encrypt or your CA:
 
 ```bash
-./bin/pgedge-mcp-server -http -tls \
+./bin/pgedge-postgres-mcp -http -tls \
   -cert /etc/letsencrypt/live/domain.com/fullchain.pem \
   -key /etc/letsencrypt/live/domain.com/privkey.pem
 ```
@@ -68,7 +68,7 @@ http:
     chain_file: ""
   auth:
     enabled: true
-    token_file: ""  # defaults to {binary_dir}/pgedge-mcp-server-tokens.yaml
+    token_file: ""  # defaults to {binary_dir}/pgedge-postgres-mcp-tokens.yaml
     max_failed_attempts_before_lockout: 5  # Lock account after N failed attempts (0 = disabled)
     rate_limit_window_minutes: 15  # Time window for rate limiting
     rate_limit_max_attempts: 10  # Max failed attempts per IP per window
@@ -132,7 +132,7 @@ knowledgebase:
   embedding_ollama_url: "http://localhost:11434"  # For ollama provider
 
 # Encryption secret file path (optional)
-secret_file: ""  # defaults to pgedge-mcp-server.secret, auto-generated if not present
+secret_file: ""  # defaults to pgedge-postgres-mcp.secret, auto-generated if not present
 
 # Built-in tools, resources, and prompts (optional)
 # All are enabled by default. Set to false to disable.
@@ -162,7 +162,7 @@ When deploying the MCP server or Natural Language Agent in a Linux production en
 
 To add the MCP server to your systemd service, you will need to specify server properties in a file located in:
 
-`/etc/systemd/system/pgedge-mcp-server.service`
+`/etc/systemd/system/pgedge-postgres-mcp.service`
 
 Include the following properties in the service definition:
 
@@ -176,7 +176,7 @@ Type=simple
 User=pgedge
 Group=pgedge
 WorkingDirectory=/opt/pgedge
-ExecStart=/opt/pgedge/bin/pgedge-mcp-server -config /etc/pgedge/config.yaml
+ExecStart=/opt/pgedge/bin/pgedge-postgres-mcp -config /etc/pgedge/config.yaml
 Restart=always
 RestartSec=10
 
@@ -194,15 +194,15 @@ After creating the file, enable and start the service:
 
 ```bash
 sudo systemctl daemon-reload
-sudo systemctl enable pgedge-mcp-server
-sudo systemctl start pgedge-mcp-server
-sudo systemctl status pgedge-mcp-server
+sudo systemctl enable pgedge-postgres-mcp
+sudo systemctl start pgedge-postgres-mcp
+sudo systemctl status pgedge-postgres-mcp
 ```
 
 Use the following command to view the service logs:
 
 ```bash
-journalctl -u pgedge-mcp-server -f
+journalctl -u pgedge-postgres-mcp -f
 ```
 
 ---

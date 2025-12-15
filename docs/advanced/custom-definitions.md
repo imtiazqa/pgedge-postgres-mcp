@@ -23,14 +23,14 @@ the server configuration:
 ### YAML Configuration
 
 ```yaml
-# In pgedge-mcp-server.yaml
-custom_definitions_path: "/path/to/pgedge-mcp-server-custom.yaml"
+# In pgedge-postgres-mcp.yaml
+custom_definitions_path: "/path/to/pgedge-postgres-mcp-custom.yaml"
 ```
 
 ### Environment Variable
 
 ```bash
-export PGEDGE_CUSTOM_DEFINITIONS_PATH="/path/to/pgedge-mcp-server-custom.yaml"
+export PGEDGE_CUSTOM_DEFINITIONS_PATH="/path/to/pgedge-postgres-mcp-custom.yaml"
 ```
 
 ### Supported Format
@@ -332,15 +332,15 @@ Protect your definitions file:
 
 ## Complete Example
 
-See `examples/pgedge-mcp-server-custom.yaml` for a comprehensive example
+See `examples/pgedge-postgres-mcp-custom.yaml` for a comprehensive example
 demonstrating all features:
 
 ```bash
 # View the example file
-cat examples/pgedge-mcp-server-custom.yaml
+cat examples/pgedge-postgres-mcp-custom.yaml
 
 # Use it in your configuration
-custom_definitions_path: "./examples/pgedge-mcp-server-custom.yaml"
+custom_definitions_path: "./examples/pgedge-postgres-mcp-custom.yaml"
 ```
 
 ## Usage

@@ -73,7 +73,7 @@ export PGEDGE_POSTGRES_CONNECTION_STRING="postgres://myuser:mypass@localhost:543
 
 ```bash
 cd ../..
-go build -o bin/pgedge-mcp-server ./cmd/pgedge-pg-mcp-svr
+go build -o bin/pgedge-postgres-mcp ./cmd/pgedge-pg-mcp-svr
 ```
 
 ## Running the Chatbot
@@ -198,7 +198,7 @@ while True:
 **Client Environment Variables:**
 
 - `ANTHROPIC_API_KEY` (required): Your Anthropic API key
-- `PGEDGE_MCP_SERVER_PATH` (optional): Custom path to the MCP server binary (default: `../../bin/pgedge-mcp-server`)
+- `PGEDGE_MCP_SERVER_PATH` (optional): Custom path to the MCP server binary (default: `../../bin/pgedge-postgres-mcp`)
 
 **Server Database Configuration:**
 
@@ -216,7 +216,7 @@ these variables for database configuration:
 Make sure you've built the server:
 
 ```bash
-cd ../.. && go build -o bin/pgedge-mcp-server ./cmd/pgedge-pg-mcp-svr
+cd ../.. && go build -o bin/pgedge-postgres-mcp ./cmd/pgedge-pg-mcp-svr
 ```
 
 Or set the path explicitly:

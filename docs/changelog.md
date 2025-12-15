@@ -163,7 +163,7 @@ and this project adheres to
 #### Tools, Resources, and Prompts
 
 - Support for custom user-defined prompts in
-  `examples/pgedge-mcp-server-custom.yaml`
+  `examples/pgedge-postgres-mcp-custom.yaml`
 - Support for custom user-defined resources in custom definitions file
 - New `execute_explain` tool for query performance analysis
 - Enhanced tool descriptions with usage examples and best practices
@@ -175,13 +175,13 @@ and this project adheres to
 
 - Renamed the project to *pgEdge Natural Language Agent*
 - Renamed all binaries and configuration files for consistency:
-    - Server: `pgedge-pg-mcp-svr` -> `pgedge-mcp-server`
+    - Server: `pgedge-pg-mcp-svr` -> `pgedge-postgres-mcp`
     - CLI: `pgedge-pg-mcp-cli` -> `pgedge-nla-cli`
     - Web UI: `pgedge-mcp-web` -> `pgedge-nla-web`
     - KB Builder: `kb-builder` -> `pgedge-nla-kb-builder`
-- Default server configuration files now use `pgedge-mcp-server-*.yaml` naming
+- Default server configuration files now use `pgedge-postgres-mcp-*.yaml` naming
 - Default CLI configuration files now uses `pgedge-nla-cli.yaml` naming
-- Custom definitions file: `pgedge-mcp-server-custom.yaml`
+- Custom definitions file: `pgedge-postgres-mcp-custom.yaml`
 - Updated all documentation and examples to reflect new naming
 
 #### Configuration
