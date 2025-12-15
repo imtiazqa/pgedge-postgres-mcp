@@ -69,7 +69,7 @@ func TestNewHandler(t *testing.T) {
 	defer cleanup()
 
 	if handler == nil {
-		t.Error("Expected non-nil handler")
+		t.Fatal("Expected non-nil handler")
 	}
 	if handler.store == nil {
 		t.Error("Expected non-nil store")

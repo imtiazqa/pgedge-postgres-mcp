@@ -148,4 +148,13 @@ func TestConfigStruct(t *testing.T) {
 	if cfg.Model != "voyage-3" {
 		t.Errorf("expected model 'voyage-3', got %q", cfg.Model)
 	}
+	if cfg.VoyageAPIKey != "voyage-key" {
+		t.Errorf("expected VoyageAPIKey 'voyage-key', got %q", cfg.VoyageAPIKey)
+	}
+	if cfg.OpenAIAPIKey != "openai-key" {
+		t.Errorf("expected OpenAIAPIKey 'openai-key', got %q", cfg.OpenAIAPIKey)
+	}
+	if cfg.OllamaURL != "http://localhost:11434" {
+		t.Errorf("expected OllamaURL 'http://localhost:11434', got %q", cfg.OllamaURL)
+	}
 }

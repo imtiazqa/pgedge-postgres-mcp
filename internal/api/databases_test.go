@@ -325,34 +325,6 @@ func TestHandleSelectDatabase_NoTokenHash(t *testing.T) {
 	}
 }
 
-// Mock access checker for testing access control
-type mockAccessChecker struct {
-	accessibleDatabases []string
-	boundDatabase       string
-	canAccess           bool
-}
-
-func (m *mockAccessChecker) GetAccessibleDatabases(ctx context.Context, databases []config.NamedDatabaseConfig) []config.NamedDatabaseConfig {
-	var result []config.NamedDatabaseConfig
-	for _, db := range databases {
-		for _, accessible := range m.accessibleDatabases {
-			if db.Name == accessible {
-				result = append(result, db)
-				break
-			}
-		}
-	}
-	return result
-}
-
-func (m *mockAccessChecker) GetBoundDatabase(ctx context.Context) string {
-	return m.boundDatabase
-}
-
-func (m *mockAccessChecker) CanAccessDatabase(ctx context.Context, db *config.NamedDatabaseConfig) bool {
-	return m.canAccess
-}
-
 func TestHandleListDatabases_WithAccessChecker(t *testing.T) {
 	cm := createTestClientManager()
 

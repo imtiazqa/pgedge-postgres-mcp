@@ -383,6 +383,15 @@ func TestConfigStruct(t *testing.T) {
 	if config.MaxTokens != 4096 {
 		t.Errorf("expected max tokens 4096, got %d", config.MaxTokens)
 	}
+	if config.Model != "claude-sonnet-4-20250514" {
+		t.Errorf("expected model 'claude-sonnet-4-20250514', got %q", config.Model)
+	}
+	if config.AnthropicAPIKey != "test-key" {
+		t.Errorf("expected AnthropicAPIKey 'test-key', got %q", config.AnthropicAPIKey)
+	}
+	if config.Temperature != 0.7 {
+		t.Errorf("expected temperature 0.7, got %f", config.Temperature)
+	}
 }
 
 func TestMessageStruct(t *testing.T) {

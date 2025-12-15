@@ -7,6 +7,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-beta1] - 2025-12-15
+
+### Changed
+
+This release marks the transition from alpha to beta status, indicating the
+software is now feature-complete and ready for broader testing.
+
+#### Internal
+
+- Updated Claude Code configuration
+
 ## [1.0.0-alpha6] - 2025-12-12
 
 ### Added
@@ -444,7 +455,8 @@ and this project adheres to
 - CI/CD pipeline documentation
 - Testing guide for contributors
 
-[Unreleased]: https://github.com/pgEdge/pgedge-nla/compare/v1.0.0-alpha6...HEAD
+[Unreleased]: https://github.com/pgEdge/pgedge-nla/compare/v1.0.0-beta1...HEAD
+[1.0.0-beta1]: https://github.com/pgEdge/pgedge-nla/releases/tag/v1.0.0-beta1
 [1.0.0-alpha6]: https://github.com/pgEdge/pgedge-nla/releases/tag/v1.0.0-alpha6
 [1.0.0-alpha5]: https://github.com/pgEdge/pgedge-nla/releases/tag/v1.0.0-alpha5
 [1.0.0-alpha4]: https://github.com/pgEdge/pgedge-postgres-mcp/releases/tag/v1.0.0-alpha4
