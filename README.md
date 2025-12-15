@@ -6,6 +6,7 @@
 [![CI - Docker Compose](https://github.com/pgEdge/pgedge-postgres-mcp/workflows/CI%20-%20Docker/badge.svg)](https://github.com/pgEdge/pgedge-postgres-mcp/actions/workflows/ci-docker.yml)
 [![CI - Documentation](https://github.com/pgEdge/pgedge-postgres-mcp/workflows/CI%20-%20Documentation/badge.svg)](https://github.com/pgEdge/pgedge-postgres-mcp/actions/workflows/ci-docs.yml)
 [![Release](https://github.com/pgEdge/pgedge-postgres-mcp/workflows/Release/badge.svg)](https://github.com/pgEdge/pgedge-postgres-mcp/actions/workflows/release.yml)
+[![Docker - Build and Publish](https://github.com/pgEdge/pgedge-postgres-mcp/workflows/Docker%20-%20Build%20and%20Publish/badge.svg)](https://github.com/pgEdge/pgedge-postgres-mcp/actions/workflows/docker-publish.yml)
 
 A Model Context Protocol (MCP) server that enables **SQL queries** against
 PostgreSQL databases through MCP-compatible clients like Claude Desktop.
