@@ -1,4 +1,4 @@
-# pgEdge Postgres MCP Server
+# pgEdge Postgres MCP Server and Natural Language Agent
 
 [![CI - MCP Server](https://github.com/pgEdge/pgedge-postgres-mcp/workflows/CI%20-%20MCP%20Server/badge.svg)](https://github.com/pgEdge/pgedge-postgres-mcp/actions/workflows/ci-server.yml)
 [![CI - CLI Client](https://github.com/pgEdge/pgedge-postgres-mcp/workflows/CI%20-%20CLI%20Client/badge.svg)](https://github.com/pgEdge/pgedge-postgres-mcp/actions/workflows/ci-cli-client.yml)
@@ -8,8 +8,61 @@
 [![Release](https://github.com/pgEdge/pgedge-postgres-mcp/workflows/Release/badge.svg)](https://github.com/pgEdge/pgedge-postgres-mcp/actions/workflows/release.yml)
 [![Docker - Build and Publish](https://github.com/pgEdge/pgedge-postgres-mcp/workflows/Docker%20-%20Build%20and%20Publish/badge.svg)](https://github.com/pgEdge/pgedge-postgres-mcp/actions/workflows/docker-publish.yml)
 
-A Model Context Protocol (MCP) server that enables **SQL queries** against
-PostgreSQL databases through MCP-compatible clients like Claude Desktop.
+
+  - [Introduction](docs/index.md)
+      - [Choosing the Right Solution](docs/guide/mcp-vs-rag.md)
+  - Installing the MCP Server
+      - [Deploying on Docker](docs/guide/deploy_docker.md)
+      - [Deploying from Source](docs/guide/deploy_source.md)
+      - [Accessing Online Help](docs/guide/help.md)
+  - Configuring the MCP Server
+      - [Specifying Configuration Preferences](docs/guide/configuration.md)
+      - [Using Environment Variables to Specify Options](docs/guide/env_variable_config.md)
+      - [Including Provider Embeddings in a Configuration File](docs/guide/provider_config.md)
+      - [Configuring the Agent for Multiple Databases](docs/guide/multiple_db_config.md)
+      - [Configuring Supporting Services; HTTP, systemd, and nginx](docs/guide/services_config.md)
+      - [Using an Encryption Secret File](docs/guide/encryption_secret.md)
+      - [Enabling or Disabling Features](docs/guide/feature_config.md)
+  - Configuring and Using Client Applications
+      - [Connecting with the Web Client](docs/guide/web-client.md)
+      - [Using the Go Chat Client](docs/guide/cli-client.md)
+      - [Using the Claude Desktop](docs/guide/claude_desktop.md)
+  - Authentication and Security
+      - [Authentication Overview](docs/guide/authentication.md)
+      - [User Authentication Management](docs/guide/auth_user.md)
+      - [Token Authentication Management](docs/guide/auth_token.md)
+      - [Security Best Practices - Checklist](docs/guide/security.md)
+      - [Security Management](docs/guide/security_mgmt.md)
+  - Reference
+      - [Tools](docs/reference/tools.md)
+      - [Resources](docs/reference/resources.md)
+      - [Prompts](docs/reference/prompts.md)
+      - [Examples](docs/reference/examples.md)
+  - Advanced Topics
+      - [Custom Definitions](docs/advanced/custom-definitions.md)
+      - [Knowledgebase](docs/advanced/knowledgebase.md)
+      - [LLM Proxy](docs/advanced/llm-proxy.md)
+  - For Developers
+      - [Overview](docs/developers/overview.md)
+      - [MCP Protocol](docs/developers/mcp-protocol.md)
+      - [API Reference](docs/developers/api-reference.md)
+  - Building Chat Clients
+      - [Overview](docs/developers/building-chat-clients.md)
+      - [Python - Stdio and Claude](docs/developers/stdio-anthropic-chatbot.md)
+      - [Python - HTTP and OLLAMA](docs/developers/http-ollama-chatbot.md)
+  - Contributing
+      - [Development Setup](docs/contributing/development.md)
+      - [Architecture](docs/contributing/architecture.md)
+      - [Internal Architecture](docs/contributing/internal-architecture.md)
+      - [KB Builder](docs/contributing/internal/kb-builder-architecture.md)
+      - [Testing](docs/contributing/testing.md)
+      - [CI/CD](docs/contributing/ci-cd.md)
+  - [Troubleshooting](docs/troubleshooting.md)
+  - [pgEdge Postgres MCP Server and Natural Language Agent Release Notes](docs/changelog.md)
+  - [Licence](docs/LICENCE.md)
+
+The pgEdge Postgres Model Context Protocol (MCP) server enables **SQL queries** against
+PostgreSQL databases through MCP-compatible clients like Claude Desktop.  The Natural Language Agent provides supporting functionality that allows you to use natural language to form SQL queries.
 
 > 🚧 **WARNING**: This code is in pre-release status and MUST NOT be put
 > into production without thorough testing!
@@ -97,7 +150,7 @@ security):
 localhost:5432:mydb:myuser:mypass
 ```
 
-Then configure without PGPASSWORD in the config:
+Then, provide connection details (except `PGPASSWORD`) in the configuration file:
 
 ```json
 {
@@ -116,8 +169,8 @@ Then configure without PGPASSWORD in the config:
 ```
 
 > **Note:** The server connects to the database at startup using standard
-> PostgreSQL environment variables (PG*) or PGEDGE_DB_* variables. Passwords
-> can be stored securely in `.pgpass` files.
+> PostgreSQL environment variables (PG*) or PGEDGE_DB_* variables. You can store passwords
+> securely in the `.pgpass` file.
 
 ## Example Queries
 
@@ -217,8 +270,7 @@ The CLI client supports three ways to provide LLM API keys (in priority order):
 3. **Configuration file values** (not recommended - use env vars or files
    instead)
 
-See **[Using the CLI Client](docs/guide/cli-client.md)** for detailed
-documentation.
+See **[Using the CLI Client](docs/guide/cli-client.md)** for detailed documentation.
 
 ## Web Client
 
@@ -275,42 +327,6 @@ documentation including:
 - Security hardening
 - Resource limits and monitoring
 - Troubleshooting
-
-## Documentation
-
-📚 **[Complete Documentation](docs/index.md)** - Comprehensive guides and
-references
-
-### Essential Guides
-
-- **[Configuration Guide](docs/guide/configuration.md)** - Config file,
-  environment variables, CLI flags
-- **[Deployment Guide](docs/guide/deployment.md)** - HTTP/HTTPS and Docker
-  Compose deployment
-- **[Using the CLI Client](docs/guide/cli-client.md)** - Production-ready chat
-  client with prompt caching
-- **[Tools Documentation](docs/reference/tools.md)** - MCP tools reference
-- **[Resources Documentation](docs/reference/resources.md)** - MCP resources
-  reference
-- **[Prompts Documentation](docs/reference/prompts.md)** - MCP prompts reference
-- **[Query Examples](docs/reference/examples.md)** - Comprehensive usage
-  examples
-- **[Authentication Guide](docs/guide/authentication.md)** - API token
-  management
-
-### Technical Guides
-
-- **[MCP Protocol Guide](docs/developers/mcp-protocol.md)** - Protocol
-  implementation details
-- **[Security Guide](docs/guide/security.md)** - Security best practices
-- **[Architecture Guide](docs/contributing/architecture.md)** - Code structure
-  and extension
-- **[LLM Proxy](docs/advanced/llm-proxy.md)** - LLM proxy for web applications
-- **[API Reference](docs/developers/api-reference.md)** - Complete API
-  documentation
-- **[Testing Guide](docs/contributing/testing.md)** - Unit and integration tests
-- **[Troubleshooting Guide](docs/guide/troubleshooting.md)** - Common issues and
-  solutions
 
 ## How It Works
 
@@ -412,7 +428,7 @@ solutions.
 
 ## License
 
-This software is released under The PostgreSQL License.
+This software is released under [the PostgreSQL License](LICENCE.md).
 
 ## Support
 
@@ -423,8 +439,6 @@ This software is released under The PostgreSQL License.
 
 ## Related Projects
 
-- [Model Context Protocol](https://modelcontextprotocol.io/) - MCP
-  specification
+- [Model Context Protocol](https://modelcontextprotocol.io/) - MCP specification
 - [Claude Desktop](https://claude.ai/) - Anthropic's Claude AI assistant
-- [PostgreSQL](https://www.postgresql.org/) - The world's most advanced open
-  source database
+- [PostgreSQL](https://www.postgresql.org/) - The world's most advanced open source database
