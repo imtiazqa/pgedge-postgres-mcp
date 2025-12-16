@@ -83,7 +83,7 @@ nav:
           - Authentication - Token Management: guide/auth_token.md
       - Security:
           - Security Checklist: guide/security.md
-          - Security Management Practices: guide/security_mgmt.md
+          - Security Management: guide/security_mgmt.md
   - Reference:
       - Tools: reference/tools.md
       - Resources: reference/resources.md
@@ -114,5 +114,5 @@ nav:
       - Testing: contributing/testing.md
       - CI/CD: contributing/ci-cd.md
   - Troubleshooting: guide/troubleshooting.md
-  - pgEdge Natural Language Agent Release Notes: changelog.md
+  - pgEdge Postgres MCP Server and Natural Language Agent Release Notes: changelog.md
   - Licence: LICENCE.md
