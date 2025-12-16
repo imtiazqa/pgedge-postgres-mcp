@@ -153,17 +153,17 @@ print(result)
   - HTTP + Ollama
 - **[Go CLI Client](../guide/cli-client.md)** - Full-featured reference
   implementation
-- **[Web Client](https://github.com/pgEdge/pgedge-mcp/blob/main/web/README.md)** - React-based web interface
+- **[Web Client](https://github.com/pgEdge/pgedge-postgres-mcp/blob/main/web/README.md)** - React-based web interface
 
 ### Configuration
 
 - **[Server Configuration](../guide/configuration.md)** - Configure the MCP server
 - **[Deploying the MCP Server with Docker](../guide/deploy_docker.md)** - Deploy with Docker
-- **[Deploying the MCP Server from Source](../guide/deploy_source.md)** - Deploy with Docker
+- **[Deploying the MCP Server from Source](../guide/deploy_source.md)** - Deploy from Source
 - **[Query Examples](../reference/examples.md)** - Common use cases
 
 ## Support
 
 - **Questions?** See [Troubleshooting](../guide/troubleshooting.md)
-- **Bug reports:** [GitHub Issues](https://github.com/pgEdge/pgedge-mcp/issues)
+- **Bug reports:** [GitHub Issues](https://github.com/pgEdge/pgedge-postgres-mcp/issues)
 - **Examples:** [Query Examples](../reference/examples.md)
