@@ -150,6 +150,109 @@ ollama pull llama3
 - On some terminals, readline features may be limited
 
 
+## Troubleshooting Authentication Errors
+
+#### Invalid Credentials
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "error": {
+    "code": -32603,
+    "message": "Tool execution error",
+    "data": "authentication failed: invalid username or password"
+  }
+}
+```
+
+#### Disabled User Account
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "error": {
+    "code": -32603,
+    "message": "Tool execution error",
+    "data": "authentication failed: user account is disabled"
+  }
+}
+```
+
+#### Expired Session Token
+
+```json
+{
+  "error": "Unauthorized"
+}
+```
+
+HTTP Status: `401 Unauthorized`
+
+**Solution**: Re-authenticate to get a new session token
+
+
+## Troubleshooting
+
+### Token File Not Found
+
+```bash
+# Error message:
+ERROR: Token file not found: /path/to/pgedge-postgres-mcp-tokens.yaml
+Create tokens with: ./pgedge-postgres-mcp -add-token
+Or disable authentication with: -no-auth
+```
+
+**Solution**:
+```bash
+# Create first token
+./bin/pgedge-postgres-mcp -add-token
+```
+
+### Token Authentication Fails
+
+```bash
+# Check token file exists and has correct permissions
+ls -la pgedge-postgres-mcp-tokens.yaml  # Should show -rw------- (600)
+
+# List tokens to verify token exists
+./bin/pgedge-postgres-mcp -list-tokens
+
+# Check for expired tokens
+./bin/pgedge-postgres-mcp -list-tokens | grep "Status: Expired"
+```
+
+### Cannot Remove Token
+
+```bash
+# Error: Token not found
+# Solution: Use at least 8 characters of the hash
+./bin/pgedge-postgres-mcp -list-tokens  # Get the hash
+./bin/pgedge-postgres-mcp -remove-token b3f805a4  # Use 8+ chars
+```
+
+### Server Won't Start (Auth Enabled)
+
+If auth is enabled but no token file exists:
+
+```bash
+# Option 1: Create a token file
+./bin/pgedge-postgres-mcp -add-token
+
+# Option 2: Disable auth temporarily
+./bin/pgedge-postgres-mcp -http -no-auth
+```
+
+
+
+
+
+
+
+
+
+
 ## Server Exits Immediately After Initialize
 
 ### Symptoms

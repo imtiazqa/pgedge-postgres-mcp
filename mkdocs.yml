@@ -78,8 +78,9 @@ nav:
       - Configuring the Server for use with Claude Desktop: guide/claude_desktop.md
   - Authentication and Security:
       - Authentication:
-          - Authentication - Configuring Lockout: guide/authentication.md
-          - Authentication - User Management: guide/user_auth.md
+          - Authentication - Overview: guide/authentication.md
+          - Authentication - User Management: guide/auth_user.md
+          - Authentication - Token Management: guide/auth_token.md
       - Security: guide/security.md
   - Reference:
       - Tools: reference/tools.md
