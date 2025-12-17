@@ -121,9 +121,11 @@ ok "Wrote .env"
 
 need_cmd docker
 if docker compose version >/dev/null 2>&1; then
-  COMPOSE="docker compose"
+  COMPOSE_CMD="docker"
+  COMPOSE_ARGS="compose"
 elif command -v docker-compose >/dev/null 2>&1; then
-  COMPOSE="docker-compose"
+  COMPOSE_CMD="docker-compose"
+  COMPOSE_ARGS=""
 else
   die "Docker Compose not found."
 fi
@@ -131,7 +133,7 @@ fi
 info "Starting services"
 (
   cd "$WORKDIR"
-  "$COMPOSE" up -d
+  "$COMPOSE_CMD" $COMPOSE_ARGS up -d
 )
 
 info "Waiting for services to be healthy (this may take up to 60 seconds)..."
@@ -140,8 +142,8 @@ info "Waiting for services to be healthy (this may take up to 60 seconds)..."
   timeout=60
   while [ $timeout -gt 0 ]; do
     # Check if all services are healthy
-    if "$COMPOSE" ps --format json 2>/dev/null | grep -q '"Health":"healthy"' || \
-       "$COMPOSE" ps | grep -q "(healthy)"; then
+    if "$COMPOSE_CMD" $COMPOSE_ARGS ps --format json 2>/dev/null | grep -q '"Health":"healthy"' || \
+       "$COMPOSE_CMD" $COMPOSE_ARGS ps | grep -q "(healthy)"; then
       # Give it a moment to stabilize
       sleep 2
       break
