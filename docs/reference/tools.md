@@ -533,6 +533,7 @@ building and configuring the documentation knowledgebase.
 
 **Example Response**:
 
+{% raw %}
 ```
 Similarity Search Results: "How does PostgreSQL handle vector similarity search?"
 ================================================================================
@@ -575,6 +576,7 @@ graph structure that enables fast approximate nearest neighbor search...
 
 Total: 5 chunks, ~687 tokens
 ```
+{% endraw %}
 
 **Key Features**:
 

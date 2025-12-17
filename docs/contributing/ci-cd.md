@@ -327,6 +327,7 @@ jobs:
 
 ### Setup
 
+{% raw %}
 ```bash
 # Install pre-commit hook
 cat > .git/hooks/pre-commit << 'EOF'
@@ -351,6 +352,7 @@ EOF
 
 chmod +x .git/hooks/pre-commit
 ```
+{% endraw %}
 
 ### Skip Hook (When Needed)
 
