@@ -32,6 +32,7 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_args: "--allowedTools 'mcp__github__create_pull_request_review,mcp__github__add_pull_request_review_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)'"
           prompt: |
             Review this pull request following the project guidelines in .claude/CLAUDE.md.
 
@@ -42,4 +43,8 @@ jobs:
             - Code style (4-space indentation, Go best practices)
             - Documentation updates if needed
 
+            Post your review as a PR comment using the GitHub tools available to you.
             Be constructive and specific. If changes look good, say so briefly.
+        env:
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
