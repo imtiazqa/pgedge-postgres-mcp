@@ -15,11 +15,84 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"pgedge-postgres-mcp/internal/database"
 	"pgedge-postgres-mcp/internal/logging"
 	"pgedge-postgres-mcp/internal/mcp"
 )
+
+// formatTSVValue converts a database value to a TSV-safe string.
+// Handles NULLs, special characters, and complex types.
+func formatTSVValue(v interface{}) string {
+	if v == nil {
+		return "" // NULL represented as empty string
+	}
+
+	var s string
+	switch val := v.(type) {
+	case string:
+		s = val
+	case []byte:
+		s = string(val)
+	case time.Time:
+		s = val.Format(time.RFC3339)
+	case bool:
+		if val {
+			s = "true"
+		} else {
+			s = "false"
+		}
+	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
+		s = fmt.Sprintf("%d", val)
+	case float32, float64:
+		s = fmt.Sprintf("%v", val)
+	case []interface{}, map[string]interface{}:
+		// Complex types (arrays, JSON objects) - serialize to JSON
+		jsonBytes, err := json.Marshal(val)
+		if err != nil {
+			s = fmt.Sprintf("%v", val)
+		} else {
+			s = string(jsonBytes)
+		}
+	default:
+		// For any other type, use default formatting
+		s = fmt.Sprintf("%v", val)
+	}
+
+	// Escape special characters that would break TSV parsing
+	// Replace tabs with \t and newlines with \n (literal backslash sequences)
+	s = strings.ReplaceAll(s, "\t", "\\t")
+	s = strings.ReplaceAll(s, "\n", "\\n")
+	s = strings.ReplaceAll(s, "\r", "\\r")
+
+	return s
+}
+
+// formatResultsAsTSV converts query results to TSV format.
+// Returns header row followed by data rows, tab-separated.
+func formatResultsAsTSV(columnNames []string, results [][]interface{}) string {
+	if len(columnNames) == 0 {
+		return ""
+	}
+
+	var sb strings.Builder
+
+	// Header row
+	sb.WriteString(strings.Join(columnNames, "\t"))
+
+	// Data rows
+	for _, row := range results {
+		sb.WriteString("\n")
+		values := make([]string, len(row))
+		for i, val := range row {
+			values[i] = formatTSVValue(val)
+		}
+		sb.WriteString(strings.Join(values, "\t"))
+	}
+
+	return sb.String()
+}
 
 // QueryDatabaseTool creates the query_database tool
 func QueryDatabaseTool(dbClient *database.Client) Tool {
@@ -57,10 +130,8 @@ DO NOT use for:
 
 <important>
 - All queries run in READ-ONLY transactions (no data modifications possible)
-- Connection switching: 'SELECT * FROM table at postgres://user@host/db'
-- Set new default: 'set default database to postgres://user@host/db'
-- Connection changes are temporary and do NOT modify saved connections
 - Results are limited to prevent excessive token usage
+- Results are returned in TSV (tab-separated values) format for efficiency
 </important>
 
 <rate_limit_awareness>
@@ -76,7 +147,7 @@ To avoid rate limits (30,000 input tokens/minute):
 				Properties: map[string]interface{}{
 					"query": map[string]interface{}{
 						"type":        "string",
-						"description": "SQL query to execute against the database. All queries run in read-only transactions. Can include connection strings like 'SELECT * FROM users at postgres://host/db' or 'set default database to postgres://host/db'.",
+						"description": "SQL query to execute against the database. All queries run in read-only transactions.",
 					},
 					"limit": map[string]interface{}{
 						"type":        "integer",
@@ -211,30 +282,22 @@ To avoid rate limits (30,000 input tokens/minute):
 				columnNames = append(columnNames, string(fd.Name))
 			}
 
-			// Collect results
-			var results []map[string]interface{}
+			// Collect results as array of arrays for TSV formatting
+			var results [][]interface{}
 			for rows.Next() {
 				values, err := rows.Values()
 				if err != nil {
 					return mcp.NewToolError(fmt.Sprintf("Error reading row: %v", err))
 				}
-
-				row := make(map[string]interface{})
-				for i, colName := range columnNames {
-					row[colName] = values[i]
-				}
-				results = append(results, row)
+				results = append(results, values)
 			}
 
 			if err := rows.Err(); err != nil {
 				return mcp.NewToolError(fmt.Sprintf("Error iterating rows: %v", err))
 			}
 
-			// Format results
-			resultsJSON, err := json.MarshalIndent(results, "", "  ")
-			if err != nil {
-				return mcp.NewToolError(fmt.Sprintf("Error formatting results: %v", err))
-			}
+			// Format results as TSV (tab-separated values)
+			resultsTSV := formatResultsAsTSV(columnNames, results)
 
 			// Commit the read-only transaction
 			if err := tx.Commit(ctx); err != nil {
@@ -253,13 +316,13 @@ To avoid rate limits (30,000 input tokens/minute):
 			}
 
 			sb.WriteString(fmt.Sprintf("SQL Query:\n%s\n\n", sqlQuery))
-			sb.WriteString(fmt.Sprintf("Results (%d rows):\n%s", len(results), string(resultsJSON)))
+			sb.WriteString(fmt.Sprintf("Results (%d rows):\n%s", len(results), resultsTSV))
 
 			// Log execution metrics
 			logging.Info("query_database_executed",
 				"query_length", len(sqlQuery),
 				"rows_returned", len(results),
-				"estimated_tokens", len(resultsJSON)/4,
+				"estimated_tokens", len(resultsTSV)/4,
 			)
 
 			return mcp.NewToolSuccess(sb.String())
