@@ -1,8 +1,7 @@
 # Custom Prompts and Resources
 
-The Natural Language Agent supports user-defined custom prompts and
-resources, allowing you to extend the server's functionality without
-modifying code.
+The MCP server supports user-defined custom prompts and resources, allowing
+you to extend the server's functionality without modifying code.
 
 ## Overview
 

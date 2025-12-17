@@ -1,6 +1,7 @@
 # CI/CD Guide
 
-This document describes the continuous integration and continuous deployment workflows for the Natural Language Agent.
+This document describes the continuous integration and continuous deployment
+workflows for the MCP server and Natural Language Agents.
 
 ## Overview
 

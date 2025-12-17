@@ -1,6 +1,6 @@
 # MCP Tools
 
-The Natural Language Agent provides various tools that enable SQL database
+The MCP server provides various tools that enable SQL database
 interaction, advanced semantic search, embedding generation, resource reading,
 and more.
 
