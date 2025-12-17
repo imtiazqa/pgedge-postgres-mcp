@@ -104,7 +104,7 @@ MCP Server API:
 Workspace: /tmp/pgedge-download.28085
 To stop: cd /tmp/pgedge-download.28085 && docker compose down -v
 
-For more information: https://github.com/pgEdge/pgedge-nla
+For more information: https://github.com/pgEdge/pgedge-postgres-mcp
 ```
 
 Then, navigate to the address of the MCP Server (`http://localhost:8081`) and use these queries to test the server:
@@ -122,8 +122,8 @@ For a more traditional setup, you can:
 Make a working directory:
 
 ```bash
-mkdir ~/pgEdge-ait-demo
-~/pgEdge-ait-demo
+mkdir ~/pgedge-ait-demo
+cd ~/pgedge-ait-demo
 ```
 
 Download the demo artifacts:
@@ -201,5 +201,4 @@ Or review the log file for a specific service:
 docker compose logs -f postgres
 docker compose logs -f postgres-mcp
 docker compose logs -f web-client
-bash
 ```
