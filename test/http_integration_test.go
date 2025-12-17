@@ -520,8 +520,8 @@ func testHTTPListResources(t *testing.T, server *HTTPMCPServer) {
 		t.Fatal("resources array not found in result")
 	}
 
-	if len(resources) != 2 {
-		t.Errorf("Expected exactly 2 resources, got %d", len(resources))
+	if len(resources) != 1 {
+		t.Errorf("Expected exactly 1 resource (pg://system_info), got %d", len(resources))
 	}
 
 	t.Logf("HTTP ListResources test passed, found %d resources", len(resources))
