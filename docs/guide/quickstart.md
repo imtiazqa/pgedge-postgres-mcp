@@ -2,19 +2,19 @@
 
 In this Quickstart, we'll walk you through getting started with the MCP server. This guide creates a:
 
-- **PostgreSQL 17** - pgEdge PostgreSQL distribution
-- **Northwind Dataset** - Classic demo database with orders, customers, products
-- **pgEdge MCP Server** - Natural language interface to your database
-- **pgEdge Web UI** - Modern chat interface for querying with natural language
-- **Pre-configured** - Demo credentials work out of the box
+- **PostgreSQL 17** - pgEdge PostgreSQL distribution
+- **Northwind Dataset** - Classic demo database with orders, customers, products
+- **pgEdge MCP Server** - Natural language interface to your database
+- **pgEdge Web UI** - Modern chat interface for querying with natural language
+- **Pre-configured** - Demo credentials work out of the box
 
 The Northwind database is a classic SQL Server sample database containing:
 
 - **13 Tables**: `Categories`, `Customers`, `Employees`, `Orders`, `Products`, `Shippers`, `Suppliers`, etc.
 - **~1000 Rows**: Realistic business data for testing and demos
-- **1 Schema**: `northwind` (keeps your `public` schema clean)
+- **1 Schema**: `northwind` (keeps your `public` schema clean)
 
-The dataset is perfect for testing natural language queries, joins, aggregations, and analytics, and is installed with the Quickstart.
+The dataset is perfect for testing natural language queries, joins, aggregations, and analytics, and is installed with the Quickstart.
 
 
 ## Prerequisites
@@ -38,14 +38,14 @@ The single command option is the fastest way to get started.  Execute the follow
 
 This command will:
 
-- Download `docker-compose.yml` and `.env.example` from the same location.
+- Download `docker-compose.yml` and `.env.example` from the same location.
 - Prompt you for your API key(s) securely.
 - Start all services automatically.
 - Display connection details when ready.
 
-!!! note 
+!!! note
 
-    The installer creates a temporary workspace in `/tmp` and runs the demo from that location.
+    The installer creates a temporary workspace in `/tmp` and runs the demo from that location.
 
 Sample output from running the `demo` script:
 
@@ -150,12 +150,12 @@ docker compose up
 
 During deployment:
 
-    1. PostgreSQL starts and downloads the Northwind dataset (~230KB)
-    2. The Northwind dataset loads (13 tables, ~1000 rows)
-    3. The MCP Server connects and analyzes your schema
-    4. The Web UI starts and connects to MCP Server
+    1. PostgreSQL starts and downloads the Northwind dataset (~230KB)
+    2. The Northwind dataset loads (13 tables, ~1000 rows)
+    3. The MCP Server connects and analyzes your schema
+    4. The Web UI starts and connects to MCP Server
 
-Once all services are healthy, you can access them as follows (~60 seconds):
+Once all services are healthy, you can access them as follows (~60 seconds):
 
 ```bash
 Web Client Interface:
@@ -204,3 +204,4 @@ docker compose logs -f postgres
 docker compose logs -f postgres-mcp
 docker compose logs -f web-client
 bash
+```
