@@ -222,16 +222,28 @@ export const useLLMProviders = (sessionToken) => {
                     pendingModelRestoreRef.current = null; // Clear it after reading
 
                     if (pendingModel) {
-                        // Check if pending model is available for this provider
+                        // Check if pending model is available for this provider (exact match)
                         const pendingModelExists = data.models.some(m => m.name === pendingModel);
                         if (pendingModelExists) {
                             console.log('Restoring model from conversation:', pendingModel);
+                            usingFallbackModelRef.current = false;
                             setSelectedModel(pendingModel);
                             // Don't save to per-provider storage - let user's preference stay
                             return;
-                        } else {
-                            console.log('Pending model not available for provider:', pendingModel);
                         }
+
+                        // Try family match for conversation model (e.g., claude-opus-4-5-20251101 → claude-opus-4-5-20251217)
+                        const pendingFamilyMatch = findModelFamilyMatch(pendingModel, data.models);
+                        if (pendingFamilyMatch) {
+                            console.log('Restoring model from conversation via family match:', pendingModel, '→', pendingFamilyMatch);
+                            usingFallbackModelRef.current = false;
+                            setSelectedModel(pendingFamilyMatch);
+                            // Don't save - this is conversation restore, not preference change
+                            return;
+                        }
+
+                        console.log('Pending model not available for provider (no family match):', pendingModel);
+                        // Fall through to remembered model logic
                     }
 
                     const rememberedModel = getPerProviderModel(selectedProvider);
