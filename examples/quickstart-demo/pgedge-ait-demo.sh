@@ -128,7 +128,7 @@ fi
 info "Starting services"
 (
   cd "$WORKDIR"
-  $COMPOSE up -d
+  "$COMPOSE" up -d
 )
 
 info "Waiting for services to be healthy (this may take up to 60 seconds)..."
@@ -137,8 +137,8 @@ info "Waiting for services to be healthy (this may take up to 60 seconds)..."
   timeout=60
   while [ $timeout -gt 0 ]; do
     # Check if all services are healthy
-    if $COMPOSE ps --format json 2>/dev/null | grep -q '"Health":"healthy"' || \
-       $COMPOSE ps | grep -q "(healthy)"; then
+    if "$COMPOSE" ps --format json 2>/dev/null | grep -q '"Health":"healthy"' || \
+       "$COMPOSE" ps | grep -q "(healthy)"; then
       # Give it a moment to stabilize
       sleep 2
       break
@@ -176,5 +176,5 @@ printf "%s━━━━━━━━━━━━━━━━━━━━━━━�
 printf "%sWorkspace:%s %s\n" "$DIM" "$RESET" "$WORKDIR"
 printf "%sTo stop:%s cd %s && docker compose down -v\n\n" "$DIM" "$RESET" "$WORKDIR"
 
-printf "For more information: %shttps://github.com/pgEdge/pgedge-nla%s\n\n" "$CYAN" "$RESET"
+printf "For more information: %shttps://github.com/pgEdge/pgedge-postgres-mcp%s\n\n" "$CYAN" "$RESET"
 
