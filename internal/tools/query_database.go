@@ -12,87 +12,13 @@ package tools
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
-	"time"
 
 	"pgedge-postgres-mcp/internal/database"
 	"pgedge-postgres-mcp/internal/logging"
 	"pgedge-postgres-mcp/internal/mcp"
 )
-
-// formatTSVValue converts a database value to a TSV-safe string.
-// Handles NULLs, special characters, and complex types.
-func formatTSVValue(v interface{}) string {
-	if v == nil {
-		return "" // NULL represented as empty string
-	}
-
-	var s string
-	switch val := v.(type) {
-	case string:
-		s = val
-	case []byte:
-		s = string(val)
-	case time.Time:
-		s = val.Format(time.RFC3339)
-	case bool:
-		if val {
-			s = "true"
-		} else {
-			s = "false"
-		}
-	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
-		s = fmt.Sprintf("%d", val)
-	case float32, float64:
-		s = fmt.Sprintf("%v", val)
-	case []interface{}, map[string]interface{}:
-		// Complex types (arrays, JSON objects) - serialize to JSON
-		jsonBytes, err := json.Marshal(val)
-		if err != nil {
-			s = fmt.Sprintf("%v", val)
-		} else {
-			s = string(jsonBytes)
-		}
-	default:
-		// For any other type, use default formatting
-		s = fmt.Sprintf("%v", val)
-	}
-
-	// Escape special characters that would break TSV parsing
-	// Replace tabs with \t and newlines with \n (literal backslash sequences)
-	s = strings.ReplaceAll(s, "\t", "\\t")
-	s = strings.ReplaceAll(s, "\n", "\\n")
-	s = strings.ReplaceAll(s, "\r", "\\r")
-
-	return s
-}
-
-// formatResultsAsTSV converts query results to TSV format.
-// Returns header row followed by data rows, tab-separated.
-func formatResultsAsTSV(columnNames []string, results [][]interface{}) string {
-	if len(columnNames) == 0 {
-		return ""
-	}
-
-	var sb strings.Builder
-
-	// Header row
-	sb.WriteString(strings.Join(columnNames, "\t"))
-
-	// Data rows
-	for _, row := range results {
-		sb.WriteString("\n")
-		values := make([]string, len(row))
-		for i, val := range row {
-			values[i] = formatTSVValue(val)
-		}
-		sb.WriteString(strings.Join(values, "\t"))
-	}
-
-	return sb.String()
-}
 
 // QueryDatabaseTool creates the query_database tool
 func QueryDatabaseTool(dbClient *database.Client) Tool {
@@ -297,7 +223,7 @@ To avoid rate limits (30,000 input tokens/minute):
 			}
 
 			// Format results as TSV (tab-separated values)
-			resultsTSV := formatResultsAsTSV(columnNames, results)
+			resultsTSV := FormatResultsAsTSV(columnNames, results)
 
 			// Commit the read-only transaction
 			if err := tx.Commit(ctx); err != nil {

@@ -95,9 +95,9 @@ func TestFormatTSVValue(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := formatTSVValue(tt.input)
+			result := FormatTSVValue(tt.input)
 			if result != tt.expected {
-				t.Errorf("formatTSVValue(%v) = %q, want %q", tt.input, result, tt.expected)
+				t.Errorf("FormatTSVValue(%v) = %q, want %q", tt.input, result, tt.expected)
 			}
 		})
 	}
@@ -106,10 +106,10 @@ func TestFormatTSVValue(t *testing.T) {
 func TestFormatTSVValue_Time(t *testing.T) {
 	// Test time formatting separately since we need to construct a specific time
 	testTime := time.Date(2024, 6, 15, 10, 30, 0, 0, time.UTC)
-	result := formatTSVValue(testTime)
+	result := FormatTSVValue(testTime)
 	expected := "2024-06-15T10:30:00Z"
 	if result != expected {
-		t.Errorf("formatTSVValue(time) = %q, want %q", result, expected)
+		t.Errorf("FormatTSVValue(time) = %q, want %q", result, expected)
 	}
 }
 
@@ -169,9 +169,9 @@ func TestFormatResultsAsTSV(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := formatResultsAsTSV(tt.columnNames, tt.results)
+			result := FormatResultsAsTSV(tt.columnNames, tt.results)
 			if result != tt.expected {
-				t.Errorf("formatResultsAsTSV() = %q, want %q", result, tt.expected)
+				t.Errorf("FormatResultsAsTSV() = %q, want %q", result, tt.expected)
 			}
 		})
 	}
