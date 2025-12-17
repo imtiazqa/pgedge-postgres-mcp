@@ -32,8 +32,11 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          claude_args: "--allowedTools 'mcp__github__*,Bash(gh pr *:*),Bash(gh issue *:*),Read,Glob,Grep'"
+          show_full_output: true
+          claude_args: "--allowedTools 'mcp__github__*,mcp__github_inline_comment__*,Bash(gh pr *:*),Bash(gh issue *:*),Read,Glob,Grep'"
           prompt: |
+            You are reviewing PR #${{ github.event.pull_request.number }} in the ${{ github.repository }} repository.
+
             Review this pull request following the project guidelines in .claude/CLAUDE.md.
 
             Focus on:
@@ -43,7 +46,10 @@ jobs:
             - Code style (4-space indentation, Go best practices)
             - Documentation updates if needed
 
-            Post your review as a PR comment using the GitHub tools available to you.
+            IMPORTANT: After your review, you MUST post a comment on the PR using the
+            mcp__github__create_pull_request_review tool or the gh pr comment command.
+            Do not just analyze - actually post your review as a PR comment.
+
             Be constructive and specific. If changes look good, say so briefly.
         env:
           REPO: ${{ github.repository }}
