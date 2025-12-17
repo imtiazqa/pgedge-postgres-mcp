@@ -76,14 +76,13 @@ set_env_kv() {
 
   [ -n "$val" ] || return 0
 
-  esc_val=$(printf "%s" "$val" | sed 's/[\\&|]/\\&/g')
-
   if grep -q "^${key}=" "$file" 2>/dev/null; then
     tmp="${file}.tmp.$$"
-    sed "s|^${key}=.*|${key}=${esc_val}|" "$file" > "$tmp"
+    grep -v "^${key}=" "$file" > "$tmp"
+    printf '%s="%s"\n' "$key" "$val" >> "$tmp"
     mv "$tmp" "$file"
   else
-    printf "\n%s=%s\n" "$key" "$val" >> "$file"
+    printf '%s="%s"\n' "$key" "$val" >> "$file"
   fi
 }
 
@@ -168,10 +167,9 @@ printf "  %shttp://localhost:8081%s\n" "$CYAN" "$RESET"
 printf "  Login: %sdemo%s / %sdemo123%s\n\n" "$YELLOW" "$RESET" "$YELLOW" "$RESET"
 
 printf "%sPostgreSQL Database:%s\n" "$BOLD" "$RESET"
-printf "  Host: %slocalhost:5432%s\n" "$CYAN" "$RESET"
 printf "  Database: %snorthwind%s\n" "$CYAN" "$RESET"
 printf "  User: %sdemo%s / %sdemo123%s\n" "$YELLOW" "$RESET" "$YELLOW" "$RESET"
-printf "  Connect: %sPGPASSWORD=demo123 psql -h localhost -p 5432 -U demo -d northwind%s\n\n" "$DIM" "$RESET"
+printf "  Connect: %sdocker exec -it pgedge-quickstart-db psql -U demo -d northwind%s\n\n" "$CYAN" "$RESET"
 
 printf "%sMCP Server API:%s\n" "$BOLD" "$RESET"
 printf "  %shttp://localhost:8080%s\n" "$CYAN" "$RESET"
