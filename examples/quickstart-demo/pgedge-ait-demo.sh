@@ -75,13 +75,16 @@ set_env_kv() {
 
   [ -n "$val" ] || return 0
 
+  # Escape backslashes and quotes in value for safe .env storage
+  escaped_val=$(printf '%s\n' "$val" | sed 's/\\/\\\\/g; s/"/\\"/g')
+
   if grep -q "^${key}=" "$file" 2>/dev/null; then
     tmp="${file}.tmp.$$"
     grep -v "^${key}=" "$file" > "$tmp"
-    printf '%s="%s"\n' "$key" "$val" >> "$tmp"
+    printf '%s="%s"\n' "$key" "$escaped_val" >> "$tmp"
     mv "$tmp" "$file"
   else
-    printf '%s="%s"\n' "$key" "$val" >> "$file"
+    printf '%s="%s"\n' "$key" "$escaped_val" >> "$file"
   fi
 }
 
