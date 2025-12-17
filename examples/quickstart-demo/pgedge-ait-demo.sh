@@ -4,8 +4,7 @@ set -eu
 # ----------------------------
 # Config
 # ----------------------------
-BASE_URL="https://downloads.pgedge.com/some/path"
-BASE_URL="localhost:8000"
+BASE_URL="https://downloads.pgedge.com/quickstart/mcp"
 FILES="docker-compose.yml .env.example"
 WORKDIR="/tmp/pgedge-download.$$"
 
