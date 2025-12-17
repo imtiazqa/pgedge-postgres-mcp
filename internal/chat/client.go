@@ -1038,28 +1038,57 @@ type modelSelectionResult struct {
 // 4. Default for provider (if available)
 // 5. First available model from provider's list
 func (c *Client) selectModel(provider string, availableModels []string) modelSelectionResult {
+	debug := c.config.UI.Debug
+
 	// If model was already set (via flag), use it (trust the user)
 	if c.config.LLM.Model != "" {
+		if debug {
+			fmt.Fprintf(os.Stderr, "[DEBUG] Model set via flag: %s\n", c.config.LLM.Model)
+		}
 		return modelSelectionResult{model: c.config.LLM.Model, fromSavedPref: false, hadSavedPref: false}
 	}
 
 	// Check saved preference for this provider
 	savedModel := c.preferences.GetModelForProvider(provider)
+	if debug {
+		fmt.Fprintf(os.Stderr, "[DEBUG] Saved model preference for %s: %q\n", provider, savedModel)
+		if len(availableModels) > 0 {
+			fmt.Fprintf(os.Stderr, "[DEBUG] Available models (%d): %v\n", len(availableModels), availableModels)
+		} else {
+			fmt.Fprintf(os.Stderr, "[DEBUG] No available models list (API call may have failed)\n")
+		}
+	}
+
 	if savedModel != "" {
 		// Try exact match first
 		if isModelAvailable(savedModel, availableModels) {
+			if debug {
+				fmt.Fprintf(os.Stderr, "[DEBUG] Using saved model (exact match): %s\n", savedModel)
+			}
 			return modelSelectionResult{model: savedModel, fromSavedPref: true, hadSavedPref: true}
+		}
+
+		if debug {
+			fmt.Fprintf(os.Stderr, "[DEBUG] Saved model %q not in available models, trying family match\n", savedModel)
 		}
 
 		// Try family match (e.g., claude-opus-4-5-* when saved is claude-opus-4-5-20251101)
 		// This handles Anthropic releasing newer versions of the same model
 		if familyMatch := findModelFamilyMatch(savedModel, availableModels); familyMatch != "" {
+			if debug {
+				fmt.Fprintf(os.Stderr, "[DEBUG] Family match found: %s → %s\n", savedModel, familyMatch)
+			}
 			return modelSelectionResult{
 				model:           familyMatch,
 				fromSavedPref:   true,
 				hadSavedPref:    true,
 				usedFamilyMatch: true,
 			}
+		}
+
+		if debug {
+			family := extractModelFamily(savedModel)
+			fmt.Fprintf(os.Stderr, "[DEBUG] No family match found for %q (family: %q)\n", savedModel, family)
 		}
 
 		// Saved preference exists but couldn't be matched
@@ -1071,15 +1100,26 @@ func (c *Client) selectModel(provider string, availableModels []string) modelSel
 	// Use default for provider
 	defaultModel := getDefaultModelForProvider(provider)
 	if isModelAvailable(defaultModel, availableModels) {
+		if debug && hadSaved {
+			fmt.Fprintf(os.Stderr, "[DEBUG] Falling back to provider default: %s (saved preference %q not available)\n",
+				defaultModel, savedModel)
+		}
 		return modelSelectionResult{model: defaultModel, fromSavedPref: false, hadSavedPref: hadSaved}
 	}
 
 	// Fall back to first available model
 	if len(availableModels) > 0 {
+		if debug {
+			fmt.Fprintf(os.Stderr, "[DEBUG] Falling back to first available model: %s (default %q also not available)\n",
+				availableModels[0], defaultModel)
+		}
 		return modelSelectionResult{model: availableModels[0], fromSavedPref: false, hadSavedPref: hadSaved}
 	}
 
 	// Last resort: use default even if not validated
+	if debug {
+		fmt.Fprintf(os.Stderr, "[DEBUG] No models available, using default: %s\n", defaultModel)
+	}
 	return modelSelectionResult{model: defaultModel, fromSavedPref: false, hadSavedPref: hadSaved}
 }
 
