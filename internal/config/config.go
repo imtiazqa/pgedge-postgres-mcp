@@ -71,8 +71,7 @@ type ToolsConfig struct {
 // ResourcesConfig holds configuration for enabling/disabling built-in resources
 // All resources are enabled by default
 type ResourcesConfig struct {
-	SystemInfo     *bool `yaml:"system_info"`     // pg://system_info (default: true)
-	DatabaseSchema *bool `yaml:"database_schema"` // pg://database/schema (default: true)
+	SystemInfo *bool `yaml:"system_info"` // pg://system_info (default: true)
 }
 
 // PromptsConfig holds configuration for enabling/disabling built-in prompts
@@ -109,8 +108,6 @@ func (c *ResourcesConfig) IsResourceEnabled(resourceURI string) bool {
 	switch resourceURI {
 	case "pg://system_info":
 		return c.SystemInfo == nil || *c.SystemInfo
-	case "pg://database/schema":
-		return c.DatabaseSchema == nil || *c.DatabaseSchema
 	default:
 		return true // Unknown resources are enabled by default
 	}
@@ -557,9 +554,6 @@ func mergeConfig(dest, src *Config) {
 	// Resources
 	if src.Builtins.Resources.SystemInfo != nil {
 		dest.Builtins.Resources.SystemInfo = src.Builtins.Resources.SystemInfo
-	}
-	if src.Builtins.Resources.DatabaseSchema != nil {
-		dest.Builtins.Resources.DatabaseSchema = src.Builtins.Resources.DatabaseSchema
 	}
 	// Prompts
 	if src.Builtins.Prompts.ExploreDatabase != nil {

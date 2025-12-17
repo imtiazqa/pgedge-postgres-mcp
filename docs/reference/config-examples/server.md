@@ -403,10 +403,6 @@ builtins:
         # Default: true
         system_info: true
 
-        # pg://database/schema - Lightweight table listing
-        # Default: true
-        database_schema: true
-
     # -------------------------
     # Prompts
     # -------------------------

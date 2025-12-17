@@ -88,8 +88,8 @@ filter to get full details for specific schemas.
 </examples>
 
 <important>
-This tool provides MORE detail than the pg://database-schema resource, which only shows table names and owners. Use this tool for comprehensive schema exploration.
-Results are returned in TSV (tab-separated values) format for efficiency.
+Results are returned in TSV (tab-separated values) format for token efficiency.
+Use this tool for comprehensive schema exploration.
 </important>
 
 <rate_limit_awareness>

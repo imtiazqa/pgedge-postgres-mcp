@@ -353,7 +353,6 @@ Read a specific resource:
 
 **Available Resource URIs**:
 
-- `pg://database/schema` - Lightweight overview of all database tables (names and owners)
 - `pg://system_info` - PostgreSQL version, OS, and build architecture
 
 See [Resources](resources.md) for detailed information.
