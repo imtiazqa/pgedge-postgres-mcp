@@ -132,7 +132,10 @@ To avoid rate limits when calling this tool:
 				schemaName = "" // Default to empty string (all schemas)
 			}
 
-			tableName, _ := args["table_name"].(string)
+			tableName, ok := args["table_name"].(string)
+			if !ok {
+				tableName = ""
+			}
 
 			// Validate: table_name requires schema_name
 			if tableName != "" && schemaName == "" {
@@ -185,8 +188,8 @@ To avoid rate limits when calling this tool:
 
 				// Check for vector columns
 				hasVectorColumn := false
-				for _, col := range table.Columns {
-					if col.IsVectorColumn {
+				for i := range table.Columns {
+					if table.Columns[i].IsVectorColumn {
 						hasVectorColumn = true
 						break
 					}
@@ -281,8 +284,8 @@ To avoid rate limits when calling this tool:
 						// Filter for vector tables only if requested
 						if vectorTablesOnly {
 							hasVectorColumn := false
-							for _, col := range table.Columns {
-								if col.IsVectorColumn {
+							for i := range table.Columns {
+								if table.Columns[i].IsVectorColumn {
 									hasVectorColumn = true
 									break
 								}
@@ -318,8 +321,8 @@ To avoid rate limits when calling this tool:
 						// Filter for vector tables only if requested
 						if vectorTablesOnly {
 							hasVectorColumn := false
-							for _, col := range table.Columns {
-								if col.IsVectorColumn {
+							for i := range table.Columns {
+								if table.Columns[i].IsVectorColumn {
 									hasVectorColumn = true
 									break
 								}
@@ -330,7 +333,8 @@ To avoid rate limits when calling this tool:
 						}
 
 						// Output one row per column
-						for _, col := range table.Columns {
+						for i := range table.Columns {
+							col := &table.Columns[i]
 							sb.WriteString(BuildTSVRow(
 								table.SchemaName,
 								table.TableName,
