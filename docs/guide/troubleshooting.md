@@ -1,5 +1,29 @@
 # Troubleshooting Guide
 
+Before seeking additional help, you should confirm that the following items are configured correctly:
+
+- [ ] PostgreSQL is running on the system.
+- [ ] You can connect with psql using the connection string.
+- [ ] The ANTHROPIC_API_KEY is set in the MCP config.
+- [ ] The database connection is configured at server startup using environment variables, a config file, or command-line flags.
+- [ ] The path to the binary is absolute and not relative.
+- [ ] Claude Desktop has been restarted after configuration changes.
+- [ ] You have checked the Claude Desktop logs for errors.
+- [ ] The server logs show the "Starting stdio server loop..." message.
+- [ ] The ANTHROPIC_API_KEY is set for natural language queries.
+- [ ] The database has at least one user table.
+- [ ] Your user has permissions to read the pg_catalog schema.
+
+
+If you are still experiencing issues after trying the solutions in this guide, you should follow these steps to gather diagnostic information:
+
+- You should check the logs with timestamps and error messages to understand what is failing.
+- You should test the database connection independently using psql or another tool.
+- You should verify that all environment variables are set correctly in your configuration.
+- You can try running the test script using the command `./test-connection.sh`.
+- You should check the PostgreSQL logs for connection attempts and errors.
+
+
 ## Troubleshooting Configuration Issues
 
 This section provides solutions for common configuration file issues.
@@ -262,16 +286,7 @@ If authentication is enabled but no token file exists, the server will not start
 ./bin/pgedge-postgres-mcp -http -no-auth
 ```
 
-
-
-
-
-
-
-
-
-
-## Server Exits Immediately After Initialize
+### Server Exits Immediately After Initialize
 
 If the server exits immediately after responding to the initialize request, you may see specific symptoms and should investigate several common causes.
 
@@ -282,7 +297,8 @@ The following symptoms indicate that the server is exiting unexpectedly:
 - The Claude Desktop logs show the message "Server transport closed unexpectedly".
 - The server starts but disconnects immediately after sending the `initialize` response.
 
-### Database Connection Issues
+
+## Database Connection Issues
 
 Database connection problems are a common cause of server exits. You should check the logs for connection errors.
 
@@ -475,41 +491,7 @@ curl https://api.anthropic.com/v1/messages \
 
 **Check your API credits.** You should ensure that your Anthropic account has available credits. You can check your usage and credit balance at https://console.anthropic.com/.
 
-## Viewing Logs
 
-This section explains how to view logs for troubleshooting the MCP server and Claude Desktop integration.
-
-### Claude Desktop Logs
-
-You can view the Claude Desktop logs to diagnose connection and server issues. The log file location depends on your operating system.
-
-On macOS, you can use the following command to view the logs in real time:
-
-```bash
-tail -f ~/Library/Logs/Claude/mcp*.log
-```
-
-On Windows, the logs are located in the following directory:
-
-```
-%APPDATA%\Claude\logs\
-```
-
-On Linux, the logs are located in the following directory:
-
-```bash
-~/.config/Claude/logs/
-```
-
-### Server Logs
-
-All server output is sent to stderr and appears in the Claude Desktop logs with a `[pgedge]` prefix. You should look for the following log messages:
-
-- The `[pgedge-postgres-mcp] Starting server...` message indicates that the server is starting up.
-- The `[pgedge-postgres-mcp] Database connected successfully` message indicates that the database connection succeeded.
-- The `[pgedge-postgres-mcp] Loaded metadata for X tables/views` message indicates that metadata was loaded successfully.
-- The `[pgedge-postgres-mcp] Starting stdio server loop...` message indicates that the server is ready to accept requests.
-- The `[pgedge-postgres-mcp] ERROR:` prefix indicates an error message.
 
 ## SQL Generation Issues
 
@@ -795,28 +777,86 @@ embedding:
   model: "nomic-embed-text"  # 768 dimensions
 ```
 
-## Getting Help
+## Troubleshooting Knowledgebase
 
-If you are still experiencing issues after trying the solutions in this guide, you should follow these steps to gather diagnostic information:
+Common issues and their solutions are listed below.
 
-- You should check the logs with timestamps and error messages to understand what is failing.
-- You should test the database connection independently using psql or another tool.
-- You should verify that all environment variables are set correctly in your configuration.
-- You can try running the test script using the command `./test-connection.sh`.
-- You should check the PostgreSQL logs for connection attempts and errors.
+### No Results Found
 
-## Debug Checklist
+**Cause**: Query may be too specific or use terminology not in the
+documentation.
 
-Before seeking additional help, you should verify that the following items are configured correctly:
+**Solution**: Try broader search terms or rephrase the query.
 
-- [ ] PostgreSQL is running on the system.
-- [ ] You can connect with psql using the connection string.
-- [ ] The ANTHROPIC_API_KEY is set in the MCP config.
-- [ ] The database connection is configured at server startup using environment variables, a config file, or command-line flags.
-- [ ] The path to the binary is absolute and not relative.
-- [ ] Claude Desktop has been restarted after configuration changes.
-- [ ] You have checked the Claude Desktop logs for errors.
-- [ ] The server logs show the "Starting stdio server loop..." message.
-- [ ] The ANTHROPIC_API_KEY is set for natural language queries.
-- [ ] The database has at least one user table.
-- [ ] Your user has permissions to read the pg_catalog schema.
+### Wrong Project Results
+
+**Cause**: Not filtering by project name.
+
+**Solution**: Add `project_name` parameter to filter results.
+
+### Embedding Provider Mismatch
+
+**Cause**: Server embedding provider differs from the one used to build the
+database.
+
+**Solution**: Configure the server to use the same embedding provider. The
+database contains embeddings from multiple providers - the server will
+automatically use the one that matches its configuration.
+
+### Knowledgebase Not Available
+
+**Cause**: Knowledgebase not enabled in configuration or database file missing.
+
+**Solution**: Check server configuration and verify `database_path` points to a
+valid knowledgebase database file.
+
+## Comparison with similarity_search
+
+| feature | search_knowledgebase | similarity_search |
+|---------|---------------------|-------------------|
+| **data source** | pre-built documentation | user's postgresql tables |
+| **use case** | technical documentation | user's own data |
+| **setup** | requires kb database | requires vector columns |
+| **updates** | static (rebuild needed) | dynamic (live data) |
+| **scope** | curated content | any table data |
+
+
+## Troubleshooting Custom Definitions
+
+Common issues and their solutions are listed below.
+
+### File Not Loading
+
+If the server logs an error about a missing file, check that the:
+
+- File path is absolute or relative to server working directory.
+- File exists and is readable.
+- File extension is `.json`, `.yaml`, or `.yml`.
+
+### Validation Errors
+
+If the server exits with validation error:
+
+- Check the error message for a specific issue.
+- Verify all required fields are present.
+- Ensure names/URIs are unique.
+- Confirm template placeholders reference defined arguments.
+
+### SQL Errors
+
+If a resource returns SQL error:
+
+- Test the query directly in psql.
+- Check table and column names.
+- Verify the user has necessary permissions.
+- Ensure query syntax is valid for your PostgreSQL version.
+
+### Template Not Interpolating
+
+If you are seeing a literal `{{arg_name}}` in output:
+
+- Verify the argument is declared in `arguments` section.
+- Check the argument name matches exactly (case-sensitive).
+- Ensure you passed the argument when calling the prompt.
+
+
