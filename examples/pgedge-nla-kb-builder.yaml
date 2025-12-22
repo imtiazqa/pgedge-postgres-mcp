@@ -168,10 +168,10 @@ sources:
       project_name: "pgAudit"
       project_version: "18.0"
 
-    - git_url: "https://github.com/psycopg/psycopg.git"
+    - git_url: "https://github.com/psycopg/psycopg2.git"
       tag: "2.9.10"
       doc_path: "docs"
-      project_name: "psycopg3"
+      project_name: "psycopg2"
       project_version: "2.9.10"
 
     # Example: Local documentation
