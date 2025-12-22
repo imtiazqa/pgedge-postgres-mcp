@@ -115,7 +115,7 @@ sources:
       project_version: "2.4"
 
     - git_url: "https://github.com/pgEdge/lolor.git"
-      branch: "v1.2.2"
+      tag: "v1.2.2"
       doc_path: "docs"
       project_name: "pgEdge LOLOR"
       project_version: "1.2.2"
