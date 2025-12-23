@@ -74,6 +74,12 @@ http:
         # Command line flag: -token-file
         token_file: ""
 
+        # Path to user authentication file
+        # Default: Same directory as binary (pgedge-postgres-mcp-users.yaml)
+        # Environment variable: PGEDGE_AUTH_USER_FILE
+        # Command line flag: -user-file
+        user_file: ""
+
         # Rate limiting and account lockout (prevents brute force attacks)
         # Lock account after N failed attempts (0 = disabled)
         # Default: 0 (disabled)
@@ -157,7 +163,8 @@ secret_file: ""
 #         chain_file: "/etc/ssl/certs/ca-chain.crt"
 #     auth:
 #         enabled: true
-#         token_file: "/etc/pgedge/pgedge-postgres-mcp-tokens.yaml"
+#         token_file: "/etc/pgedge/postgres-mcp/pgedge-postgres-mcp-tokens.yaml"
+#         user_file: "/etc/pgedge/pgedge-postgres-mcp-users.yaml"
 # secret_file: "/etc/pgedge/pgedge-postgres-mcp-secret.key"
 
 # ============================================================================

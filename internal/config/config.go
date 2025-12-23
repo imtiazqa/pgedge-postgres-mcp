@@ -144,6 +144,7 @@ type HTTPConfig struct {
 type AuthConfig struct {
 	Enabled                        bool   `yaml:"enabled"`                            // Whether authentication is required
 	TokenFile                      string `yaml:"token_file"`                         // Path to token configuration file
+	UserFile                       string `yaml:"user_file"`                          // Path to user configuration file
 	MaxFailedAttemptsBeforeLockout int    `yaml:"max_failed_attempts_before_lockout"` // Number of failed login attempts before account lockout (0 = disabled)
 	RateLimitWindowMinutes         int    `yaml:"rate_limit_window_minutes"`          // Time window in minutes for rate limiting (default: 15)
 	RateLimitMaxAttempts           int    `yaml:"rate_limit_max_attempts"`            // Maximum failed attempts per IP in the time window (default: 10)
@@ -301,6 +302,8 @@ type CLIFlags struct {
 	AuthEnabledSet bool
 	AuthTokenFile  string
 	AuthTokenSet   bool
+	AuthUserFile   string
+	AuthUserSet    bool
 
 	// Database flags
 	DBHost     string
@@ -416,6 +419,9 @@ func mergeConfig(dest, src *Config) {
 	if src.HTTP.Auth.TokenFile != "" || !src.HTTP.Auth.Enabled {
 		dest.HTTP.Auth.Enabled = src.HTTP.Auth.Enabled
 		dest.HTTP.Auth.TokenFile = src.HTTP.Auth.TokenFile
+	}
+	if src.HTTP.Auth.UserFile != "" {
+		dest.HTTP.Auth.UserFile = src.HTTP.Auth.UserFile
 	}
 	if src.HTTP.Auth.MaxFailedAttemptsBeforeLockout >= 0 {
 		dest.HTTP.Auth.MaxFailedAttemptsBeforeLockout = src.HTTP.Auth.MaxFailedAttemptsBeforeLockout
@@ -626,6 +632,7 @@ func applyEnvironmentVariables(cfg *Config) {
 	// Auth
 	setBoolFromEnv(&cfg.HTTP.Auth.Enabled, "PGEDGE_AUTH_ENABLED")
 	setStringFromEnv(&cfg.HTTP.Auth.TokenFile, "PGEDGE_AUTH_TOKEN_FILE")
+	setStringFromEnv(&cfg.HTTP.Auth.UserFile, "PGEDGE_AUTH_USER_FILE")
 	setIntFromEnv(&cfg.HTTP.Auth.MaxFailedAttemptsBeforeLockout, "PGEDGE_AUTH_MAX_FAILED_ATTEMPTS_BEFORE_LOCKOUT")
 	setIntFromEnv(&cfg.HTTP.Auth.RateLimitWindowMinutes, "PGEDGE_AUTH_RATE_LIMIT_WINDOW_MINUTES")
 	setIntFromEnv(&cfg.HTTP.Auth.RateLimitMaxAttempts, "PGEDGE_AUTH_RATE_LIMIT_MAX_ATTEMPTS")
@@ -803,6 +810,9 @@ func applyCLIFlags(cfg *Config, flags CLIFlags) {
 	}
 	if flags.AuthTokenSet {
 		cfg.HTTP.Auth.TokenFile = flags.AuthTokenFile
+	}
+	if flags.AuthUserSet {
+		cfg.HTTP.Auth.UserFile = flags.AuthUserFile
 	}
 
 	// Database CLI flags apply to the first database in the list

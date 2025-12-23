@@ -20,12 +20,10 @@ http:
     auth:
         enabled: true
         token_file: "./pgedge-postgres-mcp-tokens.yaml"
+        user_file: "./pgedge-postgres-mcp-users.yaml"
         max_failed_attempts_before_lockout: 5
         rate_limit_window_minutes: 15
         rate_limit_max_attempts: 10
-
-# User authentication file (for web client login)
-user_file: "./pgedge-postgres-mcp-users.yaml"
 
 # Database connection configuration
 # Multiple databases can be configured; each must have a unique name.

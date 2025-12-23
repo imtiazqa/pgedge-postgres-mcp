@@ -168,5 +168,18 @@ To specify the location of a custom user file:
     ./bin/pgedge-postgres-mcp -http -user-file /my/custom/users.yaml
     ```
 
-    For convenience, use a configuration file or environment variable to avoid
-    repeating the path on every command.
+    For server startup, you can specify the path in your configuration file
+    to avoid repeating it:
+
+    ```yaml
+    http:
+      auth:
+        enabled: true
+        user_file: "/my/custom/users.yaml"
+    ```
+
+    Or use the environment variable:
+
+    ```bash
+    export PGEDGE_AUTH_USER_FILE="/my/custom/users.yaml"
+    ```

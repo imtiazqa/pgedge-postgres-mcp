@@ -259,6 +259,9 @@ func main() {
 		case "token-file":
 			cliFlags.AuthTokenSet = true
 			cliFlags.AuthTokenFile = *tokenFilePath
+		case "user-file":
+			cliFlags.AuthUserSet = true
+			cliFlags.AuthUserFile = *userFilePath
 		case "db-host":
 			cliFlags.DBHostSet = true
 			cliFlags.DBHost = *dbHost
@@ -359,9 +362,9 @@ func main() {
 		}
 
 		// Load user store for user authentication
-		// Use custom path if specified, otherwise use default
-		if *userFilePath != "" {
-			userFilePathForTools = *userFilePath
+		// Use config value if set (from config file, env var, or CLI flag), otherwise use default
+		if cfg.HTTP.Auth.UserFile != "" {
+			userFilePathForTools = cfg.HTTP.Auth.UserFile
 		} else {
 			userFilePathForTools = auth.GetDefaultUserPath(execPath)
 		}
