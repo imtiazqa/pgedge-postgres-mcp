@@ -30,6 +30,11 @@ and this project adheres to
     - `pgedge-postgres-mcp-users.yaml.example` - User authentication template
     - `pgedge-postgres-mcp-tokens.yaml.example` - Token authentication template
 
+#### CLI Features
+
+- Added `-mcp-server-config` command line flag for specifying the MCP server
+  config file path in stdio mode
+
 #### CI/CD
 
 - Claude PR review GitHub Action workflow for automated code reviews

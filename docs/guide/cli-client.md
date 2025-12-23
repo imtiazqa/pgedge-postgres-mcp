@@ -118,6 +118,7 @@ Flags:
   -mcp-mode string          MCP connection mode: stdio or http
   -mcp-url string           MCP server URL (for HTTP mode)
   -mcp-server-path string   Path to MCP server binary (for stdio mode)
+  -mcp-server-config string Path to MCP server config file (for stdio mode)
   -llm-provider string      LLM provider: anthropic, openai, or ollama
   -llm-model string         LLM model to use
   -anthropic-api-key string API key for Anthropic
@@ -131,6 +132,7 @@ Flags:
 - `PGEDGE_MCP_MODE`: Connection mode (stdio or http)
 - `PGEDGE_MCP_URL`: MCP server URL (for HTTP mode)
 - `PGEDGE_MCP_SERVER_PATH`: Path to MCP server binary (for stdio mode)
+- `PGEDGE_MCP_SERVER_CONFIG_PATH`: Path to MCP server config file (for stdio mode)
 - `PGEDGE_MCP_TOKEN`: Authentication token (for HTTP mode)
 - `PGEDGE_LLM_PROVIDER`: LLM provider (anthropic, openai, or ollama)
 - `PGEDGE_LLM_MODEL`: LLM model name
