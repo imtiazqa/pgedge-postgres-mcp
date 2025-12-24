@@ -1,6 +1,7 @@
 package regression
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"os"
@@ -14,20 +15,24 @@ import (
 // RegressionTestSuite runs basic regression tests
 type RegressionTestSuite struct {
 	suite.Suite
-	ctx       context.Context
-	container *SimpleContainer
-	osImage   string
-	repoURL   string
+	ctx      context.Context
+	executor Executor
+	osImage  string
+	repoURL  string
+	execMode ExecutionMode
 }
 
 // SetupSuite runs once before all tests
 func (s *RegressionTestSuite) SetupSuite() {
 	s.ctx = context.Background()
 
-	// Get OS image from environment or use default
+	// Determine execution mode
+	s.execMode = s.getExecutionMode()
+
+	// Get OS image from environment or use default (only for container modes)
 	s.osImage = os.Getenv("TEST_OS_IMAGE")
-	if s.osImage == "" {
-		s.osImage = "debian:12" // Default to Debian 12
+	if s.osImage == "" && s.execMode != ModeLocal {
+		s.osImage = "debian:12" // Default to Debian 12 for containers
 	}
 
 	// Get repo URL from environment
@@ -36,41 +41,127 @@ func (s *RegressionTestSuite) SetupSuite() {
 		s.repoURL = "https://apt.pgedge.com" // Example repo URL
 	}
 
-	s.T().Logf("Testing with OS image: %s", s.osImage)
+	s.T().Logf("Execution mode: %s", s.execMode.String())
+	if s.execMode != ModeLocal {
+		s.T().Logf("Testing with OS image: %s", s.osImage)
+	}
 	s.T().Logf("Using repository: %s", s.repoURL)
+}
+
+// getExecutionMode determines the execution mode from environment or user prompt
+func (s *RegressionTestSuite) getExecutionMode() ExecutionMode {
+	// Check environment variable first
+	modeStr := os.Getenv("TEST_EXEC_MODE")
+	if modeStr != "" {
+		switch strings.ToLower(modeStr) {
+		case "local":
+			return ModeLocal
+		case "container":
+			return ModeContainer
+		case "container-systemd", "systemd":
+			return ModeContainerSystemd
+		default:
+			s.T().Logf("Warning: Unknown TEST_EXEC_MODE '%s', prompting user", modeStr)
+		}
+	}
+
+	// If not in CI and no environment variable, prompt the user
+	if !s.isCI() {
+		return s.promptExecutionMode()
+	}
+
+	// Default to container mode for CI
+	return ModeContainer
+}
+
+// isCI checks if running in CI environment
+func (s *RegressionTestSuite) isCI() bool {
+	return os.Getenv("CI") != "" || os.Getenv("GITHUB_ACTIONS") != ""
+}
+
+// promptExecutionMode prompts the user to select execution mode
+func (s *RegressionTestSuite) promptExecutionMode() ExecutionMode {
+	fmt.Println("\n=== MCP Regression Test Suite ===")
+	fmt.Println("Please select how you want to run the tests:")
+	fmt.Println()
+	fmt.Println("1. Container (Docker) - Standard container without systemd")
+	fmt.Println("2. Container with systemd - Docker container with systemd enabled")
+	fmt.Println("3. Local machine - Run tests directly on this system")
+	fmt.Println()
+	fmt.Print("Enter your choice [1-3] (default: 1): ")
+
+	reader := bufio.NewReader(os.Stdin)
+	input, err := reader.ReadString('\n')
+	if err != nil {
+		s.T().Logf("Error reading input, using default (container): %v", err)
+		return ModeContainer
+	}
+
+	input = strings.TrimSpace(input)
+	if input == "" {
+		input = "1"
+	}
+
+	switch input {
+	case "1":
+		fmt.Println("Selected: Container (standard)")
+		return ModeContainer
+	case "2":
+		fmt.Println("Selected: Container with systemd")
+		return ModeContainerSystemd
+	case "3":
+		fmt.Println("Selected: Local machine")
+		fmt.Println("\nWARNING: Running tests on local machine will:")
+		fmt.Println("  - Install packages on your system")
+		fmt.Println("  - Modify system configuration")
+		fmt.Println("  - Require sudo access")
+		fmt.Print("\nAre you sure? [y/N]: ")
+
+		confirm, _ := reader.ReadString('\n')
+		confirm = strings.TrimSpace(strings.ToLower(confirm))
+		if confirm == "y" || confirm == "yes" {
+			fmt.Println("Proceeding with local execution...")
+			return ModeLocal
+		}
+		fmt.Println("Cancelled. Using container mode instead.")
+		return ModeContainer
+	default:
+		fmt.Printf("Invalid choice '%s', using default (container)\n", input)
+		return ModeContainer
+	}
 }
 
 // SetupTest runs before each test
 func (s *RegressionTestSuite) SetupTest() {
-	s.T().Logf("=== Setting up container for: %s ===", s.T().Name())
+	s.T().Logf("=== Setting up %s executor for: %s ===", s.execMode.String(), s.T().Name())
 
 	var err error
-	s.container, err = NewContainer(s.osImage)
-	s.Require().NoError(err, "Failed to create container")
+	s.executor, err = NewExecutor(s.execMode, s.osImage)
+	s.Require().NoError(err, "Failed to create executor")
 
-	err = s.container.Start(s.ctx)
-	s.Require().NoError(err, "Failed to start container")
+	err = s.executor.Start(s.ctx)
+	s.Require().NoError(err, "Failed to start executor")
 
-	s.T().Logf("Container started successfully")
+	s.T().Logf("Executor (%s) started successfully", s.execMode.String())
 }
 
 // TearDownTest runs after each test
 func (s *RegressionTestSuite) TearDownTest() {
-	if s.container != nil {
+	if s.executor != nil {
 		if s.T().Failed() {
 			// Print logs on failure
-			logs, _ := s.container.GetLogs(s.ctx)
-			s.T().Logf("Container logs:\n%s", logs)
+			logs, _ := s.executor.GetLogs(s.ctx)
+			s.T().Logf("Executor logs:\n%s", logs)
 		}
 
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 
-		// Stop and remove container
-		if err := s.container.Cleanup(ctx); err != nil {
-			s.T().Logf("Warning: Container cleanup failed: %v", err)
+		// Cleanup executor
+		if err := s.executor.Cleanup(ctx); err != nil {
+			s.T().Logf("Warning: Executor cleanup failed: %v", err)
 		} else {
-			s.T().Logf("Container stopped and removed successfully")
+			s.T().Logf("Executor cleaned up successfully")
 		}
 	}
 }
@@ -78,7 +169,60 @@ func (s *RegressionTestSuite) TearDownTest() {
 // TearDownSuite runs once after all tests
 func (s *RegressionTestSuite) TearDownSuite() {
 	s.T().Log("=== Test suite completed ===")
-	s.T().Log("All Docker containers have been cleaned up")
+	if s.execMode == ModeLocal {
+		s.T().Log("Tests completed on local machine")
+	} else {
+		s.T().Log("All Docker containers have been cleaned up")
+	}
+}
+
+// execCmd is a helper that automatically prepends sudo for local mode when needed
+func (s *RegressionTestSuite) execCmd(ctx context.Context, cmd string) (string, int, error) {
+	// For local mode, prepend sudo to commands that need it
+	if s.execMode == ModeLocal {
+		// Check if command needs sudo (package management, file operations in system dirs)
+		needsSudo := strings.HasPrefix(cmd, "apt-get") ||
+			strings.HasPrefix(cmd, "apt ") ||
+			strings.HasPrefix(cmd, "dnf ") ||
+			strings.HasPrefix(cmd, "yum ") ||
+			strings.HasPrefix(cmd, "rpm ") ||
+			strings.HasPrefix(cmd, "systemctl ") ||
+			strings.Contains(cmd, "> /etc/") ||
+			strings.Contains(cmd, "> /usr/") ||
+			strings.Contains(cmd, "> /var/") ||
+			strings.Contains(cmd, "chown ") ||
+			strings.Contains(cmd, "chmod ") ||
+			strings.Contains(cmd, "mkdir /etc/") ||
+			strings.Contains(cmd, "mkdir /usr/") ||
+			strings.Contains(cmd, "mkdir /var/")
+
+		if needsSudo && !strings.HasPrefix(cmd, "sudo ") {
+			cmd = "sudo " + cmd
+		}
+	}
+
+	return s.executor.Exec(ctx, cmd)
+}
+
+// getOSType returns the OS type based on executor mode
+func (s *RegressionTestSuite) getOSType() (isDebian bool, isRHEL bool) {
+	if s.execMode == ModeLocal {
+		// Detect OS from local system
+		output, exitCode, _ := s.execCmd(s.ctx, "cat /etc/os-release")
+		if exitCode == 0 {
+			osRelease := strings.ToLower(output)
+			isDebian = strings.Contains(osRelease, "debian") || strings.Contains(osRelease, "ubuntu")
+			isRHEL = strings.Contains(osRelease, "rocky") || strings.Contains(osRelease, "rhel") ||
+				strings.Contains(osRelease, "alma") || strings.Contains(osRelease, "centos") ||
+				strings.Contains(osRelease, "fedora")
+		}
+	} else {
+		// Use osImage for container modes
+		isDebian = strings.Contains(s.osImage, "debian") || strings.Contains(s.osImage, "ubuntu")
+		isRHEL = strings.Contains(s.osImage, "rocky") || strings.Contains(s.osImage, "alma") ||
+			strings.Contains(s.osImage, "rhel")
+	}
+	return
 }
 
 // ========================================================================
@@ -87,9 +231,8 @@ func (s *RegressionTestSuite) TearDownSuite() {
 func (s *RegressionTestSuite) Test01_RepositoryInstallation() {
 	s.T().Log("TEST 01: Installing pgEdge repository")
 
-	// Determine package manager
-	isDebian := strings.Contains(s.osImage, "debian") || strings.Contains(s.osImage, "ubuntu")
-	isRHEL := strings.Contains(s.osImage, "rocky") || strings.Contains(s.osImage, "alma") || strings.Contains(s.osImage, "rhel")
+	// Determine package manager based on OS type
+	isDebian, isRHEL := s.getOSType()
 
 	if isDebian {
 		// Debian/Ubuntu: Install repository
@@ -102,13 +245,13 @@ func (s *RegressionTestSuite) Test01_RepositoryInstallation() {
 		}
 
 		for _, cmd := range commands {
-			output, exitCode, err := s.container.Exec(s.ctx, cmd)
+			output, exitCode, err := s.execCmd(s.ctx, cmd)
 			s.NoError(err, "Command failed: %s\nOutput: %s", cmd, output)
 			s.Equal(0, exitCode, "Command exited with non-zero: %s\nOutput: %s", cmd, output)
 		}
 
 		// Verify repository is available
-		output, exitCode, err := s.container.Exec(s.ctx, "apt-cache search pgedge-postgres-mcp")
+		output, exitCode, err := s.execCmd(s.ctx, "apt-cache search pgedge-postgres-mcp")
 		s.NoError(err)
 		s.Equal(0, exitCode)
 		s.Contains(output, "pgedge-postgres-mcp", "Package should be available in repo")
@@ -117,7 +260,7 @@ func (s *RegressionTestSuite) Test01_RepositoryInstallation() {
 		// RHEL/Rocky/Alma: Install repository
 		// Determine EL version
 		versionCmd := "rpm -E %{rhel}"
-		versionOutput, _, _ := s.container.Exec(s.ctx, versionCmd)
+		versionOutput, _, _ := s.execCmd(s.ctx, versionCmd)
 		elVersion := strings.TrimSpace(versionOutput)
 		if elVersion == "" || elVersion == "%{rhel}" {
 			elVersion = "9" // Default to EL9
@@ -133,17 +276,17 @@ func (s *RegressionTestSuite) Test01_RepositoryInstallation() {
 		}
 
 		for _, cmd := range commands {
-			output, _, err := s.container.Exec(s.ctx, cmd)
+			output, _, err := s.execCmd(s.ctx, cmd)
 			s.NoError(err, "Command failed: %s\nOutput: %s", cmd, output)
 		}
 
 		// Verify repository is available
-		output, exitCode, err := s.container.Exec(s.ctx, "dnf search pgedge-postgres-mcp")
+		output, exitCode, err := s.execCmd(s.ctx, "dnf search pgedge-postgres-mcp")
 		s.NoError(err)
 		s.Equal(0, exitCode)
 		s.Contains(output, "pgedge-postgres-mcp", "Package should be available in repo")
 	} else {
-		s.Fail("Unsupported OS image: %s", s.osImage)
+		s.Fail("Unsupported OS")
 	}
 
 	s.T().Log("✓ Repository installed successfully")
@@ -158,7 +301,7 @@ func (s *RegressionTestSuite) Test02_PostgreSQLSetup() {
 	// First install repository (this test can run independently)
 	s.Test01_RepositoryInstallation()
 
-	isDebian := strings.Contains(s.osImage, "debian") || strings.Contains(s.osImage, "ubuntu")
+	isDebian, _ := s.getOSType()
 
 	// Step 1: Install PostgreSQL packages
 	s.T().Log("Step 1: Installing PostgreSQL packages")
@@ -175,7 +318,7 @@ func (s *RegressionTestSuite) Test02_PostgreSQLSetup() {
 	}
 
 	for _, installCmd := range pgPackages {
-		output, exitCode, err := s.container.Exec(s.ctx, installCmd)
+		output, exitCode, err := s.execCmd(s.ctx, installCmd)
 		s.NoError(err, "PostgreSQL install failed: %s\nOutput: %s", installCmd, output)
 		s.Equal(0, exitCode, "PostgreSQL install exited with error: %s\nOutput: %s", installCmd, output)
 	}
@@ -184,26 +327,26 @@ func (s *RegressionTestSuite) Test02_PostgreSQLSetup() {
 	s.T().Log("Step 2: Initializing PostgreSQL database")
 	if isDebian {
 		// Debian/Ubuntu initialization
-		output, exitCode, err := s.container.Exec(s.ctx, "pg_ctlcluster 16 main start")
+		output, exitCode, err := s.execCmd(s.ctx, "pg_ctlcluster 16 main start")
 		s.NoError(err, "Failed to start PostgreSQL: %s", output)
 		s.Equal(0, exitCode, "PostgreSQL start failed: %s", output)
 	} else {
 		// RHEL/Rocky initialization (manual, not systemd)
 		// Initialize database
 		initCmd := "su - postgres -c '/usr/pgsql-16/bin/initdb -D /var/lib/pgsql/16/data'"
-		output, exitCode, err := s.container.Exec(s.ctx, initCmd)
+		output, exitCode, err := s.execCmd(s.ctx, initCmd)
 		s.NoError(err, "PostgreSQL initdb failed: %s", output)
 		s.Equal(0, exitCode, "PostgreSQL initdb failed: %s", output)
 
 		// Configure PostgreSQL to accept local connections
 		configCmd := `echo "host all all 127.0.0.1/32 md5" >> /var/lib/pgsql/16/data/pg_hba.conf`
-		output, exitCode, err = s.container.Exec(s.ctx, configCmd)
+		output, exitCode, err = s.execCmd(s.ctx, configCmd)
 		s.NoError(err, "Failed to configure pg_hba.conf: %s", output)
 		s.Equal(0, exitCode, "pg_hba.conf config failed: %s", output)
 
 		// Start PostgreSQL manually
 		startCmd := "su - postgres -c '/usr/pgsql-16/bin/pg_ctl -D /var/lib/pgsql/16/data -l /var/lib/pgsql/16/data/logfile start'"
-		output, exitCode, err = s.container.Exec(s.ctx, startCmd)
+		output, exitCode, err = s.execCmd(s.ctx, startCmd)
 		s.NoError(err, "PostgreSQL start failed: %s", output)
 		s.Equal(0, exitCode, "PostgreSQL start failed: %s", output)
 
@@ -214,14 +357,14 @@ func (s *RegressionTestSuite) Test02_PostgreSQLSetup() {
 	// Step 3: Set postgres user password
 	s.T().Log("Step 3: Setting postgres user password")
 	setPwCmd := `su - postgres -c "psql -c \"ALTER USER postgres WITH PASSWORD 'postgres123';\""`
-	output, exitCode, err := s.container.Exec(s.ctx, setPwCmd)
+	output, exitCode, err := s.execCmd(s.ctx, setPwCmd)
 	s.NoError(err, "Failed to set postgres password: %s", output)
 	s.Equal(0, exitCode, "Set password failed: %s", output)
 
 	// Step 4: Create MCP database
 	s.T().Log("Step 4: Creating MCP database")
 	createDbCmd := `su - postgres -c "psql -c \"CREATE DATABASE mcp_server;\""`
-	output, exitCode, err = s.container.Exec(s.ctx, createDbCmd)
+	output, exitCode, err = s.execCmd(s.ctx, createDbCmd)
 	s.NoError(err, "Failed to create MCP database: %s", output)
 	s.Equal(0, exitCode, "Create database failed: %s", output)
 
@@ -237,7 +380,7 @@ func (s *RegressionTestSuite) Test03_MCPServerInstallation() {
 	// First setup PostgreSQL
 	s.Test02_PostgreSQLSetup()
 
-	isDebian := strings.Contains(s.osImage, "debian") || strings.Contains(s.osImage, "ubuntu")
+	isDebian, _ := s.getOSType()
 
 	// Step 1: Install MCP server packages
 	s.T().Log("Step 1: Installing MCP server packages")
@@ -259,7 +402,7 @@ func (s *RegressionTestSuite) Test03_MCPServerInstallation() {
 	}
 
 	for _, installCmd := range packages {
-		output, exitCode, err := s.container.Exec(s.ctx, installCmd)
+		output, exitCode, err := s.execCmd(s.ctx, installCmd)
 		s.NoError(err, "Install failed: %s\nOutput: %s", installCmd, output)
 		s.Equal(0, exitCode, "Install exited with error: %s\nOutput: %s", installCmd, output)
 	}
@@ -279,7 +422,7 @@ server:
   mode: http
   addr: :8080
 EOF`
-	output, exitCode, err := s.container.Exec(s.ctx, yamlConfig)
+	output, exitCode, err := s.execCmd(s.ctx, yamlConfig)
 	s.NoError(err, "Failed to update postgres-mcp.yaml: %s", output)
 	s.Equal(0, exitCode, "Update config failed: %s", output)
 
@@ -293,7 +436,7 @@ DB_PASSWORD=postgres123
 SERVER_MODE=http
 SERVER_ADDR=:8080
 EOF`
-	output, exitCode, err = s.container.Exec(s.ctx, envConfig)
+	output, exitCode, err = s.execCmd(s.ctx, envConfig)
 	s.NoError(err, "Failed to update postgres-mcp.env: %s", output)
 	s.Equal(0, exitCode, "Update env failed: %s", output)
 
@@ -310,36 +453,36 @@ func (s *RegressionTestSuite) Test04_InstallationValidation() {
 	s.Test03_MCPServerInstallation()
 
 	// Check 1: Binary exists and is executable
-	output, exitCode, err := s.container.Exec(s.ctx, "test -x /usr/bin/pgedge-postgres-mcp && echo 'OK'")
+	output, exitCode, err := s.execCmd(s.ctx, "test -x /usr/bin/pgedge-postgres-mcp && echo 'OK'")
 	s.NoError(err)
 	s.Equal(0, exitCode)
 	s.Contains(output, "OK", "Binary should exist and be executable")
 
 	// Check 2: Config directory exists
-	output, exitCode, err = s.container.Exec(s.ctx, "test -d /etc/pgedge && echo 'OK'")
+	output, exitCode, err = s.execCmd(s.ctx, "test -d /etc/pgedge && echo 'OK'")
 	s.NoError(err)
 	s.Equal(0, exitCode)
 	s.Contains(output, "OK", "Config directory should exist")
 
 	// Check 3: Config files exist
-	output, exitCode, err = s.container.Exec(s.ctx, "test -f /etc/pgedge/postgres-mcp.yaml && echo 'OK'")
+	output, exitCode, err = s.execCmd(s.ctx, "test -f /etc/pgedge/postgres-mcp.yaml && echo 'OK'")
 	s.NoError(err)
 	s.Equal(0, exitCode)
 	s.Contains(output, "OK", "postgres-mcp.yaml should exist")
 
-	output, exitCode, err = s.container.Exec(s.ctx, "test -f /etc/pgedge/postgres-mcp.env && echo 'OK'")
+	output, exitCode, err = s.execCmd(s.ctx, "test -f /etc/pgedge/postgres-mcp.env && echo 'OK'")
 	s.NoError(err)
 	s.Equal(0, exitCode)
 	s.Contains(output, "OK", "postgres-mcp.env should exist")
 
 	// Check 4: Systemd service file exists
-	output, exitCode, err = s.container.Exec(s.ctx, "test -f /usr/lib/systemd/system/pgedge-postgres-mcp.service && echo 'OK'")
+	output, exitCode, err = s.execCmd(s.ctx, "test -f /usr/lib/systemd/system/pgedge-postgres-mcp.service && echo 'OK'")
 	s.NoError(err)
 	s.Equal(0, exitCode)
 	s.Contains(output, "OK", "Systemd service file should exist")
 
 	// Check 5: Data directory exists with correct permissions
-	output, exitCode, err = s.container.Exec(s.ctx, "test -d /var/lib/pgedge/postgres-mcp && echo 'OK'")
+	output, exitCode, err = s.execCmd(s.ctx, "test -d /var/lib/pgedge/postgres-mcp && echo 'OK'")
 	s.NoError(err)
 	s.Equal(0, exitCode)
 	s.Contains(output, "OK", "Data directory should exist")
@@ -358,7 +501,7 @@ func (s *RegressionTestSuite) Test05_TokenManagement() {
 
 	// Test 1: Create token (using config file for database connection)
 	createCmd := `/usr/bin/pgedge-postgres-mcp -config /etc/pgedge/postgres-mcp.yaml -add-token -token-file /etc/pgedge/pgedge-postgres-mcp-tokens.yaml -token-note "test-token"`
-	output, exitCode, err := s.container.Exec(s.ctx, createCmd)
+	output, exitCode, err := s.execCmd(s.ctx, createCmd)
 	s.NoError(err, "Token creation failed\nOutput: %s", output)
 	s.Equal(0, exitCode)
 	s.Contains(output, "Token:", "Should show generated token")
@@ -366,18 +509,18 @@ func (s *RegressionTestSuite) Test05_TokenManagement() {
 
 	// Set proper ownership on token file
 	chownCmd := "chown pgedge:pgedge /etc/pgedge/pgedge-postgres-mcp-tokens.yaml"
-	output, exitCode, err = s.container.Exec(s.ctx, chownCmd)
+	output, exitCode, err = s.execCmd(s.ctx, chownCmd)
 	s.NoError(err, "Failed to set ownership on token file: %s", output)
 	s.Equal(0, exitCode, "chown failed: %s", output)
 
 	// Test 2: List tokens
-	output, exitCode, err = s.container.Exec(s.ctx, "/usr/bin/pgedge-postgres-mcp -config /etc/pgedge/postgres-mcp.yaml -list-tokens -token-file /etc/pgedge/pgedge-postgres-mcp-tokens.yaml")
+	output, exitCode, err = s.execCmd(s.ctx, "/usr/bin/pgedge-postgres-mcp -config /etc/pgedge/postgres-mcp.yaml -list-tokens -token-file /etc/pgedge/pgedge-postgres-mcp-tokens.yaml")
 	s.NoError(err)
 	s.Equal(0, exitCode)
 	s.Contains(output, "test-token", "Should list created token")
 
 	// Test 3: Verify token file was created
-	output, exitCode, err = s.container.Exec(s.ctx, "test -f /etc/pgedge/pgedge-postgres-mcp-tokens.yaml && echo 'OK'")
+	output, exitCode, err = s.execCmd(s.ctx, "test -f /etc/pgedge/pgedge-postgres-mcp-tokens.yaml && echo 'OK'")
 	s.NoError(err)
 	s.Equal(0, exitCode)
 	s.Contains(output, "OK", "Token file should exist")
@@ -396,31 +539,282 @@ func (s *RegressionTestSuite) Test06_UserManagement() {
 
 	// Test 1: Create user (using config file for database connection)
 	createCmd := `/usr/bin/pgedge-postgres-mcp -config /etc/pgedge/postgres-mcp.yaml -add-user -user-file /etc/pgedge/pgedge-postgres-mcp-users.yaml -username testuser -password testpass123 -user-note "test user"`
-	output, exitCode, err := s.container.Exec(s.ctx, createCmd)
+	output, exitCode, err := s.execCmd(s.ctx, createCmd)
 	s.NoError(err, "User creation failed\nOutput: %s", output)
 	s.Equal(0, exitCode)
 	s.Contains(output, "User created", "Should confirm user creation")
 
 	// Test 2: List users
-	output, exitCode, err = s.container.Exec(s.ctx, "/usr/bin/pgedge-postgres-mcp -config /etc/pgedge/postgres-mcp.yaml -list-users -user-file /etc/pgedge/pgedge-postgres-mcp-users.yaml")
+	output, exitCode, err = s.execCmd(s.ctx, "/usr/bin/pgedge-postgres-mcp -config /etc/pgedge/postgres-mcp.yaml -list-users -user-file /etc/pgedge/pgedge-postgres-mcp-users.yaml")
 	s.NoError(err)
 	s.Equal(0, exitCode)
 	s.Contains(output, "testuser", "Should list created user")
 
 	// Test 3: Verify user file was created
-	output, exitCode, err = s.container.Exec(s.ctx, "test -f /etc/pgedge/pgedge-postgres-mcp-users.yaml && echo 'OK'")
+	output, exitCode, err = s.execCmd(s.ctx, "test -f /etc/pgedge/pgedge-postgres-mcp-users.yaml && echo 'OK'")
 	s.NoError(err)
 	s.Equal(0, exitCode)
 	s.Contains(output, "OK", "User file should exist")
 
 	// Test 4: User file has correct permissions (should be restrictive)
-	output, exitCode, err = s.container.Exec(s.ctx, "stat -c '%a' /etc/pgedge/pgedge-postgres-mcp-users.yaml")
+	output, exitCode, err = s.execCmd(s.ctx, "stat -c '%a' /etc/pgedge/pgedge-postgres-mcp-users.yaml")
 	s.NoError(err)
 	s.Equal(0, exitCode)
 	// File should be readable but ideally 600 or 644
 	s.Regexp(`^[0-9]{3}$`, strings.TrimSpace(output), "Should have valid permissions")
 
 	s.T().Log("✓ User management working correctly")
+}
+
+// ========================================================================
+// TEST 07: Package Files and Permissions Verification
+// ========================================================================
+func (s *RegressionTestSuite) Test07_PackageFilesVerification() {
+	s.T().Log("TEST 07: Verifying installed package files and permissions")
+
+	// Ensure packages are installed first
+	s.Test03_MCPServerInstallation()
+
+	// ====================================================================
+	// 1. Verify binaries in /usr/bin with executable permissions
+	// ====================================================================
+	s.T().Log("Checking binaries in /usr/bin...")
+
+	binaries := []struct {
+		name        string
+		permissions string // Expected permissions pattern
+	}{
+		{"pgedge-postgres-mcp", "755"},
+		{"pgedge-nla-kb-builder", "755"},
+		{"pgedge-nla-cli", "755"},
+	}
+
+	for _, bin := range binaries {
+		// Check if binary exists
+		output, exitCode, err := s.execCmd(s.ctx, fmt.Sprintf("test -f /usr/bin/%s && echo 'exists'", bin.name))
+		s.NoError(err, "Failed to check if %s exists", bin.name)
+		s.Equal(0, exitCode, "%s should exist in /usr/bin", bin.name)
+		s.Contains(output, "exists", "%s should exist in /usr/bin", bin.name)
+
+		// Check permissions (should be executable: 755 or 775)
+		output, exitCode, err = s.execCmd(s.ctx, fmt.Sprintf("stat -c '%%a' /usr/bin/%s", bin.name))
+		s.NoError(err, "Failed to check permissions for %s", bin.name)
+		s.Equal(0, exitCode, "Should get permissions for %s", bin.name)
+		s.Contains(output, bin.permissions, "%s should have %s permissions", bin.name, bin.permissions)
+
+		// Verify it's owned by root
+		output, exitCode, err = s.execCmd(s.ctx, fmt.Sprintf("stat -c '%%U:%%G' /usr/bin/%s", bin.name))
+		s.NoError(err, "Failed to check ownership for %s", bin.name)
+		s.Equal(0, exitCode, "Should get ownership for %s", bin.name)
+		s.Contains(output, "root:root", "%s should be owned by root:root", bin.name)
+
+		s.T().Logf("  ✓ /usr/bin/%s exists with correct permissions (%s)", bin.name, bin.permissions)
+	}
+
+	// ====================================================================
+	// 2. Verify systemd service file
+	// ====================================================================
+	s.T().Log("Checking systemd service file...")
+
+	serviceFile := "/usr/lib/systemd/system/pgedge-postgres-mcp.service"
+
+	// Check if service file exists
+	output, exitCode, err := s.execCmd(s.ctx, fmt.Sprintf("test -f %s && echo 'exists'", serviceFile))
+	s.NoError(err, "Failed to check if service file exists")
+	s.Equal(0, exitCode, "Service file should exist")
+	s.Contains(output, "exists", "Service file should exist at %s", serviceFile)
+
+	// Check permissions (should be 644)
+	output, exitCode, err = s.execCmd(s.ctx, fmt.Sprintf("stat -c '%%a' %s", serviceFile))
+	s.NoError(err, "Failed to check service file permissions")
+	s.Equal(0, exitCode, "Should get service file permissions")
+	s.Contains(output, "644", "Service file should have 644 permissions")
+
+	s.T().Logf("  ✓ %s exists with correct permissions (644)", serviceFile)
+
+	// ====================================================================
+	// 3. Verify /usr/share directories
+	// ====================================================================
+	s.T().Log("Checking /usr/share/pgedge/nla-web directory...")
+
+	nlaWebPath := "/usr/share/pgedge/nla-web"
+
+	// Check if directory exists
+	output, exitCode, err = s.execCmd(s.ctx, fmt.Sprintf("test -d %s && echo 'exists'", nlaWebPath))
+	s.NoError(err, "Failed to check if %s exists", nlaWebPath)
+	s.Equal(0, exitCode, "%s should exist", nlaWebPath)
+	s.Contains(output, "exists", "%s should exist", nlaWebPath)
+
+	// Check permissions (should be readable: 755)
+	output, exitCode, err = s.execCmd(s.ctx, fmt.Sprintf("stat -c '%%a' %s", nlaWebPath))
+	s.NoError(err, "Failed to check permissions for %s", nlaWebPath)
+	s.Equal(0, exitCode, "Should get permissions for %s", nlaWebPath)
+	s.Contains(output, "755", "%s should have 755 permissions", nlaWebPath)
+
+	// Verify it's owned by root
+	output, exitCode, err = s.execCmd(s.ctx, fmt.Sprintf("stat -c '%%U:%%G' %s", nlaWebPath))
+	s.NoError(err, "Failed to check ownership for %s", nlaWebPath)
+	s.Equal(0, exitCode, "Should get ownership for %s", nlaWebPath)
+	s.Contains(output, "root:root", "%s should be owned by root:root", nlaWebPath)
+
+	s.T().Logf("  ✓ %s exists with correct permissions (755)", nlaWebPath)
+
+	// List files inside nla-web directory
+	output, exitCode, err = s.execCmd(s.ctx, fmt.Sprintf("ls -lrt %s", nlaWebPath))
+	s.NoError(err, "Failed to list files in %s", nlaWebPath)
+	s.Equal(0, exitCode, "Should be able to list files in %s", nlaWebPath)
+
+	s.T().Logf("    Files in %s:", nlaWebPath)
+	for _, line := range strings.Split(strings.TrimSpace(output), "\n") {
+		if line != "" && !strings.HasPrefix(line, "total") {
+			s.T().Logf("      %s", line)
+		}
+	}
+
+	// ====================================================================
+	// 4. Verify /etc/pgedge configuration files
+	// ====================================================================
+	s.T().Log("Checking /etc/pgedge configuration files...")
+
+	configFiles := []struct {
+		name        string
+		permissions string
+	}{
+		{"postgres-mcp.env", "644"},
+		{"pgedge-nla-kb-builder.yaml", "644"},
+		{"nla-cli.yaml", "644"},
+		{"postgres-mcp.yaml", "644"},
+	}
+
+	for _, cfg := range configFiles {
+		path := fmt.Sprintf("/etc/pgedge/%s", cfg.name)
+
+		// Check if file exists
+		output, exitCode, err := s.execCmd(s.ctx, fmt.Sprintf("test -f %s && echo 'exists'", path))
+		s.NoError(err, "Failed to check if %s exists", path)
+		s.Equal(0, exitCode, "%s should exist", path)
+		s.Contains(output, "exists", "%s should exist", path)
+
+		// Check permissions (should be readable: 644)
+		output, exitCode, err = s.execCmd(s.ctx, fmt.Sprintf("stat -c '%%a' %s", path))
+		s.NoError(err, "Failed to check permissions for %s", path)
+		s.Equal(0, exitCode, "Should get permissions for %s", path)
+		s.Contains(output, cfg.permissions, "%s should have %s permissions", path, cfg.permissions)
+
+		// Verify it's owned by root
+		output, exitCode, err = s.execCmd(s.ctx, fmt.Sprintf("stat -c '%%U:%%G' %s", path))
+		s.NoError(err, "Failed to check ownership for %s", path)
+		s.Equal(0, exitCode, "Should get ownership for %s", path)
+		s.Contains(output, "root:root", "%s should be owned by root:root", path)
+
+		s.T().Logf("  ✓ %s exists with correct permissions (%s)", path, cfg.permissions)
+	}
+
+	// ====================================================================
+	// 5. Verify /var/lib/pgedge/postgres-mcp directory
+	// ====================================================================
+	s.T().Log("Checking /var/lib/pgedge/postgres-mcp directory...")
+
+	dataDir := "/var/lib/pgedge/postgres-mcp"
+
+	// Check if directory exists
+	output, exitCode, err = s.execCmd(s.ctx, fmt.Sprintf("test -d %s && echo 'exists'", dataDir))
+	s.NoError(err, "Failed to check if data directory exists")
+	s.Equal(0, exitCode, "Data directory should exist")
+	s.Contains(output, "exists", "%s should exist", dataDir)
+
+	// Check permissions (should be 755 for directory)
+	output, exitCode, err = s.execCmd(s.ctx, fmt.Sprintf("stat -c '%%a' %s", dataDir))
+	s.NoError(err, "Failed to check data directory permissions")
+	s.Equal(0, exitCode, "Should get data directory permissions")
+	s.Contains(output, "755", "Data directory should have 755 permissions")
+
+	// Verify it's owned by pgedge:pgedge
+	output, exitCode, err = s.execCmd(s.ctx, fmt.Sprintf("stat -c '%%U:%%G' %s", dataDir))
+	s.NoError(err, "Failed to check data directory ownership")
+	s.Equal(0, exitCode, "Should get data directory ownership")
+	s.Contains(output, "pgedge:pgedge", "%s should be owned by pgedge:pgedge", dataDir)
+
+	s.T().Logf("  ✓ %s exists with correct ownership (pgedge:pgedge)", dataDir)
+
+	// ====================================================================
+	// 6. Verify log directories exist
+	// ====================================================================
+	s.T().Log("Checking log directories...")
+
+	logDirectories := []struct {
+		path        string
+		owner       string
+		permissions string
+	}{
+		{"/var/log/pgedge/postgres-mcp", "pgedge:pgedge", "755"},
+		{"/var/log/pgedge/nla-web", "pgedge:pgedge", "755"},
+	}
+
+	for _, logDir := range logDirectories {
+		// Check if directory exists (it might not exist until service runs)
+		output, exitCode, err := s.execCmd(s.ctx, fmt.Sprintf("test -d %s && echo 'exists' || echo 'missing'", logDir.path))
+		s.NoError(err, "Failed to check if %s exists", logDir.path)
+
+		if strings.Contains(output, "exists") {
+			// Directory exists, verify permissions and ownership
+
+			// Check permissions
+			output, exitCode, err = s.execCmd(s.ctx, fmt.Sprintf("stat -c '%%a' %s", logDir.path))
+			s.NoError(err, "Failed to check permissions for %s", logDir.path)
+			s.Equal(0, exitCode, "Should get permissions for %s", logDir.path)
+			s.Contains(output, logDir.permissions, "%s should have %s permissions", logDir.path, logDir.permissions)
+
+			// Check ownership
+			output, exitCode, err = s.execCmd(s.ctx, fmt.Sprintf("stat -c '%%U:%%G' %s", logDir.path))
+			s.NoError(err, "Failed to check ownership for %s", logDir.path)
+			s.Equal(0, exitCode, "Should get ownership for %s", logDir.path)
+			s.Contains(output, logDir.owner, "%s should be owned by %s", logDir.path, logDir.owner)
+
+			s.T().Logf("  ✓ %s exists with correct ownership (%s)", logDir.path, logDir.owner)
+
+			// List log files inside the directory
+			output, exitCode, err = s.execCmd(s.ctx, fmt.Sprintf("ls -lh %s 2>/dev/null || echo 'empty'", logDir.path))
+			s.NoError(err, "Failed to list log files in %s", logDir.path)
+
+			if strings.Contains(output, "empty") || strings.TrimSpace(output) == "" {
+				s.T().Logf("    ℹ %s is empty (no log files yet)", logDir.path)
+			} else {
+				s.T().Logf("    Log files in %s:", logDir.path)
+				for _, line := range strings.Split(strings.TrimSpace(output), "\n") {
+					if line != "" && !strings.HasPrefix(line, "total") {
+						s.T().Logf("      %s", line)
+					}
+				}
+			}
+		} else {
+			// Directory doesn't exist yet - this is acceptable (created on first run)
+			s.T().Logf("  ℹ %s not yet created (will be created on first service run)", logDir.path)
+		}
+	}
+
+	// ====================================================================
+	// 7. Verify parent /var/log/pgedge directory
+	// ====================================================================
+	s.T().Log("Checking parent log directory...")
+
+	parentLogDir := "/var/log/pgedge"
+
+	// Check if parent directory exists
+	output, exitCode, err = s.execCmd(s.ctx, fmt.Sprintf("test -d %s && echo 'exists'", parentLogDir))
+	s.NoError(err, "Failed to check if parent log directory exists")
+	s.Equal(0, exitCode, "Parent log directory should exist")
+	s.Contains(output, "exists", "%s should exist", parentLogDir)
+
+	// Check permissions
+	output, exitCode, err = s.execCmd(s.ctx, fmt.Sprintf("stat -c '%%a' %s", parentLogDir))
+	s.NoError(err, "Failed to check parent log directory permissions")
+	s.Equal(0, exitCode, "Should get parent log directory permissions")
+	s.Contains(output, "755", "Parent log directory should have 755 permissions")
+
+	s.T().Logf("  ✓ %s exists with correct permissions (755)", parentLogDir)
+
+	s.T().Log("✓ All package files and permissions verified successfully")
 }
 
 // Run the test suite

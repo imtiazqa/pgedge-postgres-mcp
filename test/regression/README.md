@@ -13,11 +13,31 @@ This test suite validates:
 5. ✅ Token management commands
 6. ✅ User management commands
 
+## Execution Modes
+
+The test suite supports three execution modes:
+
+1. **Container (Standard)** - Runs tests in a Docker container without
+   systemd
+2. **Container with systemd** - Runs tests in a systemd-enabled Docker
+   container
+3. **Local Machine** - Runs tests directly on your local system (requires
+   sudo)
+
 ## Prerequisites
+
+### For Container Modes
 
 - Docker installed and running
 - Go 1.21+ installed
 - Internet connection (for pulling Docker images)
+
+### For Local Machine Mode
+
+- Go 1.21+ installed
+- Sudo access (passwordless sudo recommended)
+- Internet connection
+- Supported OS: Debian, Ubuntu, Rocky Linux, AlmaLinux, RHEL
 
 ## Quick Start
 
@@ -25,14 +45,19 @@ This test suite validates:
 # Navigate to test directory
 cd test/regression
 
-# Initialize Go module
+# Initialize Go module (first time only)
 go mod init pgedge-postgres-mcp/test/regression
 go mod tidy
 
-# Run tests on Debian 12 (default)
+# Run tests (will prompt for execution mode)
 make test
 
-# Run tests on all platforms
+# Or specify execution mode via environment variable
+TEST_EXEC_MODE=container make test           # Standard container
+TEST_EXEC_MODE=container-systemd make test   # Systemd container
+TEST_EXEC_MODE=local make test               # Local machine
+
+# Run tests on all platforms (container mode)
 make test-all
 ```
 
@@ -56,26 +81,56 @@ make test-ubuntu
 ```bash
 # Run specific test
 make test-one TEST=Test01_RepositoryInstallation
-make test-one TEST=Test02_PackageInstallation
-make test-one TEST=Test03_InstallationValidation
-make test-one TEST=Test04_TokenManagement
-make test-one TEST=Test05_UserManagement
+make test-one TEST=Test02_PostgreSQLSetup
+make test-one TEST=Test03_MCPServerInstallation
+make test-one TEST=Test04_InstallationValidation
+make test-one TEST=Test05_TokenManagement
+make test-one TEST=Test06_UserManagement
+make test-one TEST=Test07_PackageFilesVerification
 ```
 
 ### Custom OS Image
 
 ```bash
-# Test on custom Docker image
+# Test on custom Docker image (container mode)
 TEST_OS_IMAGE=debian:11 go test -v -timeout 20m
 TEST_OS_IMAGE=almalinux:9 go test -v -timeout 20m
+
+# With systemd enabled
+TEST_EXEC_MODE=container-systemd TEST_OS_IMAGE=debian:12 go test -v
+-timeout 20m
+
+# On local machine (ignores TEST_OS_IMAGE)
+TEST_EXEC_MODE=local go test -v -timeout 20m
 ```
 
+### Interactive Mode
+
+When you run tests without setting `TEST_EXEC_MODE`, the suite will
+prompt you:
+
+```
+=== MCP Regression Test Suite ===
+Please select how you want to run the tests:
+
+1. Container (Docker) - Standard container without systemd
+2. Container with systemd - Docker container with systemd enabled
+3. Local machine - Run tests directly on this system
+
+Enter your choice [1-3] (default: 1):
+```
+
+**Note:** Local machine mode will show a warning and require confirmation
+before proceeding.
+
 ## Test Workflow
+
+### Container Mode
 
 Each test:
 
 1. **Pulls** Docker image (debian:12, rockylinux:9, etc.)
-2. **Starts** clean container
+2. **Starts** clean container (with or without systemd)
 3. **Installs** pgEdge repository
 4. **Installs** MCP server package from repo
 5. **Validates** installation
@@ -83,6 +138,28 @@ Each test:
 7. **Removes** container
 
 Total time per OS: ~5-10 minutes
+
+### Local Machine Mode
+
+Each test:
+
+1. **Verifies** sudo access
+2. **Detects** local OS and package manager
+3. **Installs** basic dependencies (wget, curl, gnupg, ca-certificates)
+4. **Installs** pgEdge repository on local system
+5. **Installs** MCP server package from repo
+6. **Validates** installation
+7. **Runs** test cases
+8. **Cleanup** (executor cleanup, packages remain installed)
+
+**WARNING:** Local mode will install packages and modify system
+configuration. It does NOT uninstall packages automatically.
+
+**Dependencies Installed:** The test suite automatically installs basic
+dependencies needed for package management:
+
+- Debian/Ubuntu: `wget`, `gnupg`, `curl`, `ca-certificates`
+- RHEL/Rocky/Alma: `wget`, `curl`, `ca-certificates`
 
 ## Test Cases
 
@@ -132,16 +209,48 @@ Total time per OS: ~5-10 minutes
 - Verifies user file created correctly
 - Checks file permissions
 
+### Test 07: Package Files and Permissions Verification
+
+- Verifies all binaries in `/usr/bin`:
+  - `pgedge-postgres-mcp` (755, root:root)
+  - `pgedge-nla-kb-builder` (755, root:root)
+  - `pgedge-nla-cli` (755, root:root)
+- Verifies systemd service file:
+  - `/usr/lib/systemd/system/pgedge-postgres-mcp.service` (644, root:root)
+- Verifies `/usr/share/pgedge/nla-web` directory:
+  - Directory exists with 755 permissions (root:root)
+  - Lists all files inside the directory
+- Verifies configuration files in `/etc/pgedge`:
+  - `postgres-mcp.env` (644, root:root)
+  - `pgedge-nla-kb-builder.yaml` (644, root:root)
+  - `nla-cli.yaml` (644, root:root)
+  - `postgres-mcp.yaml` (644, root:root)
+- Verifies data directory:
+  - `/var/lib/pgedge/postgres-mcp` (755, pgedge:pgedge)
+- Verifies log directories:
+  - `/var/log/pgedge` (755)
+  - `/var/log/pgedge/postgres-mcp` (755, pgedge:pgedge)
+  - `/var/log/pgedge/nla-web` (755, pgedge:pgedge)
+  - Lists log files inside postgres-mcp and nla-web directories
+
 ## Configuration
 
 ### Environment Variables
 
 ```bash
-# Docker image to test
+# Execution mode (optional, will prompt if not set)
+export TEST_EXEC_MODE=container          # Standard container
+export TEST_EXEC_MODE=container-systemd  # Systemd-enabled container
+export TEST_EXEC_MODE=local              # Local machine
+
+# Docker image to test (for container modes only)
 export TEST_OS_IMAGE=debian:12
 
 # Repository URL
 export PGEDGE_REPO_URL=https://apt.pgedge.com
+
+# CI mode (disables interactive prompts, defaults to container mode)
+export CI=true
 ```
 
 ## Cleanup
@@ -244,25 +353,66 @@ jobs:
 === RUN   TestRegressionSuite/Test05_UserManagement
     suite_test.go:XX: TEST 05: Testing user management commands
     suite_test.go:XX: ✓ User management working correctly
---- PASS: TestRegressionSuite (127.45s)
+=== RUN   TestRegressionSuite/Test06_UserManagement
+    suite_test.go:XX: TEST 06: Testing user management commands
+    suite_test.go:XX: ✓ User management working correctly
+=== RUN   TestRegressionSuite/Test07_PackageFilesVerification
+    suite_test.go:XX: TEST 07: Verifying installed package files and permissions
+    suite_test.go:XX: ✓ All package files and permissions verified successfully
+--- PASS: TestRegressionSuite (145.67s)
     --- PASS: TestRegressionSuite/Test01_RepositoryInstallation (23.12s)
-    --- PASS: TestRegressionSuite/Test02_PackageInstallation (28.34s)
-    --- PASS: TestRegressionSuite/Test03_InstallationValidation (31.45s)
-    --- PASS: TestRegressionSuite/Test04_TokenManagement (22.11s)
-    --- PASS: TestRegressionSuite/Test05_UserManagement (22.43s)
+    --- PASS: TestRegressionSuite/Test02_PostgreSQLSetup (28.34s)
+    --- PASS: TestRegressionSuite/Test03_MCPServerInstallation (31.45s)
+    --- PASS: TestRegressionSuite/Test04_InstallationValidation (22.11s)
+    --- PASS: TestRegressionSuite/Test05_TokenManagement (18.23s)
+    --- PASS: TestRegressionSuite/Test06_UserManagement (12.34s)
+    --- PASS: TestRegressionSuite/Test07_PackageFilesVerification (10.08s)
 PASS
-ok      pgedge-postgres-mcp/test/regression    127.456s
+ok      pgedge-postgres-mcp/test/regression    145.678s
 ```
 
 ## File Structure
 
 ```
 test/regression/
-├── docker_helper.go    # Docker container management
-├── suite_test.go       # 5 basic test cases
-├── Makefile            # Test execution commands
-└── README.md           # This file
+├── executor.go             # Executor interface and factory
+├── container_executor.go   # Docker container executor
+├── local_executor.go       # Local machine executor
+├── docker_helper.go        # Legacy Docker helper (deprecated)
+├── suite_test.go           # 7 comprehensive test cases
+├── Makefile                # Test execution commands
+├── go.mod                  # Go module definition
+├── go.sum                  # Go dependency checksums
+└── README.md               # This file
 ```
+
+## Execution Mode Details
+
+### Container Mode (Standard)
+
+- Uses Docker without systemd
+- Suitable for most package installation tests
+- Does not support systemd service management tests
+- Faster startup time (~2 seconds)
+
+### Container Mode (Systemd)
+
+- Uses Docker with systemd enabled
+- Supports full systemd service testing
+- Requires privileged container
+- Slower startup time (~5 seconds)
+- Ideal for testing service management
+
+### Local Machine Mode
+
+- Runs directly on the host system
+- No Docker required
+- Requires sudo access (passwordless sudo recommended)
+- **WARNING:** Modifies system configuration
+- Useful for testing on actual VMs or physical hardware
+- Packages remain installed after tests complete
+- Automatically installs required dependencies
+- All system commands are automatically run with `sudo` when needed
 
 ## Next Steps
 
