@@ -9,10 +9,14 @@ test-debian:
 	@echo "=== Testing on Debian 12 ==="
 	TEST_OS_IMAGE=debian:12 go test -v -timeout 20m
 
-# Test on Rocky Linux 9 (container mode)
+# Test on Rocky Linux (detects local version or uses container)
 test-rocky:
-	@echo "=== Testing on Rocky Linux 9 ==="
-	TEST_OS_IMAGE=rockylinux:9 go test -v -timeout 20m
+	@echo "=== Testing on Rocky Linux ==="
+	@if [ "$(TEST_EXEC_MODE)" = "local" ]; then \
+		TEST_EXEC_MODE=local go test -v -timeout 20m; \
+	else \
+		TEST_OS_IMAGE=rockylinux:9 go test -v -timeout 20m; \
+	fi
 
 # Test on Ubuntu 22.04 (container mode)
 test-ubuntu:

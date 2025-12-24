@@ -308,12 +308,12 @@ func (s *RegressionTestSuite) Test02_PostgreSQLSetup() {
 	var pgPackages []string
 	if isDebian {
 		pgPackages = []string{
-			"apt-get install -y postgresql-16",
+			"apt-get install -y postgresql-18",
 		}
 	} else {
 		pgPackages = []string{
-			"dnf install -y pgedge-postgresql16-server",
-			"dnf install -y pgedge-postgresql16",
+			"dnf install -y pgedge-postgresql18-server",
+			"dnf install -y pgedge-postgresql18",
 		}
 	}
 
@@ -327,25 +327,44 @@ func (s *RegressionTestSuite) Test02_PostgreSQLSetup() {
 	s.T().Log("Step 2: Initializing PostgreSQL database")
 	if isDebian {
 		// Debian/Ubuntu initialization
-		output, exitCode, err := s.execCmd(s.ctx, "pg_ctlcluster 16 main start")
+		output, exitCode, err := s.execCmd(s.ctx, "pg_ctlcluster 18 main start")
 		s.NoError(err, "Failed to start PostgreSQL: %s", output)
 		s.Equal(0, exitCode, "PostgreSQL start failed: %s", output)
 	} else {
 		// RHEL/Rocky initialization (manual, not systemd)
+
+		// Stop any existing PostgreSQL instance
+		s.T().Log("  Stopping any existing PostgreSQL instances...")
+		stopCmd := "su - postgres -c '/usr/pgsql-18/bin/pg_ctl -D /var/lib/pgsql/18/data stop' 2>/dev/null || true"
+		s.execCmd(s.ctx, stopCmd) // Ignore errors
+
+		// Also try older version for cleanup
+		stopCmd16 := "su - postgres -c '/usr/pgsql-16/bin/pg_ctl -D /var/lib/pgsql/16/data stop' 2>/dev/null || true"
+		s.execCmd(s.ctx, stopCmd16) // Ignore errors
+
+		time.Sleep(2 * time.Second)
+
+		// Remove existing data directory if it exists
+		s.T().Log("  Cleaning up existing data directory...")
+		cleanupCmd := "rm -rf /var/lib/pgsql/18/data"
+		s.execCmd(s.ctx, cleanupCmd)
+
 		// Initialize database
-		initCmd := "su - postgres -c '/usr/pgsql-16/bin/initdb -D /var/lib/pgsql/16/data'"
+		s.T().Log("  Initializing new PostgreSQL 18 database...")
+		initCmd := "su - postgres -c '/usr/pgsql-18/bin/initdb -D /var/lib/pgsql/18/data'"
 		output, exitCode, err := s.execCmd(s.ctx, initCmd)
 		s.NoError(err, "PostgreSQL initdb failed: %s", output)
 		s.Equal(0, exitCode, "PostgreSQL initdb failed: %s", output)
 
 		// Configure PostgreSQL to accept local connections
-		configCmd := `echo "host all all 127.0.0.1/32 md5" >> /var/lib/pgsql/16/data/pg_hba.conf`
+		configCmd := `echo "host all all 127.0.0.1/32 md5" >> /var/lib/pgsql/18/data/pg_hba.conf`
 		output, exitCode, err = s.execCmd(s.ctx, configCmd)
 		s.NoError(err, "Failed to configure pg_hba.conf: %s", output)
 		s.Equal(0, exitCode, "pg_hba.conf config failed: %s", output)
 
 		// Start PostgreSQL manually
-		startCmd := "su - postgres -c '/usr/pgsql-16/bin/pg_ctl -D /var/lib/pgsql/16/data -l /var/lib/pgsql/16/data/logfile start'"
+		s.T().Log("  Starting PostgreSQL 18...")
+		startCmd := "su - postgres -c '/usr/pgsql-18/bin/pg_ctl -D /var/lib/pgsql/18/data -l /var/lib/pgsql/18/data/logfile start'"
 		output, exitCode, err = s.execCmd(s.ctx, startCmd)
 		s.NoError(err, "PostgreSQL start failed: %s", output)
 		s.Equal(0, exitCode, "PostgreSQL start failed: %s", output)
@@ -363,6 +382,10 @@ func (s *RegressionTestSuite) Test02_PostgreSQLSetup() {
 
 	// Step 4: Create MCP database
 	s.T().Log("Step 4: Creating MCP database")
+	// First, try to drop the database if it exists
+	dropDbCmd := `su - postgres -c "psql -c \"DROP DATABASE IF EXISTS mcp_server;\""`
+	s.execCmd(s.ctx, dropDbCmd) // Ignore errors
+
 	createDbCmd := `su - postgres -c "psql -c \"CREATE DATABASE mcp_server;\""`
 	output, exitCode, err = s.execCmd(s.ctx, createDbCmd)
 	s.NoError(err, "Failed to create MCP database: %s", output)
