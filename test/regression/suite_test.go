@@ -840,6 +840,194 @@ func (s *RegressionTestSuite) Test07_PackageFilesVerification() {
 	s.T().Log("✓ All package files and permissions verified successfully")
 }
 
+// ========================================================================
+// TEST 08: Service Management (Start and Status Check)
+// ========================================================================
+func (s *RegressionTestSuite) Test08_ServiceManagement() {
+	s.T().Log("TEST 08: Testing MCP server service management")
+
+	// Ensure packages are installed first
+	s.Test03_MCPServerInstallation()
+
+	// Determine if we can use systemd based on execution mode
+	canUseSystemd := s.execMode == ModeContainerSystemd || s.execMode == ModeLocal
+
+	if canUseSystemd {
+		s.T().Log("Testing with systemd service management...")
+
+		// ====================================================================
+		// 1. Reload systemd daemon to recognize the new service
+		// ====================================================================
+		s.T().Log("Step 1: Reloading systemd daemon...")
+		output, exitCode, err := s.execCmd(s.ctx, "systemctl daemon-reload")
+		s.NoError(err, "Failed to reload systemd daemon: %s", output)
+		s.Equal(0, exitCode, "systemctl daemon-reload failed: %s", output)
+
+		// ====================================================================
+		// 2. Enable the service (so it starts on boot)
+		// ====================================================================
+		s.T().Log("Step 2: Enabling pgedge-postgres-mcp service...")
+		output, exitCode, err = s.execCmd(s.ctx, "systemctl enable pgedge-postgres-mcp.service")
+		s.NoError(err, "Failed to enable service: %s", output)
+		s.Equal(0, exitCode, "systemctl enable failed: %s", output)
+
+		// ====================================================================
+		// 3. Start the service
+		// ====================================================================
+		s.T().Log("Step 3: Starting pgedge-postgres-mcp service...")
+		output, exitCode, err = s.execCmd(s.ctx, "systemctl start pgedge-postgres-mcp.service")
+		s.NoError(err, "Failed to start service: %s", output)
+		s.Equal(0, exitCode, "systemctl start failed: %s", output)
+
+		// Wait for service to fully start
+		time.Sleep(5 * time.Second)
+
+		// ====================================================================
+		// 4. Check service status
+		// ====================================================================
+		s.T().Log("Step 4: Checking service status...")
+		output, exitCode, err = s.execCmd(s.ctx, "systemctl status pgedge-postgres-mcp.service")
+		// Note: systemctl status returns 0 if active, 3 if not running, 4 if unknown
+		if exitCode != 0 {
+			s.T().Logf("Service status output:\n%s", output)
+		}
+		s.NoError(err, "Failed to check service status: %s", output)
+		s.Equal(0, exitCode, "Service should be running (status command returned non-zero): %s", output)
+
+		// ====================================================================
+		// 5. Verify service is active
+		// ====================================================================
+		s.T().Log("Step 5: Verifying service is active...")
+		output, exitCode, err = s.execCmd(s.ctx, "systemctl is-active pgedge-postgres-mcp.service")
+		s.NoError(err, "Failed to check if service is active: %s", output)
+		s.Equal(0, exitCode, "Service is not active: %s", output)
+		s.Contains(output, "active", "Service should report as 'active'")
+
+		s.T().Logf("  ✓ Service is active: %s", strings.TrimSpace(output))
+
+		// ====================================================================
+		// 6. Check if service is listening on the configured port
+		// ====================================================================
+		s.T().Log("Step 6: Verifying service is listening on port 8080...")
+		// Try multiple times with a small delay
+		var portCheckSuccess bool
+		for i := 0; i < 5; i++ {
+			output, exitCode, _ = s.execCmd(s.ctx, "ss -tlnp | grep :8080 || netstat -tlnp | grep :8080 || lsof -i :8080")
+			if exitCode == 0 && output != "" {
+				portCheckSuccess = true
+				s.T().Logf("  ✓ Service is listening on port 8080:\n%s", strings.TrimSpace(output))
+				break
+			}
+			time.Sleep(2 * time.Second)
+		}
+
+		if !portCheckSuccess {
+			// Show service logs for debugging
+			logs, _, _ := s.execCmd(s.ctx, "journalctl -u pgedge-postgres-mcp.service -n 50 --no-pager")
+			s.T().Logf("Service logs:\n%s", logs)
+			s.Fail("Service is not listening on port 8080")
+		}
+
+		// ====================================================================
+		// 7. Test HTTP endpoint (basic connectivity)
+		// ====================================================================
+		s.T().Log("Step 7: Testing HTTP endpoint connectivity...")
+		output, exitCode, err = s.execCmd(s.ctx, "curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/ || echo 'curl_failed'")
+		if exitCode == 0 && !strings.Contains(output, "curl_failed") {
+			s.T().Logf("  ✓ HTTP endpoint responded with status: %s", strings.TrimSpace(output))
+		} else {
+			s.T().Logf("  ⚠ Could not reach HTTP endpoint (this may be expected if auth is required)")
+		}
+
+		s.T().Log("✓ Service management tests completed successfully (systemd mode)")
+
+	} else {
+		// Manual service testing (for standard containers without systemd)
+		s.T().Log("Testing with manual service management (no systemd)...")
+
+		// ====================================================================
+		// 1. Start the service manually in the background
+		// ====================================================================
+		s.T().Log("Step 1: Starting pgedge-postgres-mcp manually...")
+
+		// Create a simple script to run the service
+		startScript := `cat > /tmp/start-mcp.sh << 'EOF'
+#!/bin/bash
+/usr/bin/pgedge-postgres-mcp -config /etc/pgedge/postgres-mcp.yaml > /var/log/pgedge/postgres-mcp/server.log 2>&1 &
+echo $! > /tmp/mcp-server.pid
+EOF`
+		output, exitCode, err := s.execCmd(s.ctx, startScript)
+		s.NoError(err, "Failed to create start script: %s", output)
+		s.Equal(0, exitCode, "Create start script failed: %s", output)
+
+		// Make it executable
+		output, exitCode, err = s.execCmd(s.ctx, "chmod +x /tmp/start-mcp.sh")
+		s.NoError(err, "Failed to make start script executable: %s", output)
+		s.Equal(0, exitCode, "chmod failed: %s", output)
+
+		// Run the start script
+		output, exitCode, err = s.execCmd(s.ctx, "/tmp/start-mcp.sh")
+		s.NoError(err, "Failed to start service: %s", output)
+		s.Equal(0, exitCode, "Service start failed: %s", output)
+
+		// Wait for service to start
+		time.Sleep(5 * time.Second)
+
+		// ====================================================================
+		// 2. Check if process is running
+		// ====================================================================
+		s.T().Log("Step 2: Checking if service process is running...")
+		output, exitCode, err = s.execCmd(s.ctx, "ps aux | grep pgedge-postgres-mcp | grep -v grep")
+		s.NoError(err, "Failed to check process status: %s", output)
+		s.Equal(0, exitCode, "Service process is not running: %s", output)
+		s.Contains(output, "pgedge-postgres-mcp", "Service process should be running")
+
+		s.T().Logf("  ✓ Service process is running")
+
+		// ====================================================================
+		// 3. Check if service is listening on the configured port
+		// ====================================================================
+		s.T().Log("Step 3: Verifying service is listening on port 8080...")
+		var portCheckSuccess bool
+		for i := 0; i < 5; i++ {
+			output, exitCode, _ = s.execCmd(s.ctx, "ss -tlnp | grep :8080 || netstat -tlnp | grep :8080 || true")
+			if exitCode == 0 && strings.Contains(output, "8080") {
+				portCheckSuccess = true
+				s.T().Logf("  ✓ Service is listening on port 8080")
+				break
+			}
+			time.Sleep(2 * time.Second)
+		}
+
+		if !portCheckSuccess {
+			// Show service logs for debugging
+			logs, _, _ := s.execCmd(s.ctx, "cat /var/log/pgedge/postgres-mcp/server.log 2>/dev/null || echo 'No logs available'")
+			s.T().Logf("Service logs:\n%s", logs)
+			s.Fail("Service is not listening on port 8080")
+		}
+
+		// ====================================================================
+		// 4. Test HTTP endpoint (basic connectivity)
+		// ====================================================================
+		s.T().Log("Step 4: Testing HTTP endpoint connectivity...")
+		output, exitCode, err = s.execCmd(s.ctx, "curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/ || echo 'curl_failed'")
+		if exitCode == 0 && !strings.Contains(output, "curl_failed") {
+			s.T().Logf("  ✓ HTTP endpoint responded with status: %s", strings.TrimSpace(output))
+		} else {
+			s.T().Logf("  ⚠ Could not reach HTTP endpoint (this may be expected if auth is required)")
+		}
+
+		// ====================================================================
+		// 5. Stop the service (cleanup)
+		// ====================================================================
+		s.T().Log("Step 5: Stopping service (cleanup)...")
+		output, exitCode, err = s.execCmd(s.ctx, "kill $(cat /tmp/mcp-server.pid 2>/dev/null) 2>/dev/null || true")
+		s.NoError(err, "Failed to stop service: %s", output)
+
+		s.T().Log("✓ Service management tests completed successfully (manual mode)")
+	}
+}
+
 // Run the test suite
 func TestRegressionSuite(t *testing.T) {
 	suite.Run(t, new(RegressionTestSuite))
