@@ -330,10 +330,14 @@ func (s *RegressionTestSuite) printTestSummary() {
 
 	// Print final status
 	if failCount > 0 {
-		fmt.Printf("\n%s\n\n", text.FgRed.Sprint("❌ TEST SUITE FAILED"))
+		fmt.Printf("\n%s\n", text.FgRed.Sprint("❌ TEST SUITE FAILED"))
 	} else {
-		fmt.Printf("\n%s\n\n", text.FgGreen.Sprint("✅ TEST SUITE PASSED"))
+		fmt.Printf("\n%s\n", text.FgGreen.Sprint("✅ TEST SUITE PASSED"))
 	}
+
+	// Add separator to distinguish from Go test output
+	fmt.Println(strings.Repeat("=", 80))
+	fmt.Println()
 }
 
 // execCmd is a helper that automatically prepends sudo for local mode when needed
