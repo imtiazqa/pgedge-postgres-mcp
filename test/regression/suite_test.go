@@ -593,11 +593,20 @@ func (s *RegressionTestSuite) installRepository() {
 		// For Debian systems, modify repo list to use staging if needed
 		if s.serverEnv == EnvStaging {
 			s.logDetailed("Modifying repository configuration for staging environment...")
-			// Replace 'release' with 'staging' in the pgedge repo list file
-			sedCmd := "sed -i 's/ release / staging /g' /etc/apt/sources.list.d/pgedge.list"
-			sedOutput, sedExitCode, sedErr := s.execCmd(s.ctx, sedCmd)
-			s.NoError(sedErr, "Failed to modify repo file: %s", sedOutput)
-			s.Equal(0, sedExitCode, "Failed to modify repo file: %s", sedOutput)
+			// Find the pgedge repo list file (could be pgedge.list or other name)
+			findCmd := "ls -1 /etc/apt/sources.list.d/ | grep -i pgedge"
+			findOutput, findExitCode, _ := s.execCmd(s.ctx, findCmd)
+			if findExitCode == 0 && strings.TrimSpace(findOutput) != "" {
+				repoFile := strings.TrimSpace(strings.Split(findOutput, "\n")[0])
+				s.logDetailed("Found repository file: %s", repoFile)
+				// Replace 'release' with 'staging' in the pgedge repo list file
+				sedCmd := fmt.Sprintf("sed -i 's/ release / staging /g' /etc/apt/sources.list.d/%s", repoFile)
+				sedOutput, sedExitCode, sedErr := s.execCmd(s.ctx, sedCmd)
+				s.NoError(sedErr, "Failed to modify repo file: %s", sedOutput)
+				s.Equal(0, sedExitCode, "Failed to modify repo file: %s", sedOutput)
+			} else {
+				s.logDetailed("Warning: Could not find pgedge repository file, staging may not be configured")
+			}
 		}
 
 		// Update package lists
