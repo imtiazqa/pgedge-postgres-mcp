@@ -97,6 +97,13 @@ jobs:
           echo "Test configuration:"
           cat .test.env
 
+      - name: Set artifact name
+        id: artifact
+        run: |
+          # Sanitize OS image name for artifact (replace : with -)
+          SANITIZED_NAME=$(echo "${{ matrix.os_image }}" | sed 's/:/-/g')
+          echo "name=test-results-${SANITIZED_NAME}" >> $GITHUB_OUTPUT
+
       - name: Run regression tests
         working-directory: test/regression
         env:
@@ -115,7 +122,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results-${{ replace(matrix.os_image, ':', '-') }}
+          name: ${{ steps.artifact.outputs.name }}
           path: |
             test/regression/test-output.log
           retention-days: 30
