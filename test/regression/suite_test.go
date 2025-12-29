@@ -699,7 +699,9 @@ func (s *RegressionTestSuite) installPostgreSQL() {
 	s.logDetailed("Step 2: Initializing PostgreSQL database")
 	if isDebian {
 		// Debian/Ubuntu initialization
-		output, exitCode, err := s.execCmd(s.ctx, "pg_ctlcluster 18 main start")
+		// Use pg_ctlcluster with --skip-systemctl-redirect to bypass systemd
+		// This avoids the systemd PID file ownership issue on Ubuntu/Debian
+		output, exitCode, err := s.execCmd(s.ctx, "pg_ctlcluster --skip-systemctl-redirect 18 main start")
 		s.NoError(err, "Failed to start PostgreSQL: %s", output)
 		s.Equal(0, exitCode, "PostgreSQL start failed: %s", output)
 	} else {

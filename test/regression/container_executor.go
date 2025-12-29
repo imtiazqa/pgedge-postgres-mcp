@@ -43,36 +43,39 @@ func NewContainerExecutor(image string, enableSystemd bool) (*ContainerExecutor,
 
 // Start pulls image and starts container
 func (c *ContainerExecutor) Start(ctx context.Context) error {
-	// Pull image
-	reader, err := c.cli.ImagePull(ctx, c.image, types.ImagePullOptions{})
+	startTime := time.Now()
+
+	// Check if image exists locally first
+	fmt.Printf("🔍 Checking for image %s...\n", c.image)
+	_, _, err := c.cli.ImageInspectWithRaw(ctx, c.image)
 	if err != nil {
-		return fmt.Errorf("failed to pull image: %w", err)
-	}
-	io.Copy(io.Discard, reader)
-	reader.Close()
-
-	// Configure container based on systemd requirement
-	var cmd []string
-	var mounts []mount.Mount
-
-	if c.systemd {
-		// Systemd-enabled container configuration
-		// Use systemd as init process
-		cmd = []string{"/sbin/init"}
-
-		// Mount cgroup for systemd (WRITABLE for systemd to work properly)
-		mounts = []mount.Mount{
-			{
-				Type:     mount.TypeBind,
-				Source:   "/sys/fs/cgroup",
-				Target:   "/sys/fs/cgroup",
-				ReadOnly: false, // Must be writable for systemd
-			},
+		// Image doesn't exist locally, pull it
+		fmt.Printf("⬇️  Pulling image %s...\n", c.image)
+		pullStart := time.Now()
+		reader, err := c.cli.ImagePull(ctx, c.image, types.ImagePullOptions{})
+		if err != nil {
+			return fmt.Errorf("failed to pull image: %w", err)
 		}
+		io.Copy(io.Discard, reader)
+		reader.Close()
+		pullDuration := time.Since(pullStart)
+		fmt.Printf("   ✓ Image pull completed in %.1fs\n", pullDuration.Seconds())
 	} else {
-		// Regular container with sleep
-		cmd = []string{"/bin/bash", "-c", "sleep infinity"}
+		fmt.Printf("   ✓ Image found in local cache\n")
 	}
+
+	// For systemd mode, we need a two-stage process:
+	// 1. Start container with bash to check/install systemd
+	// 2. Stop and restart with /sbin/init or /lib/systemd/systemd
+	if c.systemd {
+		err := c.startWithSystemd(ctx)
+		totalDuration := time.Since(startTime)
+		fmt.Printf("⏱️  Total container startup time: %.1fs\n\n", totalDuration.Seconds())
+		return err
+	}
+
+	// Regular container with sleep
+	cmd := []string{"/bin/bash", "-c", "sleep infinity"}
 
 	// Create container
 	resp, err := c.cli.ContainerCreate(ctx,
@@ -82,12 +85,7 @@ func (c *ContainerExecutor) Start(ctx context.Context) error {
 			Tty:   true,
 		},
 		&container.HostConfig{
-			Privileged: true, // For systemd and package installation
-			Mounts:     mounts,
-			Tmpfs: map[string]string{
-				"/run":      "",
-				"/run/lock": "",
-			},
+			Privileged: true, // For package installation
 		},
 		nil, nil, c.name)
 	if err != nil {
@@ -101,19 +99,211 @@ func (c *ContainerExecutor) Start(ctx context.Context) error {
 		return fmt.Errorf("failed to start container: %w", err)
 	}
 
-	// Wait for container to be ready
-	if c.systemd {
-		// Wait longer for systemd to initialize
-		time.Sleep(5 * time.Second)
+	time.Sleep(2 * time.Second)
+	return nil
+}
 
-		// Verify systemd is running
-		output, exitCode, err := c.Exec(ctx, "systemctl --version")
-		if err != nil || exitCode != 0 {
-			return fmt.Errorf("systemd not running in container: %v (output: %s)", err, output)
-		}
-	} else {
-		time.Sleep(2 * time.Second)
+// startWithSystemd handles the special case of systemd-enabled containers
+func (c *ContainerExecutor) startWithSystemd(ctx context.Context) error {
+	// Mount cgroup for systemd (WRITABLE for systemd to work properly)
+	mounts := []mount.Mount{
+		{
+			Type:     mount.TypeBind,
+			Source:   "/sys/fs/cgroup",
+			Target:   "/sys/fs/cgroup",
+			ReadOnly: false, // Must be writable for systemd
+		},
 	}
+
+	// First, start with bash to check and install systemd if needed
+	fmt.Printf("📦 Creating temporary container...\n")
+	createStart := time.Now()
+	resp, err := c.cli.ContainerCreate(ctx,
+		&container.Config{
+			Image: c.image,
+			Cmd:   []string{"/bin/bash", "-c", "sleep infinity"},
+			Tty:   true,
+		},
+		&container.HostConfig{
+			Privileged: true,
+			Mounts:     mounts,
+			Tmpfs: map[string]string{
+				"/run":      "",
+				"/run/lock": "",
+			},
+			// Add DNS servers for network resolution
+			DNS: []string{"8.8.8.8", "8.8.4.4", "1.1.1.1"},
+		},
+		nil, nil, c.name)
+	if err != nil {
+		return fmt.Errorf("failed to create container: %w", err)
+	}
+
+	c.containerID = resp.ID
+	fmt.Printf("   ✓ Container created in %.1fs\n", time.Since(createStart).Seconds())
+
+	// Start container
+	startStart := time.Now()
+	if err := c.cli.ContainerStart(ctx, c.containerID, types.ContainerStartOptions{}); err != nil {
+		return fmt.Errorf("failed to start container: %w", err)
+	}
+
+	time.Sleep(2 * time.Second)
+	fmt.Printf("   ✓ Container started in %.1fs\n", time.Since(startStart).Seconds())
+
+	fmt.Printf("🔍 Checking for systemd...\n")
+	checkStart := time.Now()
+
+	// Check if systemd is installed
+	output, exitCode, _ := c.Exec(ctx, "test -f /sbin/init || test -f /usr/sbin/init || test -f /lib/systemd/systemd")
+	systemdExists := (exitCode == 0)
+	fmt.Printf("   ✓ systemd check completed in %.1fs\n", time.Since(checkStart).Seconds())
+
+	if !systemdExists {
+		fmt.Printf("⚠️  systemd not found - installing...\n")
+		installStart := time.Now()
+
+		// Install systemd based on OS
+		// Detect OS type
+		osOutput, _, err := c.Exec(ctx, "cat /etc/os-release")
+		if err != nil {
+			return fmt.Errorf("failed to detect OS: %w", err)
+		}
+
+		var installCmd string
+		if strings.Contains(strings.ToLower(osOutput), "ubuntu") || strings.Contains(strings.ToLower(osOutput), "debian") {
+			// Debian/Ubuntu - ultra-optimized for speed
+			// Use fastest mirrors and minimal updates
+			installCmd = `(
+apt-get update -qq -o Acquire::http::Timeout=5 -o Acquire::Retries=1 || true
+) && \
+DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+-o Dpkg::Options::="--force-confdef" \
+-o Dpkg::Options::="--force-confold" \
+-o Acquire::http::Timeout=5 \
+-o Acquire::Retries=1 \
+systemd systemd-sysv 2>&1 | grep -v "^Get:" | grep -v "^Fetched" || true && \
+apt-get clean && \
+rm -rf /var/lib/apt/lists/*`
+		} else {
+			// RHEL/AlmaLinux/Rocky
+			installCmd = "yum install -y systemd || dnf install -y systemd"
+		}
+
+		_, exitCode, err = c.Exec(ctx, installCmd)
+		if err != nil || exitCode != 0 {
+			return fmt.Errorf("failed to install systemd: %v (exit code: %d)", err, exitCode)
+		}
+		fmt.Printf("   ✓ systemd installed in %.1fs\n", time.Since(installStart).Seconds())
+	} else {
+		fmt.Printf("   ✓ systemd already present\n")
+	}
+
+	// Determine which init path is actually available in this container
+	// Try multiple possible paths
+	fmt.Printf("🔍 Detecting init binary path...\n")
+	detectStart := time.Now()
+	initPath := ""
+	possiblePaths := []string{
+		"/lib/systemd/systemd",
+		"/usr/lib/systemd/systemd",
+		"/sbin/init",
+		"/usr/sbin/init",
+	}
+
+	for _, path := range possiblePaths {
+		_, exitCode, _ := c.Exec(ctx, fmt.Sprintf("test -f %s", path))
+		if exitCode == 0 {
+			initPath = path
+			break
+		}
+	}
+
+	if initPath == "" {
+		return fmt.Errorf("no systemd init binary found after installation")
+	}
+	fmt.Printf("   ✓ Found init at %s (%.1fs)\n", initPath, time.Since(detectStart).Seconds())
+
+	// If systemd was installed, commit the container to preserve it
+	var finalImage string
+	if !systemdExists {
+		fmt.Printf("📦 Committing container with systemd...\n")
+		commitStart := time.Now()
+
+		// Commit the container to create a new image with systemd installed
+		commitResp, err := c.cli.ContainerCommit(ctx, c.containerID, types.ContainerCommitOptions{
+			Reference: c.image + "-systemd",
+		})
+		if err != nil {
+			return fmt.Errorf("failed to commit container with systemd: %w", err)
+		}
+		finalImage = commitResp.ID
+		fmt.Printf("   ✓ Commit completed in %.1fs\n", time.Since(commitStart).Seconds())
+	} else {
+		// systemd already present, use original image directly
+		finalImage = c.image
+	}
+
+	// Stop and remove temporary container
+	stopStart := time.Now()
+	// Use shorter timeout (2s) for temp container since it's just running sleep
+	timeout := 2
+	if err := c.cli.ContainerStop(ctx, c.containerID, container.StopOptions{Timeout: &timeout}); err != nil {
+		return fmt.Errorf("failed to stop container: %w", err)
+	}
+
+	// Remove the container
+	if err := c.cli.ContainerRemove(ctx, c.containerID, types.ContainerRemoveOptions{}); err != nil {
+		return fmt.Errorf("failed to remove container: %w", err)
+	}
+	fmt.Printf("   ✓ Temp container cleaned up in %.1fs\n", time.Since(stopStart).Seconds())
+
+	fmt.Printf("🚀 Starting container with systemd (using %s)...\n", initPath)
+	finalStart := time.Now()
+
+	// Create new container with systemd as init
+	resp, err = c.cli.ContainerCreate(ctx,
+		&container.Config{
+			Image: finalImage,
+			Cmd:   []string{initPath},
+			Tty:   true,
+		},
+		&container.HostConfig{
+			Privileged: true,
+			Mounts:     mounts,
+			Tmpfs: map[string]string{
+				"/run":      "",
+				"/run/lock": "",
+			},
+			// Add DNS servers for network resolution
+			DNS: []string{"8.8.8.8", "8.8.4.4", "1.1.1.1"},
+		},
+		nil, nil, c.name)
+	if err != nil {
+		return fmt.Errorf("failed to recreate container with systemd: %w", err)
+	}
+
+	c.containerID = resp.ID
+
+	// Start container with systemd
+	if err := c.cli.ContainerStart(ctx, c.containerID, types.ContainerStartOptions{}); err != nil {
+		return fmt.Errorf("failed to start container with systemd: %w", err)
+	}
+	fmt.Printf("   ✓ Final container started in %.1fs\n", time.Since(finalStart).Seconds())
+
+	// Wait for systemd to initialize
+	fmt.Printf("⏳ Waiting for systemd to initialize...\n")
+	initStart := time.Now()
+	time.Sleep(5 * time.Second)
+
+	// Verify systemd is running
+	output, exitCode, err = c.Exec(ctx, "systemctl --version")
+	if err != nil || exitCode != 0 {
+		return fmt.Errorf("systemd not running in container: %v (output: %s)", err, output)
+	}
+	fmt.Printf("   ✓ systemd initialized in %.1fs\n", time.Since(initStart).Seconds())
+
+	fmt.Printf("✅ Container ready with systemd\n\n")
 
 	return nil
 }
