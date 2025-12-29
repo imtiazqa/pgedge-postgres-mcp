@@ -860,3 +860,47 @@ If you are seeing a literal `{{arg_name}}` in output:
 - Ensure you passed the argument when calling the prompt.
 
 
+
+## Troubleshooting Prompts
+
+### Prompt Not Found
+
+**Error**: "Prompt 'prompt-name' not found"
+
+**Solutions**:
+
+* Verify the prompt name using `/prompts` (CLI) or the prompt dropdown (Web UI).
+* Check for typos in the prompt name.
+* Ensure the server is running the latest version.
+
+### Missing Required Argument
+
+**Error**: "Missing required argument: argument_name"
+
+**Solutions**:
+
+* Check the prompt's required arguments using `/prompts`.
+* Provide all required arguments in the command.
+* Use quotes around values with spaces.
+
+### Invalid Argument Format
+
+**Error**: "Invalid argument format: ... (expected key=value)"
+
+**Solutions**:
+
+* Use `key=value` format for all arguments.
+* Quote values containing spaces: `key="value with spaces"`.
+* Don't use spaces around the `=` sign.
+
+### Rate Limit Exceeded
+
+**Error**: "Rate limit reached for ..."
+
+**Solutions**:
+
+* Wait 60 seconds before retrying.
+* Use more targeted queries with WHERE clauses.
+* Reduce `max_output_tokens` in similarity_search.
+* Use `limit` parameter in queries.
+* Conversation history is automatically compacted to help prevent this.
