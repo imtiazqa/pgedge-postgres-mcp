@@ -1,23 +1,52 @@
-# Query Examples
+# Querying the Server
 
-This document provides example natural language queries you can use with the
-MCP server. All examples assume you're using Claude Desktop or another
-MCP client with the server configured.
+The following tips will help you get the most out of the MCP server when working with natural language queries and database interactions.
 
-## Table of Contents
+**Start with Schema Discovery**
 
-- [Basic Data Queries](#basic-data-queries)
-- [Schema Discovery](#schema-discovery)
-- [Configuration Management](#configuration-management)
-    - [Viewing Configuration](#viewing-configuration)
-    - [Modifying Configuration](#modifying-configuration)
+Before querying data, understand your database structure:
+```
+"Show me the database schema"
+"What tables are available?"
+```
 
-- [Multi-Database Queries](#multi-database-queries)
-    - [Temporary Connection (Single Query)](#temporary-connection-single-query)
-    - [Setting Default Database](#setting-default-database)
+**Use Specific Table Names**
 
-- [Advanced Queries](#advanced-queries)
-- [Connection String Format](#connection-string-format)
+Specific queries generate better SQL:
+```
+Good: "Show me orders from the last week"
+Better: "Show me all orders from the orders table created in the last 7 days"
+```
+
+**Reference Column Descriptions**
+
+If your database has column comments, the system will use them to generate more accurate queries.
+
+**Test Queries on Development First**
+
+When working with multiple databases, test queries on development environments:
+```
+"Show users at postgres://localhost/dev_db"
+```
+
+Then apply to production:
+```
+"Show users at postgres://prod-server/production_db"
+```
+
+**Use Read Replicas for Heavy Queries**
+
+For expensive analytical queries, use read replicas:
+```
+"Generate sales report from postgres://replica-01/production_readonly"
+```
+
+**Keep Connection Strings Secure**
+
+Never commit connection strings with passwords to version control. Use environment variables for the default connection, and be cautious when switching databases with embedded credentials.
+
+The following sections provide examples of natural language queries you can use with the MCP server. The examples assume you're using Claude Desktop or another MCP client with the server configured.
+
 
 ## Basic Data Queries
 
@@ -384,80 +413,6 @@ Common connection parameters:
 - `application_name`: Application name for logging
 - `options`: PostgreSQL runtime parameters
 
-## Tips and Best Practices
 
-### 1. Start with Schema Discovery
 
-Before querying data, understand your database structure:
-```
-"Show me the database schema"
-"What tables are available?"
-```
 
-### 2. Use Specific Table Names
-
-More specific queries generate better SQL:
-```
-Good: "Show me orders from the last week"
-Better: "Show me all orders from the orders table created in the last 7 days"
-```
-
-### 3. Reference Column Descriptions
-
-If your database has column comments (see main README for adding comments), the system will use them to generate more accurate queries.
-
-### 4. Test Queries on Development First
-
-When working with multiple databases, test queries on development environments:
-```
-"Show users at postgres://localhost/dev_db"
-```
-
-Then apply to production:
-```
-"Show users at postgres://prod-server/production_db"
-```
-
-### 5. Use Read Replicas for Heavy Queries
-
-For expensive analytical queries, use read replicas:
-```
-"Generate sales report from postgres://replica-01/production_readonly"
-```
-
-### 6. Keep Connection Strings Secure
-
-Never commit connection strings with passwords to version control. Use environment variables for the default connection, and be cautious when switching databases with embedded credentials.
-
-## Troubleshooting
-
-### Query Returns Unexpected Results
-
-Try asking Claude to show the generated SQL:
-```
-"Show me users created today and display the SQL query"
-```
-
-### Connection Errors
-
-If a connection fails, verify:
-
-1. Database is accessible from your machine
-2. Credentials are correct
-3. Firewall rules allow connections
-4. SSL settings match server requirements
-
-### Slow Queries
-
-For queries taking too long:
-
-1. Check database indexes
-2. Use read replicas for analytics
-3. Limit result sets: "Show me top 100 users"
-
-## More Examples
-
-For more complex scenarios, see:
-
-- [Troubleshooting Guide](../guide/troubleshooting.md) - Debugging and common issues
-- [Architecture Guide](../contributing/architecture.md) - Understanding how the server works

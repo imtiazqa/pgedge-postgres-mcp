@@ -860,6 +860,32 @@ If you are seeing a literal `{{arg_name}}` in output:
 - Ensure you passed the argument when calling the prompt.
 
 
+## Troubleshooting Queries
+
+### Query Returns Unexpected Results
+
+Try asking Claude to show the generated SQL:
+```
+"Show me users created today and display the SQL query"
+```
+
+### Connection Errors
+
+If a connection fails, verify:
+
+1. Database is accessible from your machine
+2. Credentials are correct
+3. Firewall rules allow connections
+4. SSL settings match server requirements
+
+### Slow Queries
+
+For queries taking too long:
+
+1. Check database indexes
+2. Use read replicas for analytics
+3. Limit result sets: "Show me top 100 users"
+
 
 ## Troubleshooting Prompts
 
