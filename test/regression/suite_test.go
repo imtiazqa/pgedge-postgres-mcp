@@ -703,7 +703,8 @@ func (s *RegressionTestSuite) installPostgreSQL() {
 		// This avoids the systemd PID file ownership issue on Ubuntu/Debian
 		output, exitCode, err := s.execCmd(s.ctx, "pg_ctlcluster --skip-systemctl-redirect 18 main start")
 		s.NoError(err, "Failed to start PostgreSQL: %s", output)
-		s.Equal(0, exitCode, "PostgreSQL start failed: %s", output)
+		// Exit code 0 = started successfully, Exit code 2 = already running (both are OK)
+		s.True(exitCode == 0 || exitCode == 2, "PostgreSQL start failed with unexpected exit code %d: %s", exitCode, output)
 	} else {
 		// RHEL/Rocky initialization (manual, not systemd)
 
