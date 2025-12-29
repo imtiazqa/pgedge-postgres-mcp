@@ -115,7 +115,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results-${{ matrix.os_image }}
+          name: test-results-${{ replace(matrix.os_image, ':', '-') }}
           path: |
             test/regression/test-output.log
           retention-days: 30
