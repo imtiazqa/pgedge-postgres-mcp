@@ -56,7 +56,7 @@ In the following example, the `execute_explain` tool analyzes a query that searc
 }
 ```
 
-Returns:
+`execute_explain` returns:
 
 ```
 EXPLAIN ANALYZE Results
@@ -180,10 +180,6 @@ Full embedding vector returned with 768 dimensions.
 
 The `get_schema_info` tool is the primary tool for discovering database tables and schema information. This tool retrieves detailed database schema information including tables, views, columns, data types, constraints, indexes, identity columns, default values, and comments from `pg_description`.
 
-!!! note
-
-    **ALWAYS** use this tool first when you need to know what tables exist in the database.
-
 **Use Cases**
 
 * **Discover Tables**: Find what tables exist before querying.
@@ -191,7 +187,12 @@ The `get_schema_info` tool is the primary tool for discovering database tables a
 * **Query Optimization**: Check `is_indexed` to write efficient queries.
 * **Vector Search Setup**: Use `vector_tables_only` to find tables for `similarity_search`.
 
-**Configuring `get_schema_info`**
+!!! note
+
+    **ALWAYS** use this tool first when you need to know what tables exist in the database.
+
+
+**Configuration**
 
 You can optionally use the following properties when configuring `get_schema_info`:
 
@@ -359,7 +360,7 @@ In the following example, the `read_resource` tool is configured to read a speci
 
 ## search_knowledgebase
 
-The `search_knowledgebase` tool searches the pre-built documentation knowledgebase for relevant information about PostgreSQL, pgEdge products, and other documented technologies.
+The `search_knowledgebase` tool searches the pre-built documentation knowledgebase for relevant information about Postgres, pgEdge products, and other documented technologies.
 
 **Use Cases**
 
@@ -368,12 +369,14 @@ The `search_knowledgebase` tool searches the pre-built documentation knowledgeba
 * **Best Practices**: Find recommendations and guidelines.
 * **Troubleshooting**: Search for error messages and solutions.
 
-**Note that:**
+!!! note
 
-* The knowledgebase must be enabled in server configuration.
-* A knowledgebase database must be built using the `kb-builder` tool.
+    * The knowledgebase must be enabled in the server configuration.
+    * A knowledgebase database must be built using the `kb-builder` tool.
 
-See [Knowledgebase Configuration](../advanced/knowledgebase.md) for details.
+    See [Knowledgebase Configuration](../advanced/knowledgebase.md) for details.
+
+**Configuration**
 
 To use the tool, enable the `search_knowledgebase` tool in your server configuration file:
 
@@ -491,6 +494,12 @@ Unlike the previous `semantic_search` and `search_similar` tools, this implement
 * **Research**: Find relevant sections in academic papers or reports.
 * **Code Search**: Find relevant code snippets (if using code embeddings).
 
+!!! tip
+
+    If you don't know the exact table name, call `get_schema_info` first to discover available tables with vector columns (use `vector_tables_only=true` to reduce output).
+
+**Similarity Search Behavior**
+
 `similarity_search` performs the following steps:
 
 1. Automatically detects pgvector columns in your table and corresponding text columns.
@@ -502,13 +511,11 @@ Unlike the previous `semantic_search` and `search_similar` tools, this implement
 7. Applies Maximal Marginal Relevance to avoid returning too many chunks from the same document.
 8. Returns as many relevant chunks as possible within the token limit (default: 1000 tokens).
 
-!!! tip
+**Configuration**
 
-    If you don't know the exact table name, call `get_schema_info` first to discover available tables with vector columns (use `vector_tables_only=true` to reduce output).
+When configuring similarity_search:
 
-**Note that:**
-
-* The table must have at least one pgvector column.
+* Your table must have at least one pgvector column.
 * Embedding generation must be enabled in server configuration.
 * Corresponding text columns must exist (e.g., `title` for `title_embedding`).
 
@@ -533,15 +540,10 @@ You can improve tool performance by:
 * Using higher `lambda` (0.7-0.8) for focused queries, lower (0.4-0.5) for exploratory search.
 * Adjusting `chunk_size_tokens` based on your documents (smaller chunks for dense content).
 
-In the following example, the SQL statement creates an index on the vector column for faster search.
 
-```sql
-CREATE INDEX ON wikipedia_articles USING ivfflat (content_embedding vector_cosine_ops);
-```
+**Example - Wikipedia Search**
 
-**Example** - Wikipedia Search:
-
-In the following example, the `similarity_search` tool searches Wikipedia articles for information about PostgreSQL vector similarity search.
+In the following example, the `similarity_search` tool searches Wikipedia articles for information about PostgreSQL vector similarity search. With the configuration:
 
 ```json
 {
@@ -554,7 +556,13 @@ In the following example, the `similarity_search` tool searches Wikipedia articl
 }
 ```
 
-Returns:
+Indexed to improve performance:
+
+```sql
+CREATE INDEX ON wikipedia_articles USING ivfflat (content_embedding vector_cosine_ops);
+```
+
+The `similarity_search` tool returns:
 
 {% raw %}
 
