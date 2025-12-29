@@ -111,10 +111,22 @@ func (s *RegressionTestSuite) SetupSuite() {
 	err = s.executor.Start(s.ctx)
 	s.Require().NoError(err, "Failed to start executor")
 
+	// For local mode, detect the actual system OS
+	if s.execMode == ModeLocal {
+		osInfo, err := s.executor.GetOSInfo(s.ctx)
+		if err == nil {
+			s.osImage = osInfo
+		} else {
+			s.osImage = "Local System"
+		}
+	}
+
 	if s.logLevel == LogLevelDetailed {
 		s.T().Logf("Execution mode: %s", s.execMode.String())
 		if s.execMode != ModeLocal {
 			s.T().Logf("Testing with OS image: %s", s.osImage)
+		} else {
+			s.T().Logf("Testing on: %s", s.osImage)
 		}
 		s.T().Logf("Server environment: %s", s.serverEnv.String())
 		s.T().Logf("Executor (%s) started successfully", s.execMode.String())
@@ -432,6 +444,8 @@ func (s *RegressionTestSuite) printTestSummary() {
 	fmt.Printf("\n📋 Execution Mode: %s\n", text.FgCyan.Sprint(s.execMode.String()))
 	if s.execMode != ModeLocal {
 		fmt.Printf("🐳 OS Image: %s\n", text.FgCyan.Sprint(s.osImage))
+	} else {
+		fmt.Printf("💻 System OS: %s\n", text.FgCyan.Sprint(s.osImage))
 	}
 
 	// Show server environment with appropriate emoji
