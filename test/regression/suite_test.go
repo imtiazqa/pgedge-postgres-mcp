@@ -1295,37 +1295,33 @@ func (s *RegressionTestSuite) Test08_ServiceManagement() {
 		s.T().Logf("  ✓ Service is active: %s", strings.TrimSpace(output))
 
 		// ====================================================================
-		// 7. Check if service is listening on the configured port
+		// 7. Test HTTP endpoint connectivity (this also verifies port is listening)
 		// ====================================================================
-		s.logDetailed("Step 7: Verifying service is listening on port 8080...")
-		// Try multiple times with a small delay
-		var portCheckSuccess bool
+		s.logDetailed("Step 7: Testing HTTP endpoint connectivity...")
+		// Try to connect with curl (proves service is listening on port 8080)
+		var httpCheckSuccess bool
+		var httpStatus string
 		for i := 0; i < 5; i++ {
-			output, exitCode, _ = s.execCmd(s.ctx, "ss -tlnp | grep :8080 || netstat -tlnp | grep :8080 || lsof -i :8080")
-			if exitCode == 0 && output != "" {
-				portCheckSuccess = true
-				s.T().Logf("  ✓ Service is listening on port 8080:\n%s", strings.TrimSpace(output))
+			output, exitCode, _ = s.execCmd(s.ctx, "curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/ 2>/dev/null || echo 'curl_failed'")
+			if exitCode == 0 && !strings.Contains(output, "curl_failed") {
+				httpCheckSuccess = true
+				httpStatus = strings.TrimSpace(output)
+				s.T().Logf("  ✓ HTTP endpoint responded with status: %s (service is listening on port 8080)", httpStatus)
 				break
 			}
 			time.Sleep(2 * time.Second)
 		}
 
-		if !portCheckSuccess {
+		if !httpCheckSuccess {
 			// Show service logs for debugging
 			logs, _, _ := s.execCmd(s.ctx, "journalctl -u pgedge-postgres-mcp.service -n 50 --no-pager")
 			s.T().Logf("Service logs:\n%s", logs)
-			s.Fail("Service is not listening on port 8080")
-		}
 
-		// ====================================================================
-		// 8. Test HTTP endpoint (basic connectivity)
-		// ====================================================================
-		s.logDetailed("Step 8: Testing HTTP endpoint connectivity...")
-		output, exitCode, err = s.execCmd(s.ctx, "curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/ || echo 'curl_failed'")
-		if exitCode == 0 && !strings.Contains(output, "curl_failed") {
-			s.T().Logf("  ✓ HTTP endpoint responded with status: %s", strings.TrimSpace(output))
-		} else {
-			s.T().Logf("  ⚠ Could not reach HTTP endpoint (this may be expected if auth is required)")
+			// Also try port check commands for additional debugging info
+			portCheck, _, _ := s.execCmd(s.ctx, "ss -tlnp | grep :8080 || netstat -tlnp | grep :8080 || lsof -i :8080 || echo 'No port check tools available'")
+			s.T().Logf("Port check output:\n%s", portCheck)
+
+			s.Fail("HTTP endpoint is not responding on port 8080")
 		}
 
 		s.T().Log("✓ Service management tests completed successfully (systemd mode)")
