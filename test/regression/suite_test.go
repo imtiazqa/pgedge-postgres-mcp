@@ -383,17 +383,9 @@ func (s *RegressionTestSuite) TearDownSuite() {
 
 // formatDuration formats a duration with consistent width for table alignment
 func formatDuration(d time.Duration) string {
-	d = d.Round(time.Millisecond)
-
-	// For durations >= 1 second, show with decimal seconds
-	if d >= time.Second {
-		seconds := float64(d) / float64(time.Second)
-		return fmt.Sprintf("%6.3fs", seconds)
-	}
-
-	// For durations < 1 second, show as milliseconds
-	ms := d.Milliseconds()
-	return fmt.Sprintf("%5dms", ms)
+	// Always show as seconds with 3 decimal places for consistency
+	seconds := float64(d) / float64(time.Second)
+	return fmt.Sprintf("%.3fs", seconds)
 }
 
 // printTestSummary displays a beautiful formatted summary of test results
