@@ -415,10 +415,10 @@ func (s *RegressionTestSuite) printTestSummary() {
 
 	// Configure column alignments for better display
 	t.SetColumnConfigs([]table.ColumnConfig{
-		{Number: 1, Align: text.AlignRight, WidthMin: 3, WidthMax: 3},    // # column - right aligned, fixed width
-		{Number: 2, Align: text.AlignLeft, WidthMin: 35},                  // Test Name - left aligned
-		{Number: 3, Align: text.AlignLeft, WidthMin: 12, WidthMax: 12},   // Status - left aligned, fixed width
-		{Number: 4, Align: text.AlignRight, WidthMin: 10, WidthMax: 10},  // Duration - right aligned, fixed width
+		{Number: 1, Align: text.AlignRight},  // # column - right aligned
+		{Number: 2, Align: text.AlignLeft},   // Test Name - left aligned
+		{Number: 3, Align: text.AlignLeft},   // Status - left aligned
+		{Number: 4, Align: text.AlignRight},  // Duration - right aligned
 	})
 
 	// Add test results
@@ -429,19 +429,19 @@ func (s *RegressionTestSuite) printTestSummary() {
 		// Use simpler status format in CI to avoid rendering issues
 		if os.Getenv("CI") != "" {
 			if result.Status == "PASS" {
-				status = "  ✓ PASS"
+				status = "✓ PASS"
 			} else if result.Status == "FAIL" {
-				status = "  ✗ FAIL"
+				status = "✗ FAIL"
 			} else {
-				status = fmt.Sprintf("  ⚠ %s", result.Status)
+				status = fmt.Sprintf("⚠ %s", result.Status)
 			}
 		} else {
 			if result.Status == "PASS" {
-				status = text.FgGreen.Sprintf("  ✓ PASS")
+				status = text.FgGreen.Sprintf("✓ PASS")
 			} else if result.Status == "FAIL" {
-				status = text.FgRed.Sprintf("  ✗ FAIL")
+				status = text.FgRed.Sprintf("✗ FAIL")
 			} else {
-				status = text.FgYellow.Sprintf("  ⚠ %s", result.Status)
+				status = text.FgYellow.Sprintf("⚠ %s", result.Status)
 			}
 		}
 
@@ -459,20 +459,20 @@ func (s *RegressionTestSuite) printTestSummary() {
 	// Use simpler format in CI to avoid rendering issues
 	if os.Getenv("CI") != "" {
 		if failCount > 0 {
-			statusSummary = fmt.Sprintf("%d passed, %d failed", passCount, failCount)
+			statusSummary = fmt.Sprintf("%d/%d passed", passCount, failCount)
 		} else {
-			statusSummary = fmt.Sprintf("All %d tests passed! ✨", passCount)
+			statusSummary = fmt.Sprintf("%d/%d passed ✨", passCount, totalTests)
 		}
 	} else {
 		if failCount > 0 {
-			statusSummary = text.FgRed.Sprintf("%d passed, %d failed", passCount, failCount)
+			statusSummary = text.FgRed.Sprintf("%d/%d passed", passCount, totalTests)
 		} else {
-			statusSummary = text.FgGreen.Sprintf("All %d tests passed! ✨", passCount)
+			statusSummary = text.FgGreen.Sprintf("%d/%d passed ✨", passCount, totalTests)
 		}
 	}
 
 	totalDurationStr := formatDuration(totalDuration)
-	t.AppendFooter(table.Row{"", fmt.Sprintf("Total: %d tests", totalTests), statusSummary, totalDurationStr})
+	t.AppendFooter(table.Row{"", fmt.Sprintf("TOTAL: %d tests", totalTests), statusSummary, totalDurationStr})
 
 	// Print banner and table
 	fmt.Println("\n" + strings.Repeat("=", 80))
