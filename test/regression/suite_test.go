@@ -398,19 +398,21 @@ func (s *RegressionTestSuite) printTestSummary() {
 	// Create the summary table
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
-
-	// Use simpler style for CI environments
-	if os.Getenv("CI") != "" {
-		t.SetStyle(table.StyleLight)
-	} else {
-		t.SetStyle(table.StyleColoredBright)
-	}
+	t.SetStyle(table.StyleColoredBright)
 
 	// Configure title
 	t.SetTitle("🧪 pgEdge MCP Regression Test Suite - Summary")
 
 	// Add headers
 	t.AppendHeader(table.Row{"#", "Test Name", "Status", "Duration"})
+
+	// Configure column alignments for better display
+	t.SetColumnConfigs([]table.ColumnConfig{
+		{Number: 1, Align: text.AlignRight},  // # column - right aligned
+		{Number: 2, Align: text.AlignLeft},   // Test Name - left aligned
+		{Number: 3, Align: text.AlignCenter}, // Status - centered
+		{Number: 4, Align: text.AlignRight},  // Duration - right aligned
+	})
 
 	// Add test results
 	for i, result := range s.testResults {
