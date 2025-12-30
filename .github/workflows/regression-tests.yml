@@ -68,10 +68,19 @@ jobs:
           go mod download
           go mod verify
 
+      - name: Clean up Docker
+        run: |
+          echo "Cleaning up old Docker images and containers..."
+          docker ps -a --filter "name=mcp-test-" -q | xargs -r docker rm -f 2>/dev/null || true
+          docker images --filter "reference=*-systemd" -q | xargs -r docker rmi -f 2>/dev/null || true
+          docker image prune -f
+
       - name: Pull Docker image
         run: |
           echo "Pulling Docker image: ${{ matrix.os_image }}"
           docker pull ${{ matrix.os_image }}
+          echo "Verifying pulled image:"
+          docker images ${{ matrix.os_image }}
 
       - name: Configure test environment
         working-directory: test/regression
