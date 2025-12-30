@@ -108,6 +108,11 @@ jobs:
         working-directory: test/regression
         env:
           CI: true
+          TEST_EXEC_MODE: container-systemd
+          TEST_SERVER_ENV: ${{ github.event.inputs.server_env || 'live' }}
+          TEST_OS_IMAGE: ${{ matrix.os_image }}
+          TEST_LOG_LEVEL: ${{ github.event.inputs.log_level || 'minimal' }}
+          TEST_TIMEOUT: 45m
         run: |
           echo "=========================================="
           echo "Running regression tests"
@@ -191,6 +196,11 @@ jobs:
         working-directory: test/regression
         env:
           CI: true
+          TEST_EXEC_MODE: container-systemd
+          TEST_SERVER_ENV: live
+          TEST_OS_IMAGE: almalinux:10
+          TEST_LOG_LEVEL: minimal
+          TEST_TIMEOUT: 45m
         run: go test -v -timeout 45m -run TestRegressionSuite
 
       - name: Cleanup
