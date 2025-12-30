@@ -378,8 +378,21 @@ func (s *RegressionTestSuite) logDetailed(format string, args ...interface{}) {
 	}
 }
 
+// showProgressIndicator displays a moving PostgreSQL elephant to indicate test is running
+func (s *RegressionTestSuite) showProgressIndicator() {
+	// Display moving elephant progress indicator
+	// This appears after setup and before test execution
+	// Only show in container modes (not local mode)
+	if s.execMode != ModeLocal {
+		s.T().Log("🐘 → → → → → →  Test starting...")
+	}
+}
+
 // SetupTest runs before each test
 func (s *RegressionTestSuite) SetupTest() {
+	// Show progress indicator that test is starting
+	s.showProgressIndicator()
+
 	s.logDetailed("=== Starting test: %s ===", s.T().Name())
 
 	// Track test start time
@@ -490,10 +503,10 @@ func (s *RegressionTestSuite) printTestSummary() {
 
 	// Configure column alignments for better display
 	t.SetColumnConfigs([]table.ColumnConfig{
-		{Number: 1, Align: text.AlignRight},  // # column - right aligned
-		{Number: 2, Align: text.AlignLeft},   // Test Name - left aligned
-		{Number: 3, Align: text.AlignLeft},   // Status - left aligned
-		{Number: 4, Align: text.AlignRight},  // Duration - right aligned
+		{Number: 1, Align: text.AlignRight}, // # column - right aligned
+		{Number: 2, Align: text.AlignLeft},  // Test Name - left aligned
+		{Number: 3, Align: text.AlignLeft},  // Status - left aligned
+		{Number: 4, Align: text.AlignRight}, // Duration - right aligned
 	})
 
 	// Add test results
