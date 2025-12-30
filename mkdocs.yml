@@ -96,7 +96,7 @@ nav:
       - Tools: reference/tools.md
       - Resources: reference/resources.md
       - Prompts: reference/prompts.md
-      - Examples: reference/examples.md
+      - Querying the Server: reference/examples.md
       - Configuration Examples:
           - Server: reference/config-examples/server.md
           - API Tokens: reference/config-examples/tokens.md
