@@ -43,6 +43,9 @@ type Executor interface {
 
 	// Mode returns the execution mode
 	Mode() ExecutionMode
+
+	// GetOSInfo returns OS information
+	GetOSInfo(ctx context.Context) (string, error)
 }
 
 // NewExecutor creates an executor based on the execution mode
