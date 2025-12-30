@@ -405,6 +405,8 @@ func (s *RegressionTestSuite) printTestSummary() {
 	// Create the summary table
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
+
+	// Use ColoredBright - has best color coverage despite small edge gaps
 	t.SetStyle(table.StyleColoredBright)
 
 	// Configure title
