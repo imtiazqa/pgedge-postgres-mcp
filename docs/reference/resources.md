@@ -1,4 +1,4 @@
-# MCP Resources
+# Managing MCP Resources
 
 Resources provide read-only access to Postgres system information. Resources
 are accessed via the `read_resource` tool or through MCP protocol resource

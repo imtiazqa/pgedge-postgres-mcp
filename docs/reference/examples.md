@@ -1,6 +1,6 @@
 # Querying the Server
 
-The following tips will help you get the most out of the MCP server when working with natural language queries and database interactions.
+The following approach will help you get the most out of the MCP server when working with natural language queries and database interactions.
 
 **Start with Schema Discovery**
 
@@ -29,7 +29,7 @@ When working with multiple databases, test queries on development environments:
 "Show users at postgres://localhost/dev_db"
 ```
 
-Then apply to production:
+Then apply those queries to your production environment:
 ```
 "Show users at postgres://prod-server/production_db"
 ```
@@ -52,68 +52,75 @@ The following sections provide examples of natural language queries you can use 
 
 These queries work against your default database connection:
 
-### Customer/User Queries
+**Customer/User Queries**
+
 - "Show me all customers who made purchases in the last month"
 - "List all users who haven't logged in for more than 30 days"
 - "Find users who registered this week"
 - "Show me the most active users in the last quarter"
 
-### Product/Inventory Queries
+**Product/Inventory Queries**
+
 - "What are the top 10 products by revenue?"
 - "Find all orders with items that are out of stock"
 - "Show me products with low inventory levels"
 - "List products that haven't sold in the last 60 days"
 
-### Analytics Queries
+**Analytics Queries**
+
 - "Show me the average order value by customer segment"
 - "What's the total revenue for this month?"
 - "Calculate the conversion rate by marketing channel"
 - "Show daily active users for the past 7 days"
 
-### Time-Based Queries
+**Time-Based Queries**
+
 - "Show me all orders placed today"
 - "Find records created in the last hour"
 - "List events from the past week grouped by day"
 - "Show monthly sales trends for the last year"
 
+
 ## Schema Discovery
 
 Use these queries to understand your database structure:
 
-### General Schema Information
+**General Schema Information**
+
 - "Show me the database schema"
 - "What tables are available?"
 - "List all views in the database"
 - "Show me all tables in the public schema"
 
-### Table Details
+**Table Details**
+
 - "Describe the customers table"
 - "What columns are in the orders table?"
 - "Show me the structure of the users table"
 - "What data types are in the products table?"
 
-### Relationship Queries
+**Relationship Queries**
+
 - "What tables reference the users table?"
 - "Show me foreign key relationships"
 - "Which tables are related to orders?"
 
+
 ## Configuration Management
 
-The MCP server provides access to PostgreSQL configuration
-parameters through the `pg://settings` resource and the
-`set_pg_configuration` tool.
+The MCP server provides access to Postgres configuration parameters through the `pg://settings` resource and the [`set_pg_configuration`](../guide/security_mgmt.md#configuration-management) tool.
 
-### Viewing Configuration
+**Viewing Configuration Details**
 
-Access the `pg://settings` resource to view all PostgreSQL configuration parameters:
+Access the `pg://settings` resource to view all PostgreSQL configuration parameters.
 
-**Resource Access:**
+**Resource Access**
 
 - "Show me the pg://settings resource"
 - "Read the PostgreSQL settings resource"
 - "Display server configuration from pg://settings"
 
-**Example Questions About Configuration:**
+**Example Questions About Configuration**
 
 - "What is the current value of max_connections?"
 - "Show me all memory-related configuration parameters"
@@ -121,7 +128,7 @@ Access the `pg://settings` resource to view all PostgreSQL configuration paramet
 - "What are the default values for connection settings?"
 - "Show me all configuration parameters that have been changed from defaults"
 
-**The resource returns:**
+**The resource returns**
 
 - Current value
 - Default value
