@@ -192,9 +192,6 @@ In the following example, the prompt designs a comprehensive production-ready sc
 /prompt design-schema requirements="E-commerce platform" full_featured="true"
 ```
 
-
-
-
 ### diagnose-query-issue
 
 diagnose-query-issue systematically diagnoses why queries are failing or returning unexpected results. `diagnose-query-issue`:
@@ -374,6 +371,8 @@ In the following example, the prompt sets up semantic search to find information
 
 ## Using Prompts
 
+The following sections explain how to execute prompts in different environments.
+
 ### CLI Client
 
 Prompts are executed using the `/prompt` slash command:
@@ -503,7 +502,7 @@ In the following example, the JSON-RPC request retrieves a specific prompt with 
 To add a custom prompt:
 
 1. Create a new file in `internal/prompts/`.
-2. Implement a function that returns a `Prompt` struct.
+2. Implement a function that returns a `Prompt` structure.
 3. Define the prompt name, description, and arguments.
 4. Implement the handler function that returns a `mcp.PromptResult`.
 5. Register the prompt in `registry.go`.
