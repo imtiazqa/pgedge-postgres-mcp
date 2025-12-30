@@ -53,13 +53,14 @@ type TestResult struct {
 // RegressionTestSuite runs basic regression tests
 type RegressionTestSuite struct {
 	suite.Suite
-	ctx       context.Context
-	executor  Executor
-	osImage   string
-	repoURL   string
-	execMode  ExecutionMode
-	logLevel  LogLevel
-	serverEnv ServerEnvironment
+	ctx           context.Context
+	executor      Executor
+	osImage       string // Original image tag (e.g., "almalinux:10")
+	osDisplayName string // Pretty OS name for display (e.g., "AlmaLinux 10.0")
+	repoURL       string
+	execMode      ExecutionMode
+	logLevel      LogLevel
+	serverEnv     ServerEnvironment
 
 	// Track setup state to avoid redundant operations
 	setupState struct {
@@ -111,21 +112,23 @@ func (s *RegressionTestSuite) SetupSuite() {
 	err = s.executor.Start(s.ctx)
 	s.Require().NoError(err, "Failed to start executor")
 
-	// Detect the actual OS from the executor (works for both local and container modes)
+	// Detect the actual OS from the executor for display purposes
 	osInfo, err := s.executor.GetOSInfo(s.ctx)
 	if err == nil && osInfo != "" {
-		s.osImage = osInfo
+		s.osDisplayName = osInfo
 	} else if s.execMode == ModeLocal {
-		s.osImage = "Local System"
+		s.osDisplayName = "Local System"
+	} else {
+		// For container mode, use image tag as fallback
+		s.osDisplayName = s.osImage
 	}
-	// For container mode, keep the original image name if detection fails
 
 	if s.logLevel == LogLevelDetailed {
 		s.T().Logf("Execution mode: %s", s.execMode.String())
 		if s.execMode != ModeLocal {
-			s.T().Logf("Testing with OS image: %s", s.osImage)
+			s.T().Logf("Testing with OS image: %s", s.osDisplayName)
 		} else {
-			s.T().Logf("Testing on: %s", s.osImage)
+			s.T().Logf("Testing on: %s", s.osDisplayName)
 		}
 		s.T().Logf("Server environment: %s", s.serverEnv.String())
 		s.T().Logf("Executor (%s) started successfully", s.execMode.String())
@@ -442,9 +445,9 @@ func (s *RegressionTestSuite) printTestSummary() {
 	// Print execution context
 	fmt.Printf("\n📋 Execution Mode: %s\n", text.FgCyan.Sprint(s.execMode.String()))
 	if s.execMode != ModeLocal {
-		fmt.Printf("🐳 OS Image: %s\n", text.FgCyan.Sprint(s.osImage))
+		fmt.Printf("🐳 OS Image: %s\n", text.FgCyan.Sprint(s.osDisplayName))
 	} else {
-		fmt.Printf("💻 System OS: %s\n", text.FgCyan.Sprint(s.osImage))
+		fmt.Printf("💻 System OS: %s\n", text.FgCyan.Sprint(s.osDisplayName))
 	}
 
 	// Show server environment with appropriate emoji
