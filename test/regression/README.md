@@ -12,6 +12,9 @@ This test suite validates:
 4. ✅ Installation validation (files, permissions, services)
 5. ✅ Token management commands
 6. ✅ User management commands
+7. ✅ Package files and permissions verification
+8. ✅ Service management (start and status check)
+9. ✅ MCP server stdio mode with database connectivity
 
 ## Execution Modes
 
@@ -114,6 +117,8 @@ make test-one TEST=Test04_InstallationValidation
 make test-one TEST=Test05_TokenManagement
 make test-one TEST=Test06_UserManagement
 make test-one TEST=Test07_PackageFilesVerification
+make test-one TEST=Test08_ServiceManagement
+make test-one TEST=Test09_StdioMode
 ```
 
 ### Custom OS Image
@@ -259,6 +264,26 @@ dependencies needed for package management:
   - `/var/log/pgedge/postgres-mcp` (755, pgedge:pgedge)
   - `/var/log/pgedge/nla-web` (755, pgedge:pgedge)
   - Lists log files inside postgres-mcp and nla-web directories
+
+### Test 08: Service Management
+
+- Reloads systemd daemon
+- Enables the pgedge-postgres-mcp service
+- Starts the service (systemd or manual mode)
+- Verifies service is active
+- Tests HTTP endpoint connectivity on port 8080
+- Validates service is listening and responding
+
+### Test 09: MCP Server Stdio Mode Testing
+
+- Creates stdio mode configuration
+- Starts MCP server in stdio mode
+- Sends initialize request via stdin
+- Verifies JSON-RPC responses via stdout
+- Tests database connectivity by listing tools
+- Executes actual database query (get_schema_info)
+- Validates schema data is retrieved successfully
+- Verifies stdio mode stops cleanly
 
 ## Configuration
 
