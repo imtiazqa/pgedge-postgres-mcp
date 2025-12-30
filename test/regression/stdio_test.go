@@ -320,10 +320,10 @@ SCRIPT`
 
 			if attempt == 1 {
 				s.T().Logf("  ⚠ MCP server process still running (PIDs: %s), stopping with SIGTERM...", pids)
-				s.execCmd(s.ctx, "kill "+pids)
+				s.execCmd(s.ctx, "sudo kill "+pids+" || kill "+pids)
 			} else if attempt == 2 {
 				s.T().Logf("  ⚠ MCP server process still running (PIDs: %s), force killing with SIGKILL...", pids)
-				s.execCmd(s.ctx, "kill -9 "+pids)
+				s.execCmd(s.ctx, "sudo kill -9 "+pids+" || kill -9 "+pids)
 			}
 		}
 		time.Sleep(2 * time.Second)
