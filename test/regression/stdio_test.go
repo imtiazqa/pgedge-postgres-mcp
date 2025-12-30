@@ -311,8 +311,13 @@ SCRIPT`
 		}
 
 		// Get the PIDs and kill them directly
+		// PIDs may be on separate lines, so join them with spaces
 		pids := strings.TrimSpace(output)
 		if pids != "" && pids != "no-process" {
+			// Replace newlines with spaces to handle multiple PIDs
+			pids = strings.ReplaceAll(pids, "\n", " ")
+			pids = strings.TrimSpace(pids)
+
 			if attempt == 1 {
 				s.T().Logf("  ⚠ MCP server process still running (PIDs: %s), stopping with SIGTERM...", pids)
 				s.execCmd(s.ctx, "kill "+pids)
