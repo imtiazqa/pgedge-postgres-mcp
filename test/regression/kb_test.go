@@ -52,14 +52,54 @@ func (s *RegressionTestSuite) Test09_KnowledgeBuilder() {
 	s.T().Log(fmt.Sprintf("  ✓ Created KB database directory: %s", kbPath))
 
 	// ====================================================================
-	// STEP 3: Generate a small KB database
+	// STEP 3: Create minimal test configuration
 	// ====================================================================
-	s.logDetailed("Step 3: Generating small KB database at custom path...")
+	s.logDetailed("Step 3: Creating minimal KB builder test configuration...")
+
+	// Create a minimal config for testing with just README files (fast, small)
+	kbConfigPath := fmt.Sprintf("%s/kb-test-config.yaml", kbPath)
+	kbDatabaseFile := fmt.Sprintf("%s/kb.db", kbPath)
+	kbDocSourcePath := fmt.Sprintf("%s/doc-source", kbPath)
+
+	kbConfigContent := `# Minimal KB builder config for regression testing
+# Note: database_path and doc_source_path will be overridden by command line flags
+
+sources:
+    # Use a small, fast source - just the pgvector README (no doc_path = root only)
+    - git_url: "https://github.com/pgvector/pgvector.git"
+      tag: "v0.8.1"
+      doc_path: ""
+      project_name: "pgvector"
+      project_version: "0.8.1"
+
+embeddings:
+    openai:
+        enabled: false
+    voyage:
+        enabled: false
+    ollama:
+        enabled: false
+`
+
+	createConfigCmd := fmt.Sprintf("cat > %s << 'EOF'\n%sEOF", kbConfigPath, kbConfigContent)
+	output, exitCode, err = s.execCmd(s.ctx, createConfigCmd)
+	s.NoError(err, "Failed to create KB test config: %s", output)
+	s.Equal(0, exitCode, "Create KB config exited with non-zero: %s", output)
+	s.T().Log("  ✓ Created minimal KB test configuration")
+
+	// ====================================================================
+	// STEP 4: Generate a small KB database
+	// ====================================================================
+	s.logDetailed("Step 4: Generating small KB database at custom path...")
 
 	// Build pgedge-nla-kb-builder command to generate database
-	// Use -c flag to specify config file and -d flag for database path
-	kbDatabaseFile := fmt.Sprintf("%s/kb.db", kbPath)
-	kbGenCmd := fmt.Sprintf("pgedge-nla-kb-builder -c /etc/pgedge/pgedge-nla-kb-builder.yaml -d %s", kbDatabaseFile)
+	// Use -c flag for config, -d for database path (parametrized)
+	// Note: We don't have a flag for doc_source_path, so we create the directory manually
+	output, exitCode, err = s.execCmd(s.ctx, fmt.Sprintf("mkdir -p %s", kbDocSourcePath))
+	s.NoError(err, "Failed to create doc source directory: %s", output)
+	s.Equal(0, exitCode, "mkdir doc source exited with non-zero: %s", output)
+
+	kbGenCmd := fmt.Sprintf("pgedge-nla-kb-builder -c %s -d %s", kbConfigPath, kbDatabaseFile)
 
 	s.T().Log("  Running pgedge-nla-kb-builder generate command...")
 	s.T().Logf("  Command: %s", kbGenCmd)
@@ -78,9 +118,9 @@ func (s *RegressionTestSuite) Test09_KnowledgeBuilder() {
 	}
 
 	// ====================================================================
-	// STEP 4: Verify KB database was created
+	// STEP 5: Verify KB database was created
 	// ====================================================================
-	s.logDetailed("Step 4: Verifying KB database files...")
+	s.logDetailed("Step 5: Verifying KB database files...")
 
 	// Check if the KB database directory exists and has content
 	output, exitCode, err = s.execCmd(s.ctx, fmt.Sprintf("ls -la %s", kbPath))
@@ -99,9 +139,9 @@ func (s *RegressionTestSuite) Test09_KnowledgeBuilder() {
 	s.T().Logf("  ✓ KB database created with %s file(s)", fileCount)
 
 	// ====================================================================
-	// STEP 5: Verify KB database structure
+	// STEP 6: Verify KB database structure
 	// ====================================================================
-	s.logDetailed("Step 5: Verifying KB database structure...")
+	s.logDetailed("Step 6: Verifying KB database structure...")
 
 	// Check for expected KB database files/directories
 	// The exact structure depends on kb implementation, adapt as needed
@@ -113,9 +153,9 @@ func (s *RegressionTestSuite) Test09_KnowledgeBuilder() {
 	s.T().Log("  ✓ KB database structure verified")
 
 	// ====================================================================
-	// STEP 6: Cleanup
+	// STEP 7: Cleanup
 	// ====================================================================
-	s.logDetailed("Step 6: Cleaning up test KB database...")
+	s.logDetailed("Step 7: Cleaning up test KB database...")
 
 	output, exitCode, err = s.execCmd(s.ctx, fmt.Sprintf("rm -rf %s", kbPath))
 	s.NoError(err, "Failed to remove KB database: %s", output)
