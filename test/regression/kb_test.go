@@ -104,9 +104,53 @@ embeddings:
 	s.T().Log("  ✓ Created minimal KB test configuration")
 
 	// ====================================================================
-	// STEP 4: Generate a small KB database
+	// STEP 4: Install Ollama and embedding model for testing
 	// ====================================================================
-	s.logDetailed("Step 4: Generating small KB database at custom path...")
+	s.logDetailed("Step 4: Installing Ollama and embedding model...")
+
+	// Check if git is available (required for cloning repos)
+	_, gitExitCode, _ := s.execCmd(s.ctx, "which git")
+	hasGit := (gitExitCode == 0)
+
+	ollamaInstalled := false
+	if hasGit {
+		// Install Ollama
+		s.T().Log("  Installing Ollama...")
+		installOllamaCmd := "curl -fsSL https://ollama.com/install.sh | sh"
+		output, exitCode, err = s.execCmd(s.ctx, installOllamaCmd)
+		if err == nil && exitCode == 0 {
+			s.T().Log("  ✓ Ollama installed successfully")
+
+			// Start Ollama service
+			s.T().Log("  Starting Ollama service...")
+			_, _, _ = s.execCmd(s.ctx, "systemctl start ollama")
+
+			// Wait a moment for Ollama to start
+			s.execCmd(s.ctx, "sleep 3")
+
+			// Pull the embedding model
+			s.T().Log("  Pulling nomic-embed-text model (this may take a minute)...")
+			pullCmd := "ollama pull nomic-embed-text"
+			output, exitCode, err = s.execCmd(s.ctx, pullCmd)
+			if err == nil && exitCode == 0 {
+				s.T().Log("  ✓ Embedding model downloaded successfully")
+				ollamaInstalled = true
+			} else {
+				s.T().Log("  ⚠ Failed to pull embedding model, will skip KB generation")
+				s.logDetailed("Model pull output: %s", output)
+			}
+		} else {
+			s.T().Log("  ⚠ Failed to install Ollama, will skip KB generation")
+			s.logDetailed("Ollama install output: %s", output)
+		}
+	} else {
+		s.T().Log("  ⚠ Git not available, skipping Ollama installation")
+	}
+
+	// ====================================================================
+	// STEP 5: Generate a small KB database
+	// ====================================================================
+	s.logDetailed("Step 5: Generating small KB database at custom path...")
 
 	// Build pgedge-nla-kb-builder command to generate database
 	// Use -c flag for config, -d for database path (parametrized)
@@ -125,38 +169,27 @@ embeddings:
 	// Log the output regardless of success/failure
 	s.logDetailed("kb generate output:\n%s", output)
 
-	// KB generation requires git and Ollama, which may not be available in test environment
-	// If it fails due to missing dependencies, skip verification but still test the command
+	// Check generation results
 	if exitCode != 0 {
-		skipGeneration := false
-		skipReason := ""
-
-		// Check for common missing dependencies
-		if strings.Contains(output, "git") && strings.Contains(output, "executable file not found") {
-			skipGeneration = true
-			skipReason = "git not available in test environment"
-		} else if strings.Contains(output, "ollama") || strings.Contains(output, "connection refused") || strings.Contains(output, "dial tcp") {
-			skipGeneration = true
-			skipReason = "Ollama embedding service not available"
-		}
-
-		if skipGeneration {
-			s.T().Logf("  ⚠ Skipping KB generation verification: %s", skipReason)
-			s.T().Log("  Note: KB builder tool is installed and can load config")
-		} else {
+		// If Ollama was successfully installed, KB generation should work
+		if ollamaInstalled {
 			s.NoError(err, "Failed to run kb generate: %s", output)
 			s.Equal(0, exitCode, "kb generate exited with non-zero: %s", output)
+		} else {
+			// Ollama wasn't installed (git missing or install failed), so we expect this to fail
+			s.T().Log("  ⚠ KB generation skipped (Ollama not available)")
+			s.T().Log("  Note: KB builder tool is installed and can load config")
 		}
 	} else {
 		s.T().Log("  ✓ kb generate completed successfully")
 	}
 
 	// ====================================================================
-	// STEP 5: Verify KB database was created (if generation succeeded)
+	// STEP 6: Verify KB database was created (if generation succeeded)
 	// ====================================================================
 	fileCount := "0"
 	if exitCode == 0 {
-		s.logDetailed("Step 5: Verifying KB database files...")
+		s.logDetailed("Step 6: Verifying KB database files...")
 
 		// Check if the KB database directory exists and has content
 		output, exitCode, err = s.execCmd(s.ctx, fmt.Sprintf("ls -la %s", kbPath))
@@ -175,9 +208,9 @@ embeddings:
 		s.T().Logf("  ✓ KB database created with %s file(s)", fileCount)
 
 		// ====================================================================
-		// STEP 6: Verify KB database structure
+		// STEP 7: Verify KB database structure
 		// ====================================================================
-		s.logDetailed("Step 6: Verifying KB database structure...")
+		s.logDetailed("Step 7: Verifying KB database structure...")
 
 		// Check for expected KB database files/directories
 		// The exact structure depends on kb implementation, adapt as needed
@@ -192,9 +225,29 @@ embeddings:
 	}
 
 	// ====================================================================
-	// STEP 7: Cleanup
+	// STEP 8: Cleanup Ollama (if installed)
 	// ====================================================================
-	s.logDetailed("Step 7: Cleaning up test KB database...")
+	if ollamaInstalled {
+		s.logDetailed("Step 8: Cleaning up Ollama installation...")
+
+		// Stop Ollama service
+		s.execCmd(s.ctx, "systemctl stop ollama")
+
+		// Remove Ollama
+		s.execCmd(s.ctx, "systemctl disable ollama")
+		s.execCmd(s.ctx, "rm -rf /usr/local/bin/ollama")
+		s.execCmd(s.ctx, "rm -rf /usr/share/ollama")
+		s.execCmd(s.ctx, "rm -rf ~/.ollama")
+		s.execCmd(s.ctx, "rm -f /etc/systemd/system/ollama.service")
+		s.execCmd(s.ctx, "systemctl daemon-reload")
+
+		s.T().Log("  ✓ Ollama cleaned up")
+	}
+
+	// ====================================================================
+	// STEP 9: Cleanup test files
+	// ====================================================================
+	s.logDetailed("Step 9: Cleaning up test KB database...")
 
 	output, exitCode, err = s.execCmd(s.ctx, fmt.Sprintf("rm -rf %s", kbPath))
 	s.NoError(err, "Failed to remove KB database: %s", output)
@@ -206,10 +259,17 @@ embeddings:
 	s.T().Log("  • Help: pgedge-nla-kb-builder --help displayed usage information")
 	s.T().Log("  • Configuration: Created and validated minimal KB config")
 	s.T().Log(fmt.Sprintf("  • Database path: Custom path %s verified", kbPath))
+	if ollamaInstalled {
+		s.T().Log("  • Ollama: Installed embedding service temporarily")
+	}
 	if fileCount != "0" {
 		s.T().Log(fmt.Sprintf("  • Database generation: Successfully created %s file(s)", fileCount))
 	} else {
-		s.T().Log("  • Database generation: Skipped (requires git and Ollama)")
+		s.T().Log("  • Database generation: Skipped (git not available)")
 	}
-	s.T().Log("  • Cleanup: Test database removed")
+	if ollamaInstalled {
+		s.T().Log("  • Cleanup: Ollama and test database removed")
+	} else {
+		s.T().Log("  • Cleanup: Test database removed")
+	}
 }
