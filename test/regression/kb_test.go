@@ -17,12 +17,12 @@ func (s *RegressionTestSuite) Test09_KnowledgeBuilder() {
 	s.ensureMCPPackagesInstalled()
 
 	// ====================================================================
-	// STEP 1: Print kb help
+	// STEP 1: Print KB help
 	// ====================================================================
-	s.logDetailed("Step 1: Printing kb help...")
+	s.logDetailed("Step 1: Printing KB help...")
 
-	// Run kb command with --help flag
-	output, exitCode, err := s.execCmd(s.ctx, "kb --help")
+	// Run pgedge-nla-kb-builder command with --help flag
+	output, exitCode, err := s.execCmd(s.ctx, "pgedge-nla-kb-builder --help")
 	s.NoError(err, "Failed to run kb --help: %s", output)
 	s.Equal(0, exitCode, "kb --help exited with non-zero: %s", output)
 
@@ -56,11 +56,11 @@ func (s *RegressionTestSuite) Test09_KnowledgeBuilder() {
 	// ====================================================================
 	s.logDetailed("Step 3: Generating small KB database at custom path...")
 
-	// Build kb command to generate database
+	// Build pgedge-nla-kb-builder command to generate database
 	// Use a small source for testing (e.g., PostgreSQL documentation subset)
-	kbGenCmd := fmt.Sprintf("kb generate --output %s --source https://www.postgresql.org/docs/current/sql-select.html", kbPath)
+	kbGenCmd := fmt.Sprintf("pgedge-nla-kb-builder generate --output %s --source https://www.postgresql.org/docs/current/sql-select.html", kbPath)
 
-	s.T().Log("  Running kb generate command...")
+	s.T().Log("  Running pgedge-nla-kb-builder generate command...")
 	s.T().Logf("  Command: %s", kbGenCmd)
 
 	output, exitCode, err = s.execCmd(s.ctx, kbGenCmd)
@@ -122,7 +122,7 @@ func (s *RegressionTestSuite) Test09_KnowledgeBuilder() {
 	s.T().Log("  ✓ Test KB database cleaned up")
 
 	s.T().Log("✓ Knowledge Builder tests completed successfully")
-	s.T().Log("  • Help: kb --help displayed usage information")
+	s.T().Log("  • Help: pgedge-nla-kb-builder --help displayed usage information")
 	s.T().Log(fmt.Sprintf("  • Database path: Custom path %s verified", kbPath))
 	s.T().Log(fmt.Sprintf("  • Database generation: Successfully created %s file(s)", fileCount))
 	s.T().Log("  • Cleanup: Test database removed")
