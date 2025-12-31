@@ -62,6 +62,7 @@ type RegressionTestSuite struct {
 	logLevel      LogLevel
 	serverEnv     ServerEnvironment
 	pgVersion     string // PostgreSQL version (16, 17, or 18)
+	stopElephant  chan bool
 
 	// Track setup state to avoid redundant operations
 	setupState struct {
@@ -128,17 +129,11 @@ func (s *RegressionTestSuite) SetupSuite() {
 	}
 
 	// Show elephant progress indicator at the start of test suite
-	// Print the text first, then animate the elephant waving
-	fmt.Printf("\npgEdge Postgres MCP Regression Suite starting...")
+	fmt.Printf("\n🐘 pgEdge Postgres MCP Regression Suite running...\n\n")
 
-	// Animate elephant waving (bobbing up and down) a couple of times
-	for i := 0; i < 2; i++ {
-		fmt.Printf("\r🐘 pgEdge Postgres MCP Regression Suite starting...")
-		time.Sleep(300 * time.Millisecond)
-		fmt.Printf("\r 🐘 pgEdge Postgres MCP Regression Suite starting...")
-		time.Sleep(300 * time.Millisecond)
-	}
-	fmt.Printf("\r🐘 pgEdge Postgres MCP Regression Suite starting...\n\n")
+	// Start elephant animation in background
+	s.stopElephant = make(chan bool)
+	go s.animateElephant()
 
 	if s.logLevel == LogLevelDetailed {
 		s.T().Logf("Execution mode: %s", s.execMode.String())
@@ -436,6 +431,11 @@ func (s *RegressionTestSuite) TearDownTest() {
 
 // TearDownSuite runs once after all tests
 func (s *RegressionTestSuite) TearDownSuite() {
+	// Stop elephant animation
+	if s.stopElephant != nil {
+		close(s.stopElephant)
+	}
+
 	// Clean up executor at the end of all tests
 	if s.executor != nil {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -447,6 +447,9 @@ func (s *RegressionTestSuite) TearDownSuite() {
 			s.logDetailed("Executor cleaned up successfully")
 		}
 	}
+
+	// Clear the elephant line before summary
+	fmt.Printf("\r%80s\r", " ") // Clear line
 
 	// Always show beautiful summary
 	s.printTestSummary()
@@ -588,6 +591,27 @@ func (s *RegressionTestSuite) printTestSummary() {
 	// Add separator to distinguish from Go test output
 	fmt.Println(strings.Repeat("=", 80))
 	fmt.Println()
+}
+
+// animateElephant runs in background showing waving elephant
+func (s *RegressionTestSuite) animateElephant() {
+	ticker := time.NewTicker(500 * time.Millisecond)
+	defer ticker.Stop()
+
+	wave := 0
+	for {
+		select {
+		case <-s.stopElephant:
+			return
+		case <-ticker.C:
+			if wave%2 == 0 {
+				fmt.Printf("\r🐘 Tests running...")
+			} else {
+				fmt.Printf("\r 🐘 Tests running...")
+			}
+			wave++
+		}
+	}
 }
 
 // execCmd is a helper that automatically prepends sudo for local mode when needed
