@@ -289,16 +289,17 @@ SCRIPT`
 	// ====================================================================
 	s.logDetailed("Step 6: Stopping MCP server after testing...")
 
-	// Give the stdio servers time to exit gracefully after stdin closed
-	// The server should detect EOF on stdin and close database connections cleanly
-	time.Sleep(3 * time.Second)
+	// Give the stdio servers time to exit after timeout kills them
+	// The test scripts use timeout 5 and timeout 6, so wait longer than that
+	// to ensure all timeout processes and their children have completed
+	time.Sleep(8 * time.Second)
 
 	// Kill any remaining timeout wrappers and MCP server processes
 	// The timeout command may keep the process tree alive even after stdin closes
 	// Use very specific pattern to avoid matching dnf/yum install processes
 	s.execCmd(s.ctx, "pkill -9 -f 'timeout.*stdio-test.yaml' || true")
 	s.execCmd(s.ctx, "pkill -9 -f '/usr/bin/pgedge-postgres-mcp.*stdio-test.yaml' || true")
-	time.Sleep(1 * time.Second)
+	time.Sleep(2 * time.Second)
 
 	// Verify all processes are gone using specific pattern that won't match DNF
 	for attempt := 1; attempt <= 3; attempt++ {
