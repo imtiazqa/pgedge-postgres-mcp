@@ -81,21 +81,15 @@ EOF`
 	testScript := `cat > /tmp/test-stdio.sh << 'SCRIPT'
 #!/bin/bash
 
-# Start server in background and send requests
-(
-  sleep 3  # Give server time to respond to requests
-  pkill -f "pgedge-postgres-mcp.*stdio-test"  # Kill it after responses received
-) &
-
 # Timeout after 5 seconds total
 timeout 5 /usr/bin/pgedge-postgres-mcp -config /tmp/postgres-mcp-stdio-test.yaml << 'INPUT' > /tmp/stdio-output.log 2>&1
 {"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test-client","version":"1.0.0"}}}
 {"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}
 INPUT
 
-# Exit code 124 (timeout) or 143 (SIGTERM from pkill) are both OK
+# Exit code 0 (normal exit after stdin closes) or 124 (timeout) are OK
 exit_code=$?
-if [ $exit_code -eq 124 ] || [ $exit_code -eq 143 ] || [ $exit_code -eq 0 ]; then
+if [ $exit_code -eq 0 ] || [ $exit_code -eq 124 ]; then
     exit 0
 fi
 exit $exit_code
@@ -222,12 +216,6 @@ SCRIPT`
 	queryTestScript := `cat > /tmp/test-stdio-query.sh << 'SCRIPT'
 #!/bin/bash
 
-# Start server in background and kill after getting response
-(
-  sleep 4  # Give server time to process query and respond
-  pkill -f "pgedge-postgres-mcp.*stdio-test"
-) &
-
 # Timeout after 6 seconds total
 timeout 6 /usr/bin/pgedge-postgres-mcp -config /tmp/postgres-mcp-stdio-test.yaml << 'INPUT' > /tmp/stdio-query-output.log 2>&1
 {"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test-client","version":"1.0.0"}}}
@@ -235,9 +223,9 @@ timeout 6 /usr/bin/pgedge-postgres-mcp -config /tmp/postgres-mcp-stdio-test.yaml
 {"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"get_schema_info","arguments":{}}}
 INPUT
 
-# Exit code 124 (timeout) or 143 (SIGTERM) are both OK
+# Exit code 0 (normal exit after stdin closes) or 124 (timeout) are OK
 exit_code=$?
-if [ $exit_code -eq 124 ] || [ $exit_code -eq 143 ] || [ $exit_code -eq 0 ]; then
+if [ $exit_code -eq 0 ] || [ $exit_code -eq 124 ]; then
     exit 0
 fi
 exit $exit_code
@@ -301,11 +289,18 @@ SCRIPT`
 	// ====================================================================
 	s.logDetailed("Step 6: Stopping MCP server after testing...")
 
-	// The stdio server should have exited automatically after processing all input
-	// But let's make sure no processes are lingering
-	// Kill all stdio processes using pkill first (more reliable for pattern matching)
-	s.execCmd(s.ctx, "sudo pkill -9 -f 'pgedge-postgres-mcp.*stdio' || pkill -9 -f 'pgedge-postgres-mcp.*stdio' || true")
-	time.Sleep(1 * time.Second)
+	// Give the stdio servers time to exit gracefully after stdin closed
+	// The server should detect EOF on stdin and close database connections cleanly
+	time.Sleep(3 * time.Second)
+
+	// Check if any processes are still running
+	output, exitCode, err = s.execCmd(s.ctx, "pgrep -f 'pgedge-postgres-mcp.*stdio' || echo 'no-process'")
+	if !strings.Contains(output, "no-process") {
+		// Processes didn't exit gracefully, force kill them
+		s.T().Log("  ⚠ MCP server processes didn't exit gracefully, force killing...")
+		s.execCmd(s.ctx, "sudo pkill -9 -f 'pgedge-postgres-mcp.*stdio' || pkill -9 -f 'pgedge-postgres-mcp.*stdio' || true")
+		time.Sleep(1 * time.Second)
+	}
 
 	// Verify all processes are gone
 	for attempt := 1; attempt <= 3; attempt++ {
