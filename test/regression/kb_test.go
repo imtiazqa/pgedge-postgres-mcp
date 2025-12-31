@@ -57,9 +57,9 @@ func (s *RegressionTestSuite) Test09_KnowledgeBuilder() {
 	s.logDetailed("Step 3: Generating small KB database at custom path...")
 
 	// Build pgedge-nla-kb-builder command to generate database
-	// Use -d flag to specify database path (uses default config/repositories)
+	// Use -c flag to specify config file and -d flag for database path
 	kbDatabaseFile := fmt.Sprintf("%s/kb.db", kbPath)
-	kbGenCmd := fmt.Sprintf("pgedge-nla-kb-builder -d %s", kbDatabaseFile)
+	kbGenCmd := fmt.Sprintf("pgedge-nla-kb-builder -c /etc/pgedge/pgedge-nla-kb-builder.yaml -d %s", kbDatabaseFile)
 
 	s.T().Log("  Running pgedge-nla-kb-builder generate command...")
 	s.T().Logf("  Command: %s", kbGenCmd)
