@@ -128,19 +128,17 @@ func (s *RegressionTestSuite) SetupSuite() {
 	}
 
 	// Show elephant progress indicator at the start of test suite
-	// Animate the elephant moving towards the text
-	fmt.Printf("\n")
-	for i := 0; i < 3; i++ {
-		fmt.Printf("\r                    🐘  pgEdge Postgres MCP Regression Suite starting...")
-		time.Sleep(200 * time.Millisecond)
-		fmt.Printf("\r              🐘  pgEdge Postgres MCP Regression Suite starting...")
-		time.Sleep(200 * time.Millisecond)
-		fmt.Printf("\r        🐘  pgEdge Postgres MCP Regression Suite starting...")
-		time.Sleep(200 * time.Millisecond)
-		fmt.Printf("\r  🐘  pgEdge Postgres MCP Regression Suite starting...")
-		time.Sleep(200 * time.Millisecond)
+	// Print the text first, then animate the elephant waving
+	fmt.Printf("\npgEdge Postgres MCP Regression Suite starting...")
+
+	// Animate elephant waving (bobbing up and down) a couple of times
+	for i := 0; i < 2; i++ {
+		fmt.Printf("\r🐘 pgEdge Postgres MCP Regression Suite starting...")
+		time.Sleep(300 * time.Millisecond)
+		fmt.Printf("\r 🐘 pgEdge Postgres MCP Regression Suite starting...")
+		time.Sleep(300 * time.Millisecond)
 	}
-	fmt.Printf("\r🐘  pgEdge Postgres MCP Regression Suite starting...\n\n")
+	fmt.Printf("\r🐘 pgEdge Postgres MCP Regression Suite starting...\n\n")
 
 	if s.logLevel == LogLevelDetailed {
 		s.T().Logf("Execution mode: %s", s.execMode.String())
