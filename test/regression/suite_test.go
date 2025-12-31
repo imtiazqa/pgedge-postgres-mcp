@@ -382,10 +382,7 @@ func (s *RegressionTestSuite) logDetailed(format string, args ...interface{}) {
 func (s *RegressionTestSuite) showProgressIndicator() {
 	// Display moving elephant progress indicator
 	// This appears after setup and before test execution
-	// Only show in container modes (not local mode)
-	if s.execMode != ModeLocal {
-		s.T().Log("🐘 → → → → → →  Test starting...")
-	}
+	s.T().Log("🐘 → → → → → →  Test starting...")
 }
 
 // SetupTest runs before each test
