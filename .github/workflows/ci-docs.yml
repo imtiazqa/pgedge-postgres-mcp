@@ -1,10 +1,11 @@
 name: CI - Documentation
 
+# Workflow disabled
 on:
-    push:
-        branches: [ main, develop ]
-    pull_request:
-        branches: [ main, develop ]
+    # push:
+    #     branches: [ main, develop ]
+    # pull_request:
+    #     branches: [ main, develop ]
     workflow_dispatch:
 
 concurrency:

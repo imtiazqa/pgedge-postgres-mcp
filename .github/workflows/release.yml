@@ -1,9 +1,11 @@
 name: Release
 
+# Workflow disabled
 on:
-    push:
-        tags:
-            - 'v*'
+    # push:
+    #     tags:
+    #         - 'v*'
+    workflow_dispatch:
 
 permissions:
     contents: write

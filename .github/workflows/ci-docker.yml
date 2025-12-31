@@ -1,10 +1,11 @@
 name: CI - Docker
 
+# Workflow disabled
 on:
-    push:
-        branches: [ main, develop ]
-    pull_request:
-        branches: [ main, develop ]
+    # push:
+    #     branches: [ main, develop ]
+    # pull_request:
+    #     branches: [ main, develop ]
     # Allow manual trigger
     workflow_dispatch:
 
