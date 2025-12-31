@@ -295,13 +295,14 @@ SCRIPT`
 
 	// Kill any remaining timeout wrappers and MCP server processes
 	// The timeout command may keep the process tree alive even after stdin closes
-	s.execCmd(s.ctx, "pkill -9 -f 'timeout.*pgedge-postgres-mcp' || true")
-	s.execCmd(s.ctx, "pkill -9 -f 'pgedge-postgres-mcp.*stdio' || true")
+	// Use very specific pattern to avoid matching dnf/yum install processes
+	s.execCmd(s.ctx, "pkill -9 -f 'timeout.*stdio-test.yaml' || true")
+	s.execCmd(s.ctx, "pkill -9 -f '/usr/bin/pgedge-postgres-mcp.*stdio-test.yaml' || true")
 	time.Sleep(1 * time.Second)
 
-	// Verify all processes are gone
+	// Verify all processes are gone using specific pattern that won't match DNF
 	for attempt := 1; attempt <= 3; attempt++ {
-		output, exitCode, err = s.execCmd(s.ctx, "pgrep -f 'pgedge-postgres-mcp.*stdio' || echo 'no-process'")
+		output, exitCode, err = s.execCmd(s.ctx, "pgrep -f '/usr/bin/pgedge-postgres-mcp.*stdio-test.yaml' || echo 'no-process'")
 		if strings.Contains(output, "no-process") {
 			break
 		}
@@ -320,7 +321,7 @@ SCRIPT`
 	}
 
 	// Verify no stdio mode processes are running
-	output, exitCode, err = s.execCmd(s.ctx, "pgrep -f 'pgedge-postgres-mcp.*stdio' || echo 'no-process'")
+	output, exitCode, err = s.execCmd(s.ctx, "pgrep -f '/usr/bin/pgedge-postgres-mcp.*stdio-test.yaml' || echo 'no-process'")
 	s.Contains(output, "no-process", "MCP server stdio processes should be stopped")
 
 	s.T().Log("  ✓ MCP server stopped and verified")
