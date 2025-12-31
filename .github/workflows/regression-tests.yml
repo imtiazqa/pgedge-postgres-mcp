@@ -2,9 +2,9 @@ name: Regression Tests
 
 on:
   push:
-    branches: [ main, develop, mcp_regression_suite ]
+    branches: [ mcp_regression_suite ]
   pull_request:
-    branches: [ main, develop ]
+    branches: [ mcp_regression_suite ]
   workflow_dispatch:
     inputs:
       os_image:
