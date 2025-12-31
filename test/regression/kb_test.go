@@ -125,12 +125,24 @@ embeddings:
 	// Log the output regardless of success/failure
 	s.logDetailed("kb generate output:\n%s", output)
 
-	// KB generation requires Ollama to be running, which may not be available in test environment
-	// If it fails due to Ollama not being available, we'll skip verification but still test the command
+	// KB generation requires git and Ollama, which may not be available in test environment
+	// If it fails due to missing dependencies, skip verification but still test the command
 	if exitCode != 0 {
-		if strings.Contains(output, "ollama") || strings.Contains(output, "connection refused") || strings.Contains(output, "dial tcp") {
-			s.T().Log("  ⚠ Ollama not available - skipping KB generation verification")
-			s.T().Log("  Note: KB builder tool is installed and can load config, but embedding service unavailable")
+		skipGeneration := false
+		skipReason := ""
+
+		// Check for common missing dependencies
+		if strings.Contains(output, "git") && strings.Contains(output, "executable file not found") {
+			skipGeneration = true
+			skipReason = "git not available in test environment"
+		} else if strings.Contains(output, "ollama") || strings.Contains(output, "connection refused") || strings.Contains(output, "dial tcp") {
+			skipGeneration = true
+			skipReason = "Ollama embedding service not available"
+		}
+
+		if skipGeneration {
+			s.T().Logf("  ⚠ Skipping KB generation verification: %s", skipReason)
+			s.T().Log("  Note: KB builder tool is installed and can load config")
 		} else {
 			s.NoError(err, "Failed to run kb generate: %s", output)
 			s.Equal(0, exitCode, "kb generate exited with non-zero: %s", output)
@@ -197,7 +209,7 @@ embeddings:
 	if fileCount != "0" {
 		s.T().Log(fmt.Sprintf("  • Database generation: Successfully created %s file(s)", fileCount))
 	} else {
-		s.T().Log("  • Database generation: Skipped (requires Ollama embedding service)")
+		s.T().Log("  • Database generation: Skipped (requires git and Ollama)")
 	}
 	s.T().Log("  • Cleanup: Test database removed")
 }
