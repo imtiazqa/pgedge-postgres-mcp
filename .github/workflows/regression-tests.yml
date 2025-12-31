@@ -51,13 +51,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os_image:
-          - almalinux:10
-          - debian:12
-          # Temporarily disabled - enable after stable
-          # - ubuntu:24.04
-          # - almalinux:9
-          # - rocky:9
+        os_image: ${{ github.event_name == 'workflow_dispatch' && fromJSON(format('["{0}"]', github.event.inputs.os_image)) || fromJSON('["almalinux:10", "debian:12"]') }}
 
     timeout-minutes: 60
 
