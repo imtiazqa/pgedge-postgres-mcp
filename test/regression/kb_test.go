@@ -209,29 +209,9 @@ embeddings:
 	}
 
 	// ====================================================================
-	// STEP 8: Cleanup Ollama (if installed)
+	// STEP 8: Cleanup test files
 	// ====================================================================
-	if ollamaInstalled {
-		s.logDetailed("Step 8: Cleaning up Ollama installation...")
-
-		// Stop Ollama service
-		s.execCmd(s.ctx, "systemctl stop ollama")
-
-		// Remove Ollama
-		s.execCmd(s.ctx, "systemctl disable ollama")
-		s.execCmd(s.ctx, "rm -rf /usr/local/bin/ollama")
-		s.execCmd(s.ctx, "rm -rf /usr/share/ollama")
-		s.execCmd(s.ctx, "rm -rf ~/.ollama")
-		s.execCmd(s.ctx, "rm -f /etc/systemd/system/ollama.service")
-		s.execCmd(s.ctx, "systemctl daemon-reload")
-
-		s.T().Log("  ✓ Ollama cleaned up")
-	}
-
-	// ====================================================================
-	// STEP 9: Cleanup test files
-	// ====================================================================
-	s.logDetailed("Step 9: Cleaning up test KB database...")
+	s.logDetailed("Step 8: Cleaning up test KB database...")
 
 	output, exitCode, err = s.execCmd(s.ctx, fmt.Sprintf("rm -rf %s", kbPath))
 	s.NoError(err, "Failed to remove KB database: %s", output)
@@ -243,16 +223,12 @@ embeddings:
 	s.T().Log("  • Configuration: Created and validated minimal KB config")
 	s.T().Log(fmt.Sprintf("  • Database path: Custom path %s verified", kbPath))
 	if ollamaInstalled {
-		s.T().Log("  • Ollama: Installed embedding service temporarily")
+		s.T().Log("  • Ollama: Installed embedding service (kept for future tests)")
 	}
 	if fileCount != "0" {
 		s.T().Log(fmt.Sprintf("  • Database generation: Successfully created %s file(s)", fileCount))
 	} else {
-		s.T().Log("  • Database generation: Skipped (git not available)")
+		s.T().Log("  • Database generation: Skipped (Ollama not available)")
 	}
-	if ollamaInstalled {
-		s.T().Log("  • Cleanup: Ollama and test database removed")
-	} else {
-		s.T().Log("  • Cleanup: Test database removed")
-	}
+	s.T().Log("  • Cleanup: Test database removed")
 }
