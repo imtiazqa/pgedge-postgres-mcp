@@ -17,19 +17,6 @@ func (s *RegressionTestSuite) Test09_KnowledgeBuilder() {
 	s.ensureMCPPackagesInstalled()
 
 	// ====================================================================
-	// STEP 0: Stop any running MCP server instances
-	// ====================================================================
-	s.logDetailed("Step 0: Stopping any running MCP server instances...")
-
-	// Check if systemd service is running and stop it
-	output, exitCode, _ := s.execCmd(s.ctx, "systemctl is-active pgedge-postgres-mcp.service")
-	if exitCode == 0 && strings.TrimSpace(output) == "active" {
-		s.logDetailed("MCP server service is running, stopping it...")
-		s.execCmd(s.ctx, "systemctl stop pgedge-postgres-mcp.service")
-	}
-	s.T().Log("  ✓ Ensured no MCP server instances are running")
-
-	// ====================================================================
 	// STEP 1: Print KB help
 	// ====================================================================
 	s.logDetailed("Step 1: Printing KB help...")
@@ -252,7 +239,6 @@ embeddings:
 	s.T().Log("  ✓ Test KB database cleaned up")
 
 	s.T().Log("✓ Knowledge Builder tests completed")
-	s.T().Log("  • Pre-check: Stopped any running MCP server instances")
 	s.T().Log("  • Help: pgedge-nla-kb-builder --help displayed usage information")
 	s.T().Log("  • Configuration: Created and validated minimal KB config")
 	s.T().Log(fmt.Sprintf("  • Database path: Custom path %s verified", kbPath))
