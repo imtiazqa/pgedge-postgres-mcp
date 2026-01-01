@@ -177,7 +177,11 @@ Execute_Regression_suite test: check-config deps
 	fi
 	@echo "   Log: $(TEST_LOG_LEVEL)"
 	@echo ""
-	@go test -run TestRegressionSuite -timeout $(TEST_TIMEOUT)
+	@if [ "$(TEST_LOG_LEVEL)" = "detailed" ]; then \
+		go test -v -run TestRegressionSuite -timeout $(TEST_TIMEOUT); \
+	else \
+		go test -run TestRegressionSuite -timeout $(TEST_TIMEOUT); \
+	fi
 
 # Convenience targets for quick overrides
 .PHONY: test-local
