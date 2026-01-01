@@ -196,35 +196,37 @@ rm -rf /var/lib/apt/lists/*`
 			return fmt.Errorf("failed to install systemd and git: %v (exit code: %d)", err, exitCode)
 		}
 		fmt.Printf("   ✓ systemd and git installed in %.1fs\n", time.Since(installStart).Seconds())
-	} else {
-		fmt.Printf("   ✓ systemd already present\n")
+	}
 
-		// Check if git is installed, install if missing
-		_, gitExitCode, _ := c.Exec(ctx, "which git")
-		if gitExitCode != 0 {
-			fmt.Printf("🔍 git not found - installing...\n")
-			gitInstallStart := time.Now()
+	// Check if git is installed (regardless of systemd status)
+	gitInstalled := false
+	_, gitExitCode, _ := c.Exec(ctx, "which git")
+	if gitExitCode != 0 {
+		fmt.Printf("🔍 git not found - installing...\n")
+		gitInstallStart := time.Now()
 
-			// Detect OS type for git installation
-			osOutput, _, err := c.Exec(ctx, "cat /etc/os-release")
-			if err != nil {
-				return fmt.Errorf("failed to detect OS for git install: %w", err)
-			}
-
-			var gitInstallCmd string
-			if strings.Contains(strings.ToLower(osOutput), "ubuntu") || strings.Contains(strings.ToLower(osOutput), "debian") {
-				gitInstallCmd = "apt-get update -qq && apt-get install -y git && apt-get clean"
-			} else {
-				gitInstallCmd = "dnf install -y git || yum install -y git"
-			}
-
-			_, exitCode, err = c.Exec(ctx, gitInstallCmd)
-			if err != nil || exitCode != 0 {
-				fmt.Printf("   ⚠️ Failed to install git (non-fatal): %v\n", err)
-			} else {
-				fmt.Printf("   ✓ git installed in %.1fs\n", time.Since(gitInstallStart).Seconds())
-			}
+		// Detect OS type for git installation
+		osOutput, _, err := c.Exec(ctx, "cat /etc/os-release")
+		if err != nil {
+			return fmt.Errorf("failed to detect OS for git install: %w", err)
 		}
+
+		var gitInstallCmd string
+		if strings.Contains(strings.ToLower(osOutput), "ubuntu") || strings.Contains(strings.ToLower(osOutput), "debian") {
+			gitInstallCmd = "apt-get update -qq && apt-get install -y git && apt-get clean"
+		} else {
+			gitInstallCmd = "dnf install -y git || yum install -y git"
+		}
+
+		_, exitCode, err := c.Exec(ctx, gitInstallCmd)
+		if err != nil || exitCode != 0 {
+			fmt.Printf("   ⚠️ Failed to install git (non-fatal): %v\n", err)
+		} else {
+			fmt.Printf("   ✓ git installed in %.1fs\n", time.Since(gitInstallStart).Seconds())
+			gitInstalled = true
+		}
+	} else {
+		fmt.Printf("   ✓ git already present\n")
 	}
 
 	// Determine which init path is actually available in this container
@@ -252,23 +254,33 @@ rm -rf /var/lib/apt/lists/*`
 	}
 	fmt.Printf("   ✓ Found init at %s (%.1fs)\n", initPath, time.Since(detectStart).Seconds())
 
-	// If systemd was installed, commit the container to preserve it
+	// If systemd or git was installed, commit the container to preserve changes
 	var finalImage string
-	if !systemdExists {
-		fmt.Printf("📦 Committing container with systemd...\n")
+	needsCommit := !systemdExists || gitInstalled
+	if needsCommit {
+		var commitMsg string
+		if !systemdExists && gitInstalled {
+			commitMsg = "systemd and git"
+		} else if !systemdExists {
+			commitMsg = "systemd"
+		} else {
+			commitMsg = "git"
+		}
+
+		fmt.Printf("📦 Committing container with %s...\n", commitMsg)
 		commitStart := time.Now()
 
-		// Commit the container to create a new image with systemd installed
+		// Commit the container to create a new image
 		commitResp, err := c.cli.ContainerCommit(ctx, c.containerID, types.ContainerCommitOptions{
 			Reference: c.image + "-systemd",
 		})
 		if err != nil {
-			return fmt.Errorf("failed to commit container with systemd: %w", err)
+			return fmt.Errorf("failed to commit container: %w", err)
 		}
 		finalImage = commitResp.ID
 		fmt.Printf("   ✓ Commit completed in %.1fs\n", time.Since(commitStart).Seconds())
 	} else {
-		// systemd already present, use original image directly
+		// Nothing installed, use original image directly
 		finalImage = c.image
 	}
 
