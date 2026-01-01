@@ -107,8 +107,8 @@ jobs:
       - name: Set artifact name
         id: artifact
         run: |
-          # Sanitize OS image name for artifact (replace : with -)
-          SANITIZED_NAME=$(echo "${{ github.event.inputs.os_image }}" | sed 's/:/-/g')
+          # Sanitize OS image name for artifact (replace : and / with -)
+          SANITIZED_NAME=$(echo "${{ github.event.inputs.os_image }}" | sed 's/[:/]/-/g')
           echo "name=test-results-${SANITIZED_NAME}" >> $GITHUB_OUTPUT
 
       - name: Run regression tests
@@ -254,8 +254,8 @@ jobs:
       - name: Set artifact name
         id: artifact
         run: |
-          # Sanitize OS image name for artifact (replace : with -)
-          SANITIZED_NAME=$(echo "${{ matrix.os_image }}" | sed 's/:/-/g')
+          # Sanitize OS image name for artifact (replace : and / with -)
+          SANITIZED_NAME=$(echo "${{ matrix.os_image }}" | sed 's/[:/]/-/g')
           echo "name=test-results-${SANITIZED_NAME}" >> $GITHUB_OUTPUT
 
       - name: Run regression tests
