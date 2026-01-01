@@ -42,5 +42,19 @@ func (s *RegressionTestSuite) installMCPPackages() {
 	}
 
 	s.T().Log("  ✓ MCP server packages installed successfully")
-	s.T().Log("  Note: Shipped default configs remain intact at /etc/pgedge/")
+
+	// Step 2: Configure environment variables for test database password
+	s.logDetailed("Step 2: Configuring database password in postgres-mcp.env")
+
+	// Set PGEDGE_DB_PASSWORD to match the test database password
+	envSetCmd := `grep -q "^PGEDGE_DB_PASSWORD=" /etc/pgedge/postgres-mcp.env 2>/dev/null && \
+		sed -i 's/^PGEDGE_DB_PASSWORD=.*/PGEDGE_DB_PASSWORD=postgres123/' /etc/pgedge/postgres-mcp.env || \
+		echo 'PGEDGE_DB_PASSWORD=postgres123' >> /etc/pgedge/postgres-mcp.env`
+
+	output, exitCode, err = s.execCmd(s.ctx, envSetCmd)
+	s.NoError(err, "Failed to set database password: %s", output)
+	s.Equal(0, exitCode, "Set database password failed: %s", output)
+
+	s.T().Log("  ✓ Database password configured in postgres-mcp.env")
+	s.T().Log("  Note: Shipped default config remains intact at /etc/pgedge/postgres-mcp.yaml")
 }
