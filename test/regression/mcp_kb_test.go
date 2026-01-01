@@ -18,23 +18,23 @@ func (s *RegressionTestSuite) Test10_MCPServerWithKB() {
 	s.ensureMCPPackagesInstalled()
 
 	// ====================================================================
-	// STEP 1: Verify KB database exists from Test09
+	// STEP 1: Check if default KB database exists
 	// ====================================================================
-	s.logDetailed("Step 1: Verifying KB database from Test09...")
+	s.logDetailed("Step 1: Checking for default KB database...")
 
-	kbPath := "/tmp/test_kb_database"
-	kbDatabaseFile := fmt.Sprintf("%s/kb.db", kbPath)
+	// Check if the default KB database exists (from pgedge installation)
+	// Default location would be in pgedge data directory
+	defaultKBPath := fmt.Sprintf("%s/.pgedge/pgedge-nla-kb.db", s.homeDir())
 
-	// Check if KB database exists
-	output, exitCode, err := s.execCmd(s.ctx, fmt.Sprintf("test -f %s && echo 'exists' || echo 'missing'", kbDatabaseFile))
-	if strings.TrimSpace(output) != "exists" {
-		s.T().Log("  ⚠ KB database not found from Test09")
-		s.T().Log("  Note: This test requires Test09 to run first and create the KB")
-		s.T().Skip("Skipping test - KB database not available")
-		return
+	output, exitCode, err := s.execCmd(s.ctx, fmt.Sprintf("test -f %s && echo 'exists' || echo 'missing'", defaultKBPath))
+	kbExists := strings.TrimSpace(output) == "exists"
+
+	if kbExists {
+		s.T().Log(fmt.Sprintf("  ✓ Found default KB database at %s", defaultKBPath))
+	} else {
+		s.T().Log("  ℹ No default KB database found")
+		s.T().Log("  Note: MCP server will run without KB functionality")
 	}
-
-	s.T().Log(fmt.Sprintf("  ✓ Found KB database at %s", kbDatabaseFile))
 
 	// ====================================================================
 	// STEP 2: Create test MCP server configuration
@@ -42,6 +42,23 @@ func (s *RegressionTestSuite) Test10_MCPServerWithKB() {
 	s.logDetailed("Step 2: Creating test MCP server configuration...")
 
 	mcpConfigPath := "/tmp/test-mcp-server-config.yaml"
+
+	// Build KB configuration based on whether default KB exists
+	var kbConfig string
+	if kbExists {
+		// Use default KB database (relies on MCP server defaults)
+		kbConfig = `knowledgebase:
+  enabled: true
+  # database_path uses default: ~/.pgedge/pgedge-nla-kb.db
+  # embedding_provider uses default: "ollama"
+  # embedding_model uses default: "nomic-embed-text"
+  # embedding_ollama_url uses default: "http://localhost:11434"`
+	} else {
+		// Disable KB since no database is available
+		kbConfig = `knowledgebase:
+  enabled: false`
+	}
+
 	mcpConfigContent := fmt.Sprintf(`# Test MCP Server Configuration
 # Created by regression test suite
 
@@ -62,17 +79,12 @@ databases:
     password: %s
     sslmode: disable
 
-knowledgebase:
-  enabled: true
-  database_path: "%s"
-  embedding_provider: "ollama"
-  embedding_model: "nomic-embed-text"
-  embedding_ollama_url: "http://localhost:11434"
+%s
 
 # Note: LLM is disabled for testing since we don't have API keys in CI
 llm:
   enabled: false
-`, s.pgPort, s.pgUser, s.pgPassword, kbDatabaseFile)
+`, s.pgPort, s.pgUser, s.pgPassword, kbConfig)
 
 	createConfigCmd := fmt.Sprintf("cat > %s << 'EOF'\n%sEOF", mcpConfigPath, mcpConfigContent)
 	output, exitCode, err = s.execCmd(s.ctx, createConfigCmd)
@@ -81,35 +93,36 @@ llm:
 	s.T().Log("  ✓ Created test MCP server configuration")
 
 	// ====================================================================
-	// STEP 3: Verify Ollama service is running
+	// STEP 3: Verify Ollama service if KB is enabled
 	// ====================================================================
-	s.logDetailed("Step 3: Verifying Ollama service...")
+	if kbExists {
+		s.logDetailed("Step 3: Verifying Ollama service for KB...")
 
-	output, exitCode, _ = s.execCmd(s.ctx, "systemctl is-active ollama")
-	if exitCode != 0 || strings.TrimSpace(output) != "active" {
-		s.T().Log("  ⚠ Ollama service not running")
-		s.T().Log("  Note: This test requires Ollama from Test09")
-		s.T().Skip("Skipping test - Ollama service not available")
-		return
+		output, exitCode, _ = s.execCmd(s.ctx, "systemctl is-active ollama")
+		if exitCode != 0 || strings.TrimSpace(output) != "active" {
+			s.T().Log("  ⚠ Ollama service not running, KB may not work")
+			s.T().Log("  Note: KB requires Ollama for embeddings with default config")
+		} else {
+			s.T().Log("  ✓ Ollama service is running")
+
+			// Verify embedding model is available
+			modelCheckCmd := "ollama list | grep nomic-embed-text"
+			_, exitCode, _ = s.execCmd(s.ctx, modelCheckCmd)
+			if exitCode != 0 {
+				s.T().Log("  ⚠ Embedding model not available, KB may not work")
+			} else {
+				s.T().Log("  ✓ Embedding model nomic-embed-text is available")
+			}
+		}
+	} else {
+		s.logDetailed("Step 3: Skipping Ollama check (KB disabled)...")
+		s.T().Log("  ℹ KB disabled, Ollama not required")
 	}
-
-	s.T().Log("  ✓ Ollama service is running")
-
-	// Verify embedding model is available
-	modelCheckCmd := "ollama list | grep nomic-embed-text"
-	_, exitCode, _ = s.execCmd(s.ctx, modelCheckCmd)
-	if exitCode != 0 {
-		s.T().Log("  ⚠ Embedding model not available")
-		s.T().Skip("Skipping test - nomic-embed-text model not found")
-		return
-	}
-
-	s.T().Log("  ✓ Embedding model nomic-embed-text is available")
 
 	// ====================================================================
 	// STEP 4: Start MCP server with test configuration
 	// ====================================================================
-	s.logDetailed("Step 4: Starting MCP server with KB configuration...")
+	s.logDetailed("Step 4: Starting MCP server...")
 
 	// Start MCP server in background
 	startCmd := fmt.Sprintf("pgedge-postgres-mcp -c %s > /tmp/mcp-server-test.log 2>&1 &", mcpConfigPath)
@@ -220,9 +233,15 @@ llm:
 	s.T().Log("  ✓ Test configuration cleaned up")
 
 	s.T().Log("✓ MCP Server with KB tests completed")
-	s.T().Log("  • Configuration: Created test MCP server config with KB enabled")
-	s.T().Log("  • KB Database: Used KB from Test09")
-	s.T().Log("  • Server: Started and verified MCP server with KB support")
+	s.T().Log("  • Configuration: Created test MCP server config using defaults")
+	if kbExists {
+		s.T().Log(fmt.Sprintf("  • KB Database: Found default KB at %s", defaultKBPath))
+		s.T().Log("  • KB: Enabled with Ollama embeddings (default config)")
+	} else {
+		s.T().Log("  • KB Database: No default KB found")
+		s.T().Log("  • KB: Disabled (no KB database available)")
+	}
+	s.T().Log("  • Server: Started and verified MCP server")
 	s.T().Log("  • Health: Verified server health endpoint")
 	s.T().Log("  • Cleanup: Removed test configuration and stopped server")
 }

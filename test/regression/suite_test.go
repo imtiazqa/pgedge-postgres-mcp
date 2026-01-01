@@ -678,6 +678,15 @@ func (s *RegressionTestSuite) getOSType() (isDebian bool, isRHEL bool) {
 	return
 }
 
+// homeDir returns the home directory path
+func (s *RegressionTestSuite) homeDir() string {
+	output, exitCode, _ := s.execCmd(s.ctx, "echo $HOME")
+	if exitCode == 0 {
+		return strings.TrimSpace(output)
+	}
+	return "/root" // Default for containers
+}
+
 // ========================================================================
 // Helper Methods for Setup (with state tracking)
 // ========================================================================
