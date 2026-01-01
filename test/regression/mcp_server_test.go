@@ -51,7 +51,7 @@ func (s *RegressionTestSuite) installMCPPackages() {
 		sed -i 's/^PGEDGE_DB_PASSWORD=.*/PGEDGE_DB_PASSWORD=postgres123/' /etc/pgedge/postgres-mcp.env || \
 		echo 'PGEDGE_DB_PASSWORD=postgres123' >> /etc/pgedge/postgres-mcp.env`
 
-	output, exitCode, err = s.execCmd(s.ctx, envSetCmd)
+	output, exitCode, err := s.execCmd(s.ctx, envSetCmd)
 	s.NoError(err, "Failed to set database password: %s", output)
 	s.Equal(0, exitCode, "Set database password failed: %s", output)
 
