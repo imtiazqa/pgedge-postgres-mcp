@@ -125,7 +125,7 @@ llm:
 	s.logDetailed("Step 4: Starting MCP server...")
 
 	// Start MCP server in background
-	startCmd := fmt.Sprintf("pgedge-postgres-mcp -c %s > /tmp/mcp-server-test.log 2>&1 &", mcpConfigPath)
+	startCmd := fmt.Sprintf("pgedge-postgres-mcp -config %s > /tmp/mcp-server-test.log 2>&1 &", mcpConfigPath)
 	output, exitCode, err = s.execCmd(s.ctx, startCmd)
 	s.NoError(err, "Failed to start MCP server: %s", output)
 	s.Equal(0, exitCode, "MCP server start exited with non-zero: %s", output)
