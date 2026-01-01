@@ -174,6 +174,7 @@ func (c *ContainerExecutor) startWithSystemd(ctx context.Context) error {
 		if strings.Contains(strings.ToLower(osOutput), "ubuntu") || strings.Contains(strings.ToLower(osOutput), "debian") {
 			// Debian/Ubuntu - ultra-optimized for speed
 			// Use fastest mirrors and minimal updates
+			// Install systemd and git together for KB tests
 			installCmd = `(
 apt-get update -qq -o Acquire::http::Timeout=5 -o Acquire::Retries=1 || true
 ) && \
@@ -182,21 +183,48 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
 -o Dpkg::Options::="--force-confold" \
 -o Acquire::http::Timeout=5 \
 -o Acquire::Retries=1 \
-systemd systemd-sysv 2>&1 | grep -v "^Get:" | grep -v "^Fetched" || true && \
+systemd systemd-sysv git 2>&1 | grep -v "^Get:" | grep -v "^Fetched" || true && \
 apt-get clean && \
 rm -rf /var/lib/apt/lists/*`
 		} else {
-			// RHEL/AlmaLinux/Rocky
-			installCmd = "yum install -y systemd || dnf install -y systemd"
+			// RHEL/AlmaLinux/Rocky - install systemd and git together
+			installCmd = "yum install -y systemd git || dnf install -y systemd git"
 		}
 
 		_, exitCode, err = c.Exec(ctx, installCmd)
 		if err != nil || exitCode != 0 {
-			return fmt.Errorf("failed to install systemd: %v (exit code: %d)", err, exitCode)
+			return fmt.Errorf("failed to install systemd and git: %v (exit code: %d)", err, exitCode)
 		}
-		fmt.Printf("   ✓ systemd installed in %.1fs\n", time.Since(installStart).Seconds())
+		fmt.Printf("   ✓ systemd and git installed in %.1fs\n", time.Since(installStart).Seconds())
 	} else {
 		fmt.Printf("   ✓ systemd already present\n")
+
+		// Check if git is installed, install if missing
+		_, gitExitCode, _ := c.Exec(ctx, "which git")
+		if gitExitCode != 0 {
+			fmt.Printf("🔍 git not found - installing...\n")
+			gitInstallStart := time.Now()
+
+			// Detect OS type for git installation
+			osOutput, _, err := c.Exec(ctx, "cat /etc/os-release")
+			if err != nil {
+				return fmt.Errorf("failed to detect OS for git install: %w", err)
+			}
+
+			var gitInstallCmd string
+			if strings.Contains(strings.ToLower(osOutput), "ubuntu") || strings.Contains(strings.ToLower(osOutput), "debian") {
+				gitInstallCmd = "apt-get update -qq && apt-get install -y git && apt-get clean"
+			} else {
+				gitInstallCmd = "dnf install -y git || yum install -y git"
+			}
+
+			_, exitCode, err = c.Exec(ctx, gitInstallCmd)
+			if err != nil || exitCode != 0 {
+				fmt.Printf("   ⚠️ Failed to install git (non-fatal): %v\n", err)
+			} else {
+				fmt.Printf("   ✓ git installed in %.1fs\n", time.Since(gitInstallStart).Seconds())
+			}
+		}
 	}
 
 	// Determine which init path is actually available in this container
