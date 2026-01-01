@@ -128,12 +128,24 @@ func (s *RegressionTestSuite) SetupSuite() {
 		s.osDisplayName = s.osImage
 	}
 
-	// Show elephant progress indicator at the start of test suite
-	fmt.Printf("\n🐘 pgEdge Postgres MCP Regression Suite running...\n\n")
+	// Determine if we should show elephant animation
+	// Skip elephant in:
+	// 1. GitHub Actions (CI environment)
+	// 2. Container/local mode with detailed logging
+	isCI := os.Getenv("CI") != "" || os.Getenv("GITHUB_ACTIONS") != ""
+	skipElephant := isCI || s.logLevel == LogLevelDetailed
 
-	// Start elephant animation in background
-	s.stopElephant = make(chan bool)
-	go s.animateElephant()
+	if !skipElephant {
+		// Show elephant progress indicator at the start of test suite
+		fmt.Printf("\n🐘 pgEdge Postgres MCP Regression Suite running...\n\n")
+
+		// Start elephant animation in background
+		s.stopElephant = make(chan bool)
+		go s.animateElephant()
+	} else {
+		// Show simple header without animation
+		fmt.Printf("\npgEdge Postgres MCP Regression Suite\n\n")
+	}
 
 	if s.logLevel == LogLevelDetailed {
 		s.T().Logf("Execution mode: %s", s.execMode.String())
@@ -431,9 +443,11 @@ func (s *RegressionTestSuite) TearDownTest() {
 
 // TearDownSuite runs once after all tests
 func (s *RegressionTestSuite) TearDownSuite() {
-	// Stop elephant animation
+	// Stop elephant animation (if it was started)
 	if s.stopElephant != nil {
 		close(s.stopElephant)
+		// Clear the elephant line
+		fmt.Printf("\r%80s\r", " ")
 	}
 
 	// Clean up executor at the end of all tests
@@ -447,9 +461,6 @@ func (s *RegressionTestSuite) TearDownSuite() {
 			s.logDetailed("Executor cleaned up successfully")
 		}
 	}
-
-	// Clear the elephant line before summary
-	fmt.Printf("\r%80s\r", " ") // Clear line
 
 	// Always show beautiful summary
 	s.printTestSummary()
