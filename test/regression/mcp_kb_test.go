@@ -73,10 +73,10 @@ http:
 databases:
   - name: testdb
     host: localhost
-    port: %d
+    port: 5432
     database: postgres
-    user: %s
-    password: %s
+    user: postgres
+    password: postgres123
     sslmode: disable
 
 %s
@@ -84,7 +84,7 @@ databases:
 # Note: LLM is disabled for testing since we don't have API keys in CI
 llm:
   enabled: false
-`, s.pgPort, s.pgUser, s.pgPassword, kbConfig)
+`, kbConfig)
 
 	createConfigCmd := fmt.Sprintf("cat > %s << 'EOF'\n%sEOF", mcpConfigPath, mcpConfigContent)
 	output, exitCode, err = s.execCmd(s.ctx, createConfigCmd)
