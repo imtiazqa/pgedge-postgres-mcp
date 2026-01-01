@@ -8,12 +8,12 @@ import (
 )
 
 // ========================================================================
-// TEST 10: MCP Server Stdio Mode Testing
+// TEST 11: MCP Server Stdio Mode Testing
 // ========================================================================
 
-// Test10_StdioMode tests MCP server in stdio mode with database connectivity
-func (s *RegressionTestSuite) Test10_StdioMode() {
-	s.T().Log("TEST 10: Testing MCP server in stdio mode")
+// Test11_StdioMode tests MCP server in stdio mode with database connectivity
+func (s *RegressionTestSuite) Test11_StdioMode() {
+	s.T().Log("TEST 11: Testing MCP server in stdio mode")
 
 	// Ensure packages and database are ready
 	s.ensureMCPPackagesInstalled()
