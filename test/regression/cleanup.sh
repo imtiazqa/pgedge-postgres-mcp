@@ -109,6 +109,11 @@ if command -v apt-get &> /dev/null; then
     # Remove PostgreSQL
     echo "Removing PostgreSQL packages..."
     $SUDO apt-get remove -y 'postgresql-*' 'pgedge-postgresql-*' 2>/dev/null || true
+
+    # Remove pgedge-release package to ensure clean reinstall
+    echo "Removing pgedge-release package..."
+    $SUDO apt-get remove -y pgedge-release 2>/dev/null || true
+
     $SUDO apt-get autoremove -y || true
 
 elif command -v dnf &> /dev/null; then
@@ -122,6 +127,11 @@ elif command -v dnf &> /dev/null; then
     # Remove PostgreSQL
     echo "Removing PostgreSQL packages..."
     $SUDO dnf remove -y 'postgresql*' 'pgedge-postgresql*' 2>/dev/null || true
+
+    # Remove pgedge-release package to ensure clean reinstall
+    echo "Removing pgedge-release package..."
+    $SUDO dnf remove -y pgedge-release 2>/dev/null || true
+
     $SUDO dnf autoremove -y || true
 
 elif command -v yum &> /dev/null; then
@@ -135,6 +145,10 @@ elif command -v yum &> /dev/null; then
     # Remove PostgreSQL
     echo "Removing PostgreSQL packages..."
     $SUDO yum remove -y 'postgresql*' 'pgedge-postgresql*' 2>/dev/null || true
+
+    # Remove pgedge-release package to ensure clean reinstall
+    echo "Removing pgedge-release package..."
+    $SUDO yum remove -y pgedge-release 2>/dev/null || true
 
 else
     print_warning "Unknown package manager, skipping package removal"
