@@ -41,36 +41,6 @@ func (s *RegressionTestSuite) installMCPPackages() {
 		s.Equal(0, exitCode, "Install exited with error: %s\nOutput: %s", installCmd, output)
 	}
 
-	// Step 2: Update MCP server configuration
-	s.logDetailed("Step 2: Updating MCP server configuration files")
-
-	// Update postgres-mcp.yaml
-	yamlConfig := `cat > /etc/pgedge/postgres-mcp.yaml << 'EOF'
-databases:
-  - host: localhost
-    port: 5432
-    name: mcp_server
-    user: postgres
-    password: postgres123
-server:
-  mode: http
-  addr: :8080
-EOF`
-	output, exitCode, err := s.execCmd(s.ctx, yamlConfig)
-	s.NoError(err, "Failed to update postgres-mcp.yaml: %s", output)
-	s.Equal(0, exitCode, "Update config failed: %s", output)
-
-	// Update postgres-mcp.env
-	envConfig := `cat > /etc/pgedge/postgres-mcp.env << 'EOF'
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=mcp_server
-DB_USER=postgres
-DB_PASSWORD=postgres123
-SERVER_MODE=http
-SERVER_ADDR=:8080
-EOF`
-	output, exitCode, err = s.execCmd(s.ctx, envConfig)
-	s.NoError(err, "Failed to update postgres-mcp.env: %s", output)
-	s.Equal(0, exitCode, "Update env failed: %s", output)
+	s.T().Log("  ✓ MCP server packages installed successfully")
+	s.T().Log("  Note: Shipped default configs remain intact at /etc/pgedge/")
 }
