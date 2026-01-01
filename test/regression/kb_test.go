@@ -99,35 +99,58 @@ embeddings:
 	// We don't need to check/install it here
 
 	ollamaInstalled := false
-	if true { // Always attempt Ollama installation
-		// Install Ollama
-		s.T().Log("  Installing Ollama...")
-		installOllamaCmd := "curl -fsSL https://ollama.com/install.sh | sh"
+
+	// Check if Ollama is already installed
+	_, exitCode, _ := s.execCmd(s.ctx, "which ollama")
+	if exitCode == 0 {
+		s.T().Log("  ✓ Ollama already installed, skipping installation")
+		ollamaInstalled = true
+	} else {
+		// Install Ollama with timeout
+		s.T().Log("  Installing Ollama (this may take a minute)...")
+		installOllamaCmd := "timeout 300 bash -c 'curl -fsSL https://ollama.com/install.sh | sh'"
 		output, exitCode, err = s.execCmd(s.ctx, installOllamaCmd)
 		if err == nil && exitCode == 0 {
 			s.T().Log("  ✓ Ollama installed successfully")
+			ollamaInstalled = true
+		} else {
+			s.T().Log("  ⚠ Failed to install Ollama, will skip KB generation")
+			s.logDetailed("Ollama install output: %s", output)
+		}
+	}
 
+	// If Ollama is installed (either already or just now), ensure service is running and model is pulled
+	if ollamaInstalled {
+		// Check if service is running
+		output, exitCode, _ := s.execCmd(s.ctx, "systemctl is-active ollama")
+		if exitCode != 0 || strings.TrimSpace(output) != "active" {
 			// Start Ollama service
 			s.T().Log("  Starting Ollama service...")
 			_, _, _ = s.execCmd(s.ctx, "systemctl start ollama")
 
 			// Wait a moment for Ollama to start
 			s.execCmd(s.ctx, "sleep 3")
+		} else {
+			s.T().Log("  ✓ Ollama service already running")
+		}
 
+		// Check if embedding model is already available
+		modelCheckCmd := "ollama list | grep nomic-embed-text"
+		_, exitCode, _ = s.execCmd(s.ctx, modelCheckCmd)
+		if exitCode == 0 {
+			s.T().Log("  ✓ Embedding model already available")
+		} else {
 			// Pull the embedding model
 			s.T().Log("  Pulling nomic-embed-text model (this may take a minute)...")
 			pullCmd := "ollama pull nomic-embed-text"
 			output, exitCode, err = s.execCmd(s.ctx, pullCmd)
 			if err == nil && exitCode == 0 {
 				s.T().Log("  ✓ Embedding model downloaded successfully")
-				ollamaInstalled = true
 			} else {
 				s.T().Log("  ⚠ Failed to pull embedding model, will skip KB generation")
 				s.logDetailed("Model pull output: %s", output)
+				ollamaInstalled = false
 			}
-		} else {
-			s.T().Log("  ⚠ Failed to install Ollama, will skip KB generation")
-			s.logDetailed("Ollama install output: %s", output)
 		}
 	}
 
