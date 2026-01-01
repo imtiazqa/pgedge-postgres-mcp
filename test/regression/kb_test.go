@@ -101,7 +101,7 @@ embeddings:
 	ollamaInstalled := false
 
 	// Check if Ollama is already installed
-	_, exitCode, _ := s.execCmd(s.ctx, "which ollama")
+	_, exitCode, _ = s.execCmd(s.ctx, "which ollama")
 	if exitCode == 0 {
 		s.T().Log("  ✓ Ollama already installed, skipping installation")
 		ollamaInstalled = true
@@ -122,7 +122,7 @@ embeddings:
 	// If Ollama is installed (either already or just now), ensure service is running and model is pulled
 	if ollamaInstalled {
 		// Check if service is running
-		output, exitCode, _ := s.execCmd(s.ctx, "systemctl is-active ollama")
+		output, exitCode, _ = s.execCmd(s.ctx, "systemctl is-active ollama")
 		if exitCode != 0 || strings.TrimSpace(output) != "active" {
 			// Start Ollama service
 			s.T().Log("  Starting Ollama service...")
