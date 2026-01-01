@@ -61,14 +61,7 @@ func (s *RegressionTestSuite) Test10_MCPServerWithKB() {
 
 	mcpConfigContent := fmt.Sprintf(`# Test MCP Server Configuration
 # Created by regression test suite
-
-http:
-  enabled: true
-  address: ":18080"  # Use different port to avoid conflicts
-  tls:
-    enabled: false
-  auth:
-    enabled: false  # Disable auth for testing
+# Testing stdio mode (default)
 
 databases:
   - name: testdb
@@ -119,12 +112,15 @@ llm:
 		s.T().Log("  ℹ KB disabled, Ollama not required")
 	}
 
+	// Note: In stdio mode, we test the server by sending an MCP initialize request
+	// and checking the response includes KB tools if enabled
+
 	// ====================================================================
 	// STEP 4: Start MCP server with test configuration
 	// ====================================================================
 	s.logDetailed("Step 4: Starting MCP server...")
 
-	// Start MCP server in background
+	// Start MCP server in background (stdio mode - default)
 	startCmd := fmt.Sprintf("pgedge-postgres-mcp -config %s > /tmp/mcp-server-test.log 2>&1 &", mcpConfigPath)
 	output, exitCode, err = s.execCmd(s.ctx, startCmd)
 	s.NoError(err, "Failed to start MCP server: %s", output)
