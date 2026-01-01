@@ -17,7 +17,7 @@ on:
           - debian:12
           - ubuntu:24.04
           - almalinux:9
-          - rocky:9
+          - rockylinux/rockylinux:9
       server_env:
         description: 'Server environment'
         required: false
