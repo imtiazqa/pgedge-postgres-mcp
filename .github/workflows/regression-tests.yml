@@ -129,8 +129,11 @@ jobs:
           echo "PostgreSQL Version: ${{ github.event.inputs.pg_version || '18' }}"
           echo "Log Level: ${{ github.event.inputs.log_level || 'minimal' }}"
           echo "=========================================="
+          echo ""
+          echo "🐘 Test suite is running... Please wait for completion."
+          echo ""
 
-          # Run tests and capture output
+          # Run tests and capture output (silently)
           set +e
           go test -v -timeout 45m -run TestRegressionSuite > test-output.log 2>&1
           TEST_EXIT_CODE=$?
@@ -144,17 +147,23 @@ jobs:
             cat test-summary.log | aha --black --title "Test Summary" > test-summary.html
           fi
 
-          # Display output in a collapsible group
-          echo "::group::📋 Detailed Test Output (click to expand)"
-          cat test-output.log
-          echo "::endgroup::"
-
-          # Display summary (always visible)
+          # Now display results after completion
           echo ""
           echo "=========================================="
-          echo "📊 TEST SUMMARY"
+          echo "📊 TEST SUITE COMPLETED"
           echo "=========================================="
+          echo ""
+
+          # Display summary (always visible)
           cat test-summary.log
+
+          echo ""
+          echo "=========================================="
+
+          # Display full output in a collapsible group
+          echo "::group::📋 View Detailed Test Output"
+          cat test-output.log
+          echo "::endgroup::"
 
           exit $TEST_EXIT_CODE
 
@@ -288,8 +297,11 @@ jobs:
           echo "PostgreSQL Version: ${{ github.event.inputs.pg_version || '18' }}"
           echo "Log Level: ${{ github.event.inputs.log_level || 'minimal' }}"
           echo "=========================================="
+          echo ""
+          echo "🐘 Test suite is running... Please wait for completion."
+          echo ""
 
-          # Run tests and capture output
+          # Run tests and capture output (silently)
           set +e
           go test -v -timeout 45m -run TestRegressionSuite > test-output.log 2>&1
           TEST_EXIT_CODE=$?
@@ -303,17 +315,23 @@ jobs:
             cat test-summary.log | aha --black --title "Test Summary" > test-summary.html
           fi
 
-          # Display output in a collapsible group
-          echo "::group::📋 Detailed Test Output (click to expand)"
-          cat test-output.log
-          echo "::endgroup::"
-
-          # Display summary (always visible)
+          # Now display results after completion
           echo ""
           echo "=========================================="
-          echo "📊 TEST SUMMARY"
+          echo "📊 TEST SUITE COMPLETED"
           echo "=========================================="
+          echo ""
+
+          # Display summary (always visible)
           cat test-summary.log
+
+          echo ""
+          echo "=========================================="
+
+          # Display full output in a collapsible group
+          echo "::group::📋 View Detailed Test Output"
+          cat test-output.log
+          echo "::endgroup::"
 
           exit $TEST_EXIT_CODE
 
