@@ -172,9 +172,13 @@ jobs:
         if: always()
         working-directory: test/regression
         run: |
+          # Generate artifact name for display
+          ARTIFACT_NAME=$(echo "${{ github.event.inputs.os_image }}" | sed 's/[:/]/-/g')
+
           echo "## Regression Test Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**OS Image:** \`${{ github.event.inputs.os_image }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Artifact Name:** \`test-results-${ARTIFACT_NAME}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Server Environment:** \`${{ github.event.inputs.server_env || 'live' }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**PostgreSQL Version:** \`${{ github.event.inputs.pg_version || '18' }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Log Level:** \`${{ github.event.inputs.log_level || 'minimal' }}\`" >> $GITHUB_STEP_SUMMARY
@@ -319,9 +323,13 @@ jobs:
         if: always()
         working-directory: test/regression
         run: |
+          # Generate artifact name for display
+          ARTIFACT_NAME=$(echo "${{ matrix.os_image }}" | sed 's/[:/]/-/g')
+
           echo "## Regression Test Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**OS Image:** \`${{ matrix.os_image }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Artifact Name:** \`test-results-${ARTIFACT_NAME}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Server Environment:** \`${{ github.event.inputs.server_env || 'live' }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**PostgreSQL Version:** \`${{ github.event.inputs.pg_version || '18' }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Log Level:** \`${{ github.event.inputs.log_level || 'minimal' }}\`" >> $GITHUB_STEP_SUMMARY
