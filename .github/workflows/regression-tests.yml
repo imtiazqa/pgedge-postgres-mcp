@@ -136,10 +136,6 @@ jobs:
           TEST_EXIT_CODE=$?
           set -e
 
-          # Display output up to and including the final separator line (80 =)
-          # This removes the Go test framework summary that comes after our custom summary
-          awk '/^={80}$/ {print; if (printed_summary) exit} {print} /TEST SUITE (PASSED|FAILED)/ {printed_summary=1}' test-output.log
-
           # Create a filtered summary file with just the table for artifacts
           awk '/^={80}$/ {print; if (printed_summary) exit} {print} /TEST SUITE (PASSED|FAILED)/ {printed_summary=1}' test-output.log > test-summary.log
 
@@ -147,6 +143,18 @@ jobs:
           if command -v aha &> /dev/null; then
             cat test-summary.log | aha --black --title "Test Summary" > test-summary.html
           fi
+
+          # Display output in a collapsible group
+          echo "::group::📋 Detailed Test Output (click to expand)"
+          cat test-output.log
+          echo "::endgroup::"
+
+          # Display summary (always visible)
+          echo ""
+          echo "=========================================="
+          echo "📊 TEST SUMMARY"
+          echo "=========================================="
+          cat test-summary.log
 
           exit $TEST_EXIT_CODE
 
@@ -287,10 +295,6 @@ jobs:
           TEST_EXIT_CODE=$?
           set -e
 
-          # Display output up to and including the final separator line (80 =)
-          # This removes the Go test framework summary that comes after our custom summary
-          awk '/^={80}$/ {print; if (printed_summary) exit} {print} /TEST SUITE (PASSED|FAILED)/ {printed_summary=1}' test-output.log
-
           # Create a filtered summary file with just the table for artifacts
           awk '/^={80}$/ {print; if (printed_summary) exit} {print} /TEST SUITE (PASSED|FAILED)/ {printed_summary=1}' test-output.log > test-summary.log
 
@@ -298,6 +302,18 @@ jobs:
           if command -v aha &> /dev/null; then
             cat test-summary.log | aha --black --title "Test Summary" > test-summary.html
           fi
+
+          # Display output in a collapsible group
+          echo "::group::📋 Detailed Test Output (click to expand)"
+          cat test-output.log
+          echo "::endgroup::"
+
+          # Display summary (always visible)
+          echo ""
+          echo "=========================================="
+          echo "📊 TEST SUMMARY"
+          echo "=========================================="
+          cat test-summary.log
 
           exit $TEST_EXIT_CODE
 
