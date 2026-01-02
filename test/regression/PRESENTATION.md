@@ -8,12 +8,13 @@ Framework & Libraries Overview
 
 **A production-grade Go-based regression test suite**
 
-- 9 comprehensive test cases validating complete installation pipeline
+- 11 comprehensive test cases validating complete installation pipeline
 - Multiple execution modes (container & local)
-- Support for 4+ Linux distributions
+- Support for 5+ Linux distributions (AlmaLinux, Debian, Ubuntu, Rocky)
 - Full database connectivity validation
+- Knowledge Base (KB) functionality testing with Ollama embeddings
 
-**Technology Stack:** Go 1.23.0 + Docker + systemd
+**Technology Stack:** Go 1.23.0 + Docker + systemd + Ollama
 
 ---
 
@@ -36,7 +37,7 @@ Framework & Libraries Overview
                            │
                            ▼
            ┌───────────────────────────────┐
-           │   For Each Test (1-9)         │
+           │   For Each Test (1-11)        │
            └───────┬───────────────────────┘
                    │
                    ▼
@@ -74,7 +75,13 @@ Framework & Libraries Overview
 │  Test08: Service Management                                  │
 │    └─> Start service → Verify active → Test HTTP :8080       │
 │                                                               │
-│  Test09: Stdio Mode & Database Connectivity                  │
+│  Test09: Knowledge Builder                                   │
+│    └─> Install Ollama → Load nomic-embed-text → Build KB     │
+│                                                               │
+│  Test10: MCP Server with Knowledge Base                      │
+│    └─> Start MCP + KB → Search docs → Verify embeddings      │
+│                                                               │
+│  Test11: Stdio Mode & Database Connectivity                  │
 │    └─> Start stdio → JSON-RPC → Query DB → Verify schema     │
 │                                                               │
 └──────────────────────┬───────────────────────────────────────┘
