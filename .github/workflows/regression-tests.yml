@@ -2,9 +2,9 @@ name: Regression Tests
 
 on:
   push:
-    branches: [ mcp_regression_suite ]
+    branches: [ mcp_regression_suite, ai-toolkit-testing-suite ]
   pull_request:
-    branches: [ mcp_regression_suite ]
+    branches: [ mcp_regression_suite, ai-toolkit-testing-suite ]
   workflow_dispatch:
     inputs:
       os_image:
@@ -54,8 +54,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          ref: mcp_regression_suite
 
       - name: Set up Go
         uses: actions/setup-go@v5

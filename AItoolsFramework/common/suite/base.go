@@ -3,9 +3,12 @@ package suite
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
+	"github.com/jedib0t/go-pretty/v6/table"
+	"github.com/jedib0t/go-pretty/v6/text"
 	"github.com/pgedge/AItoolsFramework/common/config"
 	"github.com/pgedge/AItoolsFramework/common/executor"
 	"github.com/stretchr/testify/suite"
@@ -203,10 +206,11 @@ func (s *BaseSuite) initExecutor() {
 	}
 }
 
-// printSummary prints a test execution summary
+// printSummary prints a test execution summary with beautiful tables
 func (s *BaseSuite) printSummary() {
 	totalDuration := time.Since(s.StartTime)
 
+	// Count passes, failures, and skips
 	passed := 0
 	failed := 0
 	skipped := 0
@@ -222,13 +226,103 @@ func (s *BaseSuite) printSummary() {
 		}
 	}
 
-	s.T().Logf("\n" + strings.Repeat("=", 70))
-	s.T().Logf("TEST SUITE SUMMARY")
-	s.T().Logf(strings.Repeat("=", 70))
-	s.T().Logf("Total Tests:   %d", len(s.Results))
-	s.T().Logf("Passed:        %d", passed)
-	s.T().Logf("Failed:        %d", failed)
-	s.T().Logf("Skipped:       %d", skipped)
-	s.T().Logf("Duration:      %s", totalDuration)
-	s.T().Logf(strings.Repeat("=", 70))
+	// Create the summary table
+	t := table.NewWriter()
+	t.SetOutputMirror(os.Stdout)
+
+	// Use ColoredBright style
+	t.SetStyle(table.StyleColoredBright)
+
+	// Fix footer visibility by customizing colors
+	style := t.Style()
+	style.Color.Footer = text.Colors{text.BgHiCyan, text.FgBlack}
+	t.SetStyle(*style)
+
+	// Configure title
+	t.SetTitle("🧪 Test Suite Summary")
+
+	// Add headers
+	t.AppendHeader(table.Row{"#", "Test Name", "Status", "Duration"})
+
+	// Configure column alignments
+	t.SetColumnConfigs([]table.ColumnConfig{
+		{Number: 1, Align: text.AlignRight}, // # column
+		{Number: 2, Align: text.AlignLeft},  // Test Name
+		{Number: 3, Align: text.AlignLeft},  // Status
+		{Number: 4, Align: text.AlignRight}, // Duration
+	})
+
+	// Add test results
+	for i, result := range s.Results {
+		var status string
+		// Use simpler status format in CI to avoid rendering issues
+		if os.Getenv("CI") != "" {
+			switch result.Status {
+			case "PASS":
+				status = "✓ PASS"
+			case "FAIL":
+				status = "✗ FAIL"
+			case "SKIP":
+				status = "○ SKIP"
+			default:
+				status = fmt.Sprintf("⚠ %s", result.Status)
+			}
+		} else {
+			switch result.Status {
+			case "PASS":
+				status = text.FgGreen.Sprintf("✓ PASS")
+			case "FAIL":
+				status = text.FgRed.Sprintf("✗ FAIL")
+			case "SKIP":
+				status = text.FgYellow.Sprintf("○ SKIP")
+			default:
+				status = text.FgYellow.Sprintf("⚠ %s", result.Status)
+			}
+		}
+
+		// Format duration consistently
+		durationStr := formatDuration(result.Duration)
+		t.AppendRow(table.Row{i + 1, result.Name, status, durationStr})
+	}
+
+	// Add separator before footer
+	t.AppendSeparator()
+
+	// Add footer with totals
+	totalTests := len(s.Results)
+	var statusSummary string
+	if failed > 0 {
+		statusSummary = fmt.Sprintf("%d PASSED, %d FAILED, %d SKIPPED", passed, failed, skipped)
+	} else if skipped > 0 {
+		statusSummary = fmt.Sprintf("%d PASSED, %d SKIPPED ✨", passed, skipped)
+	} else {
+		statusSummary = fmt.Sprintf("%d/%d PASSED ✨", passed, totalTests)
+	}
+
+	totalDurationStr := formatDuration(totalDuration)
+	t.AppendFooter(table.Row{"", fmt.Sprintf("TOTAL: %d tests", totalTests), statusSummary, totalDurationStr})
+
+	// Print banner and table
+	fmt.Println("\n" + strings.Repeat("=", 80))
+	t.Render()
+	fmt.Println(strings.Repeat("=", 80))
+
+	// Print final status
+	if failed > 0 {
+		fmt.Printf("\n%s\n", text.FgRed.Sprint("❌ TEST SUITE FAILED"))
+	} else if skipped > 0 {
+		fmt.Printf("\n%s\n", text.FgYellow.Sprint("⚠️  TEST SUITE PASSED (with skipped tests)"))
+	} else {
+		fmt.Printf("\n%s\n", text.FgGreen.Sprint("✅ TEST SUITE PASSED"))
+	}
+
+	fmt.Println(strings.Repeat("=", 80))
+	fmt.Println()
+}
+
+// formatDuration formats a duration with consistent width for table alignment
+func formatDuration(d time.Duration) string {
+	// Always show as seconds with 3 decimal places for consistency
+	seconds := float64(d) / float64(time.Second)
+	return fmt.Sprintf("%.3fs", seconds)
 }
