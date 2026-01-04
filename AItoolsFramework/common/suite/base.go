@@ -309,28 +309,7 @@ func (s *BaseSuite) printSummary() {
 	totalDurationStr := formatDuration(totalDuration)
 	t.AppendFooter(table.Row{"", fmt.Sprintf("TOTAL: %d tests", totalTests), statusSummary, totalDurationStr})
 
-	// Print execution context before table (with nil checks)
-	fmt.Println()
-	if s.Config != nil {
-		if s.Config.Execution.Mode != "" {
-			fmt.Printf("📋 Execution Mode: %s\n", text.FgCyan.Sprint(s.Config.Execution.Mode))
-			if s.Config.Execution.Mode == "container" || s.Config.Execution.Mode == "container-systemd" {
-				osImage := s.Config.Execution.Container.OSImage
-				if osImage == "" {
-					osImage = s.Config.Execution.OSImage
-				}
-				if osImage != "" {
-					fmt.Printf("🐳 OS Image: %s\n", text.FgCyan.Sprint(osImage))
-				}
-			}
-		}
-		if s.Config.Environment != "" {
-			fmt.Printf("🌍 Environment: %s\n", text.FgCyan.Sprint(s.Config.Environment))
-		}
-	}
-	fmt.Printf("⏱️  Total Duration: %s\n", text.FgCyan.Sprint(totalDuration.Round(time.Millisecond)))
-
-	// Print table after context
+	// Print table
 	fmt.Println()
 	t.Render()
 	fmt.Println()
