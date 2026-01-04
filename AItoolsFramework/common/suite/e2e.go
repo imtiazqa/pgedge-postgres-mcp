@@ -2,8 +2,13 @@ package suite
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"sync"
+	"time"
+
+	"github.com/jedib0t/go-pretty/v6/table"
+	"github.com/jedib0t/go-pretty/v6/text"
 )
 
 // Global installation state shared across all test suite instances
@@ -27,6 +32,209 @@ func (s *E2ESuite) SetupSuite() {
 
 	// E2E-specific setup
 	s.T().Log("E2E Suite initialized")
+}
+
+// TearDownSuite runs once after all tests
+func (s *E2ESuite) TearDownSuite() {
+	// Clean up executor
+	if s.Executor != nil {
+		if err := s.Executor.Cleanup(s.Ctx); err != nil {
+			s.T().Logf("Warning: executor cleanup error: %v", err)
+		}
+	}
+
+	// Print execution context and summary
+	s.printE2ESummary()
+}
+
+// printE2ESummary prints test summary with execution context
+func (s *E2ESuite) printE2ESummary() {
+	totalDuration := time.Since(s.StartTime)
+
+	// Count passes, failures, and skips
+	passed := 0
+	failed := 0
+	skipped := 0
+
+	for _, result := range s.Results {
+		switch result.Status {
+		case "PASS":
+			passed++
+		case "FAIL":
+			failed++
+		case "SKIP":
+			skipped++
+		}
+	}
+
+	// Create the summary table
+	t := table.NewWriter()
+	t.SetOutputMirror(os.Stdout)
+
+	// Use ColoredBright style
+	t.SetStyle(table.StyleColoredBright)
+
+	// Fix footer visibility by customizing colors
+	style := t.Style()
+	style.Color.Footer = text.Colors{text.BgHiCyan, text.FgBlack}
+	t.SetStyle(*style)
+
+	// Configure title
+	t.SetTitle("🧪 Test Suite Summary")
+
+	// Add headers
+	t.AppendHeader(table.Row{"#", "Test Name", "Status", "Duration"})
+
+	// Configure column alignments
+	t.SetColumnConfigs([]table.ColumnConfig{
+		{Number: 1, Align: text.AlignRight}, // # column
+		{Number: 2, Align: text.AlignLeft},  // Test Name
+		{Number: 3, Align: text.AlignLeft},  // Status
+		{Number: 4, Align: text.AlignRight}, // Duration
+	})
+
+	// Add test results
+	for i, result := range s.Results {
+		// Clean up test name - remove suite prefix
+		testName := result.Name
+		// Try to strip common test suite prefixes
+		if idx := strings.LastIndex(testName, "/"); idx != -1 {
+			testName = testName[idx+1:]
+		}
+
+		var status string
+		// Use simpler status format in CI to avoid rendering issues
+		if os.Getenv("CI") != "" {
+			switch result.Status {
+			case "PASS":
+				status = "✓ PASS"
+			case "FAIL":
+				status = "✗ FAIL"
+			case "SKIP":
+				status = "○ SKIP"
+			default:
+				status = fmt.Sprintf("⚠ %s", result.Status)
+			}
+		} else {
+			switch result.Status {
+			case "PASS":
+				status = text.FgGreen.Sprintf("✓ PASS")
+			case "FAIL":
+				status = text.FgRed.Sprintf("✗ FAIL")
+			case "SKIP":
+				status = text.FgYellow.Sprintf("○ SKIP")
+			default:
+				status = text.FgYellow.Sprintf("⚠ %s", result.Status)
+			}
+		}
+
+		// Format duration consistently
+		durationStr := formatDuration(result.Duration)
+		t.AppendRow(table.Row{i + 1, testName, status, durationStr})
+	}
+
+	// Add separator before footer
+	t.AppendSeparator()
+
+	// Add footer with totals
+	totalTests := len(s.Results)
+	var statusSummary string
+	if failed > 0 {
+		statusSummary = fmt.Sprintf("%d PASSED, %d FAILED, %d SKIPPED", passed, failed, skipped)
+	} else if skipped > 0 {
+		statusSummary = fmt.Sprintf("%d PASSED, %d SKIPPED ✨", passed, skipped)
+	} else {
+		statusSummary = fmt.Sprintf("%d/%d PASSED ✨", passed, totalTests)
+	}
+
+	totalDurationStr := formatDuration(totalDuration)
+	t.AppendFooter(table.Row{"", fmt.Sprintf("TOTAL: %d tests", totalTests), statusSummary, totalDurationStr})
+
+	// Print table first
+	fmt.Println()
+	t.Render()
+
+	// Print execution context after table
+	fmt.Println()
+	if s.Config != nil {
+		// Execution Mode
+		if s.Config.Execution.Mode != "" {
+			fmt.Printf("📋 Execution Mode: %s\n", text.FgCyan.Sprint(s.Config.Execution.Mode))
+		}
+
+		// OS Image (for container modes) or System OS (for local mode)
+		if s.Config.Execution.Mode == "container" || s.Config.Execution.Mode == "container-systemd" {
+			osImage := s.Config.Execution.Container.OSImage
+			if osImage == "" {
+				osImage = s.Config.Execution.OSImage
+			}
+			if osImage != "" {
+				fmt.Printf("🐳 OS Image: %s\n", text.FgCyan.Sprint(osImage))
+			}
+		} else if s.Config.Execution.Mode == "local" {
+			// Detect local OS
+			osInfo := s.detectLocalOS()
+			fmt.Printf("💻 System OS: %s\n", text.FgCyan.Sprint(osInfo))
+		}
+
+		// Server Environment
+		if s.Config.Execution.ServerEnv != "" {
+			envEmoji := "🟢"
+			if strings.ToLower(s.Config.Execution.ServerEnv) == "staging" {
+				envEmoji = "🟡"
+			}
+			fmt.Printf("%s Server Environment: %s\n", envEmoji, text.FgCyan.Sprint(s.Config.Execution.ServerEnv))
+		}
+
+		// PostgreSQL Version
+		if s.Config.PostgreSQL.Version != "" {
+			fmt.Printf("🐘 PostgreSQL Version: %s\n", text.FgCyan.Sprint(s.Config.PostgreSQL.Version))
+		}
+
+		// Repository URL
+		repoURL := s.getRepositoryURL()
+		if repoURL != "" {
+			fmt.Printf("📦 Repository: %s\n", text.FgCyan.Sprint(repoURL))
+		}
+	}
+
+	// Total Duration
+	fmt.Printf("⏱️  Total Duration: %s\n", text.FgCyan.Sprint(totalDuration.Round(time.Millisecond)))
+	fmt.Println()
+}
+
+// detectLocalOS detects the local operating system
+func (s *E2ESuite) detectLocalOS() string {
+	output, exitCode, err := s.ExecCommand("cat /etc/os-release 2>/dev/null || cat /etc/redhat-release 2>/dev/null || sw_vers 2>/dev/null || echo 'Unknown OS'")
+	if err != nil || exitCode != 0 {
+		return "Unknown OS"
+	}
+
+	// Parse os-release format
+	if strings.Contains(output, "PRETTY_NAME") {
+		for _, line := range strings.Split(output, "\n") {
+			if strings.HasPrefix(line, "PRETTY_NAME=") {
+				osName := strings.TrimPrefix(line, "PRETTY_NAME=")
+				osName = strings.Trim(osName, "\"")
+				return osName
+			}
+		}
+	}
+
+	// Fallback to first line
+	lines := strings.Split(strings.TrimSpace(output), "\n")
+	if len(lines) > 0 {
+		return lines[0]
+	}
+
+	return "Unknown OS"
+}
+
+// formatDuration formats a duration with consistent width for table alignment
+func formatDuration(d time.Duration) string {
+	// Always show as seconds with 3 decimal places for consistency
+	seconds := float64(d) / float64(time.Second)
+	return fmt.Sprintf("%.3fs", seconds)
 }
 
 // Helper methods for E2E testing
