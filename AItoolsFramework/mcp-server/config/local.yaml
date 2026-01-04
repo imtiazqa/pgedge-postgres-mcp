@@ -1,0 +1,96 @@
+# AItoolsFramework MCP Server Test Configuration - Local Execution Mode
+# This configuration runs tests locally on your machine
+# Change server_env to 'staging' to test with staging repositories
+
+environment: local
+
+project:
+  name: mcp-server
+  version: "1.0.0"
+  description: "pgEdge PostgreSQL MCP Server Testing"
+
+execution:
+  mode: local                           # local, container-systemd
+  server_env: live                      # live, staging (change to 'staging' for staging repos)
+  parallel: false
+  max_workers: 4
+  skip_sudo_check: false                # Set to true for simple tests without sudo
+
+# PostgreSQL installation configuration
+postgresql:
+  version: "17"  # PostgreSQL version to install (16, 17, or 18)
+
+# Repository configuration for different server environments
+repository:
+  debian:
+    base_url: https://apt.pgedge.com
+    live_release_url: https://apt.pgedge.com/repodeb/pgedge-release_latest_all.deb
+    staging_release_url: https://apt-staging.pgedge.com/repodeb/pgedge-release_latest_all.deb
+  rhel:
+    base_url: https://dnf.pgedge.com
+    live_release_url: https://dnf.pgedge.com/reporpm/pgedge-release-latest.noarch.rpm
+    staging_release_url: https://dnf-staging.pgedge.com/reporpm/pgedge-release-latest.noarch.rpm
+
+# Binary paths (will be installed locally)
+binaries:
+  mcp_server: /usr/bin/pgedge-postgres-mcp
+  kb_builder: /usr/bin/pgedge-nla-kb-builder
+  cli: /usr/bin/pgedge-nla-cli
+
+# Configuration paths
+config_dir: /etc/pgedge
+
+# Package names for installation
+packages:
+  mcp_server:
+    - pgedge-postgres-mcp
+  cli:
+    - pgedge-nla-cli
+  web:
+    - pgedge-nla-web
+  kb:
+    - pgedge-postgres-mcp-kb
+
+# Test data and fixtures
+fixtures:
+  path: fixtures/
+  auto_load: true
+
+# Database configuration
+database:
+  host: localhost
+  port: 5432
+  user: postgres
+  password: ${DB_PASSWORD:-postgres123}
+  database: postgres
+  sslmode: disable
+
+# Logging configuration
+logging:
+  level: detailed  # minimal, detailed, verbose
+  log_commands: true
+  log_output: false
+
+# Reporting configuration
+reporting:
+  log_level: detailed
+  console: true
+  json: false
+  junit: false
+  markdown: false
+
+  console_settings:
+    color_output: true
+    show_timings: true
+    verbose_failures: true
+
+# Timeout configuration
+timeouts:
+  default: 30s
+  suite: 45m        # Increased for installation time
+  test: 15m         # Increased for tests that install packages
+  command: 15m      # Increased for package installation commands
+  database_query: 10s
+  http_request: 30s
+  service_startup: 30s
+  package_install: 20m  # Increased for slow package downloads

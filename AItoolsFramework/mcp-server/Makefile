@@ -1,0 +1,159 @@
+.PHONY: test test-verbose test-local test-container test-container-examples test-installation test-database test-service test-mcp test-kb test-examples config clean help
+
+# Default configuration file
+CONFIG_FILE ?= config/local.yaml
+# Get absolute path to Makefile directory
+MAKEFILE_DIR := $(shell pwd)
+
+# Test targets - Run all tests
+test:
+	@echo "Running MCP Server tests with $(CONFIG_FILE)..."
+	TESTFW_CONFIG=$(MAKEFILE_DIR)/$(CONFIG_FILE) go test -timeout 30m ./testcases
+
+test-verbose:
+	@echo "Running MCP Server tests (verbose) with $(CONFIG_FILE)..."
+	TESTFW_CONFIG=$(MAKEFILE_DIR)/$(CONFIG_FILE) go test -v -timeout 30m ./testcases
+
+test-local:
+	@echo "Running tests in local mode (uses server_env from local.yaml)..."
+	$(MAKE) test CONFIG_FILE=config/local.yaml
+
+test-container:
+	@echo "Running tests in container mode (uses server_env from container.yaml)..."
+	@echo "Note: Single package = single container (fast!)"
+	TESTFW_CONFIG=$(MAKEFILE_DIR)/config/container.yaml go test -v -timeout 30m ./testcases
+
+test-container-examples:
+	@echo "Running example tests in container mode..."
+	TESTFW_CONFIG=$(MAKEFILE_DIR)/config/container.yaml go test -v ./testcases/examples/
+
+# Run tests by category
+test-installation:
+	@echo "Running installation tests..."
+	TESTFW_CONFIG=$(MAKEFILE_DIR)/$(CONFIG_FILE) go test -v ./testcases/installation/
+
+test-database:
+	@echo "Running database tests..."
+	TESTFW_CONFIG=$(MAKEFILE_DIR)/$(CONFIG_FILE) go test -v ./testcases/database/
+
+test-service:
+	@echo "Running service tests..."
+	TESTFW_CONFIG=$(MAKEFILE_DIR)/$(CONFIG_FILE) go test -v ./testcases/service/
+
+test-mcp:
+	@echo "Running MCP protocol tests..."
+	TESTFW_CONFIG=$(MAKEFILE_DIR)/$(CONFIG_FILE) go test -v ./testcases/mcp/
+
+test-kb:
+	@echo "Running knowledge base tests..."
+	TESTFW_CONFIG=$(MAKEFILE_DIR)/$(CONFIG_FILE) go test -v ./testcases/kb/
+
+test-examples:
+	@echo "Running example tests..."
+	TESTFW_CONFIG=$(MAKEFILE_DIR)/$(CONFIG_FILE) go test -v ./testcases/examples/
+
+# Run specific test
+test-run:
+	@echo "Running specific test: $(TEST)..."
+	TESTFW_CONFIG=$(MAKEFILE_DIR)/$(CONFIG_FILE) go test -v ./testcases/... -run $(TEST)
+
+# Run tests sequentially by category
+test-sequential:
+	@echo "Running all test categories sequentially..."
+	@for category in installation database service mcp kb examples; do \
+		echo ""; \
+		echo "==========================================="; \
+		echo "Running $$category tests..."; \
+		echo "==========================================="; \
+		TESTFW_CONFIG=$(MAKEFILE_DIR)/$(CONFIG_FILE) go test -v ./testcases/$$category/ || exit 1; \
+	done
+
+# Show current configuration
+config:
+	@echo "=== Current Test Configuration ==="
+	@echo "Config file: $(CONFIG_FILE)"
+	@echo ""
+	@cat $(CONFIG_FILE)
+
+# List all available tests
+list-tests:
+	@echo "Available test categories:"
+	@echo ""
+	@for dir in testcases/*/; do \
+		category=$$(basename $$dir); \
+		echo "📁 $$category/"; \
+		find $$dir -name "*_test.go" -exec basename {} \; | sed 's/^/  - /'; \
+		echo ""; \
+	done
+
+# Clean test cache
+clean:
+	@echo "Cleaning test cache..."
+	go clean -testcache
+	rm -rf test-results/
+
+# Tidy dependencies
+tidy:
+	@echo "Tidying Go modules..."
+	go mod tidy
+
+# Format code
+fmt:
+	@echo "Formatting Go code..."
+	go fmt ./...
+
+# Run linter (if golangci-lint is installed)
+lint:
+	@if command -v golangci-lint >/dev/null 2>&1; then \
+		echo "Running linter..."; \
+		golangci-lint run ./...; \
+	else \
+		echo "golangci-lint not installed, skipping..."; \
+	fi
+
+# Help
+help:
+	@echo "MCP Server Test Makefile"
+	@echo ""
+	@echo "Main test targets:"
+	@echo "  test-local          - Run tests locally (edit local.yaml to switch live/staging)"
+	@echo "  test-container      - Run tests in container (edit container.yaml to switch live/staging)"
+	@echo ""
+	@echo "General test targets:"
+	@echo "  test                - Run all tests (uses CONFIG_FILE, default: local.yaml)"
+	@echo "  test-verbose        - Run all tests with verbose output"
+	@echo "  test-container-examples - Run example tests in container mode"
+	@echo ""
+	@echo "Test by category:"
+	@echo "  test-installation   - Run installation tests"
+	@echo "  test-database       - Run database tests"
+	@echo "  test-service        - Run service management tests"
+	@echo "  test-mcp            - Run MCP protocol tests"
+	@echo "  test-kb             - Run knowledge base tests"
+	@echo "  test-examples       - Run example tests"
+	@echo ""
+	@echo "Other targets:"
+	@echo "  test-run TEST=<name> - Run specific test"
+	@echo "  test-sequential     - Run all categories sequentially"
+	@echo "  list-tests          - List all available tests"
+	@echo "  config              - Display current configuration"
+	@echo "  clean               - Clean test cache and results"
+	@echo "  tidy                - Tidy Go module dependencies"
+	@echo "  fmt                 - Format Go code"
+	@echo "  lint                - Run linter (if available)"
+	@echo "  help                - Show this help message"
+	@echo ""
+	@echo "Environment variables:"
+	@echo "  CONFIG_FILE         - Configuration file to use (default: config/local.yaml)"
+	@echo ""
+	@echo "Examples:"
+	@echo "  make test-local                                  # Test locally"
+	@echo "  make test-container                              # Test in container"
+	@echo "  make test-verbose"
+	@echo "  make test-installation"
+	@echo "  make test-run TEST=Test01_RepositoryInstallation"
+	@echo "  make list-tests"
+	@echo ""
+	@echo "To switch between live and staging repositories:"
+	@echo "  For local tests:     Edit config/local.yaml and change 'server_env: live' to 'server_env: staging'"
+	@echo "  For container tests: Edit config/container.yaml and change 'server_env: live' to 'server_env: staging'"

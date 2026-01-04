@@ -1,0 +1,108 @@
+# AItoolsFramework MCP Server Test Configuration - Container Execution Mode
+# This configuration runs tests in a Docker container with systemd support
+# Change server_env to 'staging' to test with staging repositories
+
+# Test framework configuration
+project:
+  name: mcp-server
+  version: 1.0.0
+
+# Execution mode: local, container-systemd, ssh, kubernetes
+execution:
+  mode: container-systemd  # Run tests in a systemd-enabled container
+  server_env: live         # Server environment: live, staging (change to 'staging' for staging repos)
+
+  # Container configuration (only used when mode is container-systemd)
+  container:
+    # Docker image to use - must have systemd support
+    # Popular systemd-enabled images:
+    # - Ubuntu: jrei/systemd-ubuntu:22.04, jrei/systemd-ubuntu:24.04
+    # - Debian: jrei/systemd-debian:12
+    # - Rocky Linux: rockylinux/rockylinux:9 (with systemd setup)
+    # - Alma Linux: almalinux/9-init
+    os_image: "jrei/systemd-ubuntu:22.04"
+
+    # Enable systemd in the container
+    use_systemd: true
+
+    # Skip sudo check (containers often run as root)
+    skip_sudo_check: true
+
+# Logging configuration
+logging:
+  level: detailed  # minimal, detailed, verbose
+  log_commands: true
+  log_output: false
+
+# Database configuration (for DatabaseSuite tests)
+database:
+  host: localhost
+  port: 5432
+  user: postgres
+  password: ${DB_PASSWORD:-postgres123}
+  database: postgres
+  sslmode: disable
+
+# PostgreSQL installation configuration
+postgresql:
+  version: "17"  # PostgreSQL version to install (16, 17, or 18)
+
+# Repository configuration for different server environments
+repository:
+  debian:
+    base_url: https://apt.pgedge.com
+    live_release_url: https://apt.pgedge.com/repodeb/pgedge-release_latest_all.deb
+    staging_release_url: https://apt-staging.pgedge.com/repodeb/pgedge-release_latest_all.deb
+  rhel:
+    base_url: https://dnf.pgedge.com
+    live_release_url: https://dnf.pgedge.com/reporpm/pgedge-release-latest.noarch.rpm
+    staging_release_url: https://dnf-staging.pgedge.com/reporpm/pgedge-release-latest.noarch.rpm
+
+# Binary paths (will be installed in container)
+binaries:
+  mcp_server: /usr/bin/pgedge-postgres-mcp
+  kb_builder: /usr/bin/pgedge-nla-kb-builder
+  cli: /usr/bin/pgedge-nla-cli
+
+# Configuration paths
+config_dir: /etc/pgedge
+
+# Package names for installation
+packages:
+  mcp_server:
+    - pgedge-postgres-mcp
+  cli:
+    - pgedge-nla-cli
+  web:
+    - pgedge-nla-web
+  kb:
+    - pgedge-postgres-mcp-kb
+
+# Test data
+fixtures:
+  path: fixtures/
+  auto_load: true
+
+# Timeout configuration
+timeouts:
+  default: 30s
+  suite: 45m        # Increased for installation time
+  test: 15m         # Increased for tests that install packages
+  command: 15m      # Increased for package installation commands
+  database_query: 10s
+  http_request: 30s
+  service_startup: 30s
+  package_install: 20m  # Increased for slow package downloads
+
+# Reporting configuration
+reporting:
+  log_level: detailed  # minimal, detailed, verbose
+  console: true
+  json: false
+  junit: false
+  markdown: false
+
+  console_settings:
+    color_output: true
+    show_timings: true
+    verbose_failures: true
