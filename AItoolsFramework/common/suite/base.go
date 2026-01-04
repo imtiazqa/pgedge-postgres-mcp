@@ -254,6 +254,13 @@ func (s *BaseSuite) printSummary() {
 
 	// Add test results
 	for i, result := range s.Results {
+		// Clean up test name - remove suite prefix
+		testName := result.Name
+		// Try to strip common test suite prefixes
+		if idx := strings.LastIndex(testName, "/"); idx != -1 {
+			testName = testName[idx+1:]
+		}
+
 		var status string
 		// Use simpler status format in CI to avoid rendering issues
 		if os.Getenv("CI") != "" {
@@ -282,7 +289,7 @@ func (s *BaseSuite) printSummary() {
 
 		// Format duration consistently
 		durationStr := formatDuration(result.Duration)
-		t.AppendRow(table.Row{i + 1, result.Name, status, durationStr})
+		t.AppendRow(table.Row{i + 1, testName, status, durationStr})
 	}
 
 	// Add separator before footer
