@@ -230,13 +230,6 @@ func (s *E2ESuite) detectLocalOS() string {
 	return "Unknown OS"
 }
 
-// formatDuration formats a duration with consistent width for table alignment
-func formatDuration(d time.Duration) string {
-	// Always show as seconds with 3 decimal places for consistency
-	seconds := float64(d) / float64(time.Second)
-	return fmt.Sprintf("%.3fs", seconds)
-}
-
 // Helper methods for E2E testing
 
 // AssertFileExists asserts that a file exists
