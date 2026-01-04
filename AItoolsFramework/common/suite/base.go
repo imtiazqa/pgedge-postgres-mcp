@@ -102,7 +102,7 @@ func (s *BaseSuite) TearDownSuite() {
 		}
 	}
 
-	// Print summary
+	// Print summary (child suites can override TearDownSuite to customize)
 	s.printSummary()
 }
 

@@ -36,14 +36,14 @@ func (s *E2ESuite) SetupSuite() {
 
 // TearDownSuite runs once after all tests
 func (s *E2ESuite) TearDownSuite() {
-	// Clean up executor
+	// Clean up executor (handled by base)
 	if s.Executor != nil {
 		if err := s.Executor.Cleanup(s.Ctx); err != nil {
 			s.T().Logf("Warning: executor cleanup error: %v", err)
 		}
 	}
 
-	// Print execution context and summary
+	// Print execution context and summary (overrides base printSummary)
 	s.printE2ESummary()
 }
 
