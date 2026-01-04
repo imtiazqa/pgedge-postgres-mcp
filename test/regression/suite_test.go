@@ -568,17 +568,12 @@ func (s *RegressionTestSuite) printTestSummary() {
 	totalDurationStr := formatDuration(totalDuration)
 	t.AppendFooter(table.Row{"", fmt.Sprintf("TOTAL: %d tests", totalTests), statusSummary, totalDurationStr})
 
-	// Print banner and table
-	fmt.Println("\n" + strings.Repeat("=", 80))
-	t.Render()
-	fmt.Println(strings.Repeat("=", 80))
-
-	// Print execution context
-	fmt.Printf("\n📋 Execution Mode: %s\n", text.FgCyan.Sprint(s.execMode.String()))
+	// Print execution context header
+	fmt.Printf("\n📋 Execution Mode: %s", text.FgCyan.Sprint(s.execMode.String()))
 	if s.execMode != ModeLocal {
-		fmt.Printf("🐳 OS Image: %s\n", text.FgCyan.Sprint(s.osDisplayName))
+		fmt.Printf(" | 🐳 OS: %s", text.FgCyan.Sprint(s.osDisplayName))
 	} else {
-		fmt.Printf("💻 System OS: %s\n", text.FgCyan.Sprint(s.osDisplayName))
+		fmt.Printf(" | 💻 OS: %s", text.FgCyan.Sprint(s.osDisplayName))
 	}
 
 	// Show server environment with appropriate emoji
@@ -586,21 +581,13 @@ func (s *RegressionTestSuite) printTestSummary() {
 	if s.serverEnv == EnvStaging {
 		envEmoji = "🟡"
 	}
-	fmt.Printf("%s Server Environment: %s\n", envEmoji, text.FgCyan.Sprint(s.serverEnv.String()))
+	fmt.Printf(" | %s Env: %s", envEmoji, text.FgCyan.Sprint(s.serverEnv.String()))
+	fmt.Printf(" | 🐘 PG: %s", text.FgCyan.Sprint(s.pgVersion))
+	fmt.Println()
 
-	fmt.Printf("🐘 PostgreSQL Version: %s\n", text.FgCyan.Sprint(s.pgVersion))
-	fmt.Printf("📦 Repository: %s\n", text.FgCyan.Sprint(s.repoURL))
-	fmt.Printf("⏱️  Total Duration: %s\n", text.FgCyan.Sprint(totalDuration.Round(time.Millisecond)))
-
-	// Print final status
-	if failCount > 0 {
-		fmt.Printf("\n%s\n", text.FgRed.Sprint("❌ TEST SUITE FAILED"))
-	} else {
-		fmt.Printf("\n%s\n", text.FgGreen.Sprint("✅ TEST SUITE PASSED"))
-	}
-
-	// Add separator to distinguish from Go test output
-	fmt.Println(strings.Repeat("=", 80))
+	// Print table
+	fmt.Println()
+	t.Render()
 	fmt.Println()
 }
 

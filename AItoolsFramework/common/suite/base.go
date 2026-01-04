@@ -302,21 +302,9 @@ func (s *BaseSuite) printSummary() {
 	totalDurationStr := formatDuration(totalDuration)
 	t.AppendFooter(table.Row{"", fmt.Sprintf("TOTAL: %d tests", totalTests), statusSummary, totalDurationStr})
 
-	// Print banner and table
-	fmt.Println("\n" + strings.Repeat("=", 80))
+	// Print table only
+	fmt.Println()
 	t.Render()
-	fmt.Println(strings.Repeat("=", 80))
-
-	// Print final status
-	if failed > 0 {
-		fmt.Printf("\n%s\n", text.FgRed.Sprint("❌ TEST SUITE FAILED"))
-	} else if skipped > 0 {
-		fmt.Printf("\n%s\n", text.FgYellow.Sprint("⚠️  TEST SUITE PASSED (with skipped tests)"))
-	} else {
-		fmt.Printf("\n%s\n", text.FgGreen.Sprint("✅ TEST SUITE PASSED"))
-	}
-
-	fmt.Println(strings.Repeat("=", 80))
 	fmt.Println()
 }
 
