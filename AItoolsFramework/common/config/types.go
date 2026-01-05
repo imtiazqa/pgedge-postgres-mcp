@@ -44,6 +44,9 @@ type TestConfig struct {
 
 	// Fixtures configuration
 	Fixtures FixturesConfig `yaml:"fixtures"`
+
+	// Logging configuration
+	Logging LoggingConfig `yaml:"logging"`
 }
 
 // BinariesConfig defines binary paths
@@ -248,6 +251,13 @@ type ConfigFixturesConfig struct {
 type ResponseFixturesConfig struct {
 	ToolsResponse     string `yaml:"tools_response"`
 	ResourcesResponse string `yaml:"resources_response"`
+}
+
+// LoggingConfig defines logging settings
+type LoggingConfig struct {
+	Level       string `yaml:"level"`       // minimal, detailed, verbose
+	LogCommands bool   `yaml:"log_commands"`
+	LogOutput   bool   `yaml:"log_output"`
 }
 
 // GetFixturePath is a helper to get fixture paths (can be enhanced)
