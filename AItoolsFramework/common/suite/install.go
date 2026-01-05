@@ -158,7 +158,7 @@ func (s *E2ESuite) installPostgreSQL() {
 		s.initializePostgreSQLRHEL(pgVersion)
 	}
 
-	// Step 3: Set postgres user password
+	// Step 3: Set postgres user password (using peer auth which is still active)
 	s.T().Log("Step 3: Setting postgres user password")
 	dbPassword := s.Config.Database.Password
 	dbUser := s.Config.Database.User
@@ -166,6 +166,14 @@ func (s *E2ESuite) installPostgreSQL() {
 	output, exitCode, err := s.ExecCommand(setPwCmd)
 	s.NoError(err, "Failed to set postgres password: %s", output)
 	s.Equal(0, exitCode, "Set password failed: %s", output)
+
+	// Step 3.5: Now configure md5 authentication and reload PostgreSQL
+	s.T().Log("Step 3.5: Configuring password-based authentication")
+	if isDebian {
+		s.configurePostgreSQLAuthDebian(pgVersion)
+	} else {
+		s.configurePostgreSQLAuthRHEL(pgVersion)
+	}
 
 	// Step 4: Create MCP database (skip if using default 'postgres' database)
 	s.T().Log("Step 4: Creating MCP database")
@@ -211,31 +219,55 @@ func (s *E2ESuite) installPostgreSQLRHEL(pgVersion string) {
 
 // initializePostgreSQLDebian initializes PostgreSQL on Debian/Ubuntu
 func (s *E2ESuite) initializePostgreSQLDebian(pgVersion string) {
-	// Configure pg_hba.conf for password authentication
-	s.T().Log("  Configuring PostgreSQL authentication...")
-	hbaFile := fmt.Sprintf("/etc/postgresql/%s/main/pg_hba.conf", pgVersion)
-
-	// Backup original and configure for md5/password authentication
-	backupCmd := fmt.Sprintf("cp %s %s.bak", hbaFile, hbaFile)
-	s.ExecCommand(backupCmd) // Ignore errors
-
-	// Replace peer/ident with md5 for local connections
-	sedCmd := fmt.Sprintf("sed -i 's/local.*all.*all.*peer/local   all             all                                     md5/' %s", hbaFile)
-	s.ExecCommand(sedCmd)
-
-	sedCmd2 := fmt.Sprintf("sed -i 's/host.*all.*all.*127.0.0.1.*ident/host    all             all             127.0.0.1\\/32            md5/' %s", hbaFile)
-	s.ExecCommand(sedCmd2)
-
-	// Use pg_ctlcluster with --skip-systemctl-redirect to bypass systemd
+	// First, start PostgreSQL with default peer authentication so we can set the password
+	s.T().Log("  Starting PostgreSQL with default authentication...")
 	startCmd := fmt.Sprintf("pg_ctlcluster --skip-systemctl-redirect %s main start", pgVersion)
 	output, exitCode, err := s.ExecCommand(startCmd)
 	s.NoError(err, "Failed to start PostgreSQL: %s", output)
 	// Exit code 0 = started successfully, Exit code 2 = already running (both are OK)
 	s.True(exitCode == 0 || exitCode == 2, "PostgreSQL start failed with unexpected exit code %d: %s", exitCode, output)
 
-	// Reload to apply pg_hba.conf changes
+	// Wait for PostgreSQL to be ready
+	time.Sleep(2 * time.Second)
+}
+
+// configurePostgreSQLAuthDebian configures md5 authentication for Debian/Ubuntu
+func (s *E2ESuite) configurePostgreSQLAuthDebian(pgVersion string) {
+	s.T().Log("  Configuring PostgreSQL md5 authentication...")
+	hbaFile := fmt.Sprintf("/etc/postgresql/%s/main/pg_hba.conf", pgVersion)
+
+	// Backup original
+	backupCmd := fmt.Sprintf("cp %s %s.bak", hbaFile, hbaFile)
+	s.ExecCommand(backupCmd)
+
+	// Replace ALL instances of peer with md5 for local Unix socket connections
+	sedCmd := fmt.Sprintf("sed -i 's/\\bpeer\\b/md5/g' %s", hbaFile)
+	output, exitCode, err := s.ExecCommand(sedCmd)
+	s.NoError(err, "Failed to configure pg_hba.conf: %s", output)
+	s.Equal(0, exitCode, "sed command failed: %s", output)
+
+	// Replace ident with md5 for host connections
+	sedCmd2 := fmt.Sprintf("sed -i 's/\\bident\\b/md5/g' %s", hbaFile)
+	output, exitCode, err = s.ExecCommand(sedCmd2)
+	s.NoError(err, "Failed to configure pg_hba.conf: %s", output)
+	s.Equal(0, exitCode, "sed command failed: %s", output)
+
+	// Reload PostgreSQL to apply changes
 	reloadCmd := fmt.Sprintf("pg_ctlcluster --skip-systemctl-redirect %s main reload", pgVersion)
-	s.ExecCommand(reloadCmd)
+	output, exitCode, err = s.ExecCommand(reloadCmd)
+	s.NoError(err, "Failed to reload PostgreSQL: %s", output)
+	s.True(exitCode == 0 || exitCode == 2, "PostgreSQL reload failed with exit code %d: %s", exitCode, output)
+
+	// Wait for reload to take effect
+	time.Sleep(1 * time.Second)
+	s.T().Log("  ✓ PostgreSQL authentication configured for md5")
+}
+
+// configurePostgreSQLAuthRHEL configures md5 authentication for RHEL/Rocky/Alma
+func (s *E2ESuite) configurePostgreSQLAuthRHEL(pgVersion string) {
+	// For RHEL, pg_hba.conf is already configured during initialization
+	// This function is a placeholder for consistency
+	s.T().Log("  ✓ PostgreSQL authentication already configured for md5")
 }
 
 // initializePostgreSQLRHEL initializes PostgreSQL on RHEL/Rocky/Alma

@@ -30,10 +30,18 @@ test-local:
 test-container:
 	@echo "Running tests in container mode (uses server_env from container.yaml)..."
 	@echo "Note: Single package = single container (fast!)"
+	@echo "Checking logging configuration..."
 	@mkdir -p test-results
 	@go clean -cache -testcache
 	@touch testcases/*.go
-	TESTFW_CONFIG=$(MAKEFILE_DIR)/config/container.yaml go test -count=1 -timeout 30m ./testcases 2>&1 | tee test-results/test-container.log
+	@LOG_LEVEL=$$(grep -A2 "^logging:" config/container.yaml | grep "level:" | awk '{print $$2}' | tr -d '"' | tr -d "'"); \
+	if [ "$$LOG_LEVEL" = "minimal" ]; then \
+		echo "Logging level: minimal (terminal shows summary only, full logs in file)"; \
+		TESTFW_CONFIG=$(MAKEFILE_DIR)/config/container.yaml go test -v -count=1 -timeout 30m ./testcases 2>&1 | tee test-results/test-container.log | sed -n '/🧪 Test Suite Summary/,/Total Duration:/p; /^ok[[:space:]]/p'; \
+	else \
+		echo "Logging level: $$LOG_LEVEL (full logs on terminal and file)"; \
+		TESTFW_CONFIG=$(MAKEFILE_DIR)/config/container.yaml go test -v -count=1 -timeout 30m ./testcases 2>&1 | tee test-results/test-container.log; \
+	fi
 
 test-container-examples:
 	@echo "Running example tests in container mode..."
