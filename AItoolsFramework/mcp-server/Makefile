@@ -21,7 +21,7 @@ test-local:
 test-container:
 	@echo "Running tests in container mode (uses server_env from container.yaml)..."
 	@echo "Note: Single package = single container (fast!)"
-	TESTFW_CONFIG=$(MAKEFILE_DIR)/config/container.yaml go test -v -timeout 30m ./testcases
+	TESTFW_CONFIG=$(MAKEFILE_DIR)/config/container.yaml go test -timeout 30m ./testcases
 
 test-container-examples:
 	@echo "Running example tests in container mode..."
