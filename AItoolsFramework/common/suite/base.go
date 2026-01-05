@@ -40,6 +40,9 @@ type BaseSuite struct {
 	StartTime time.Time
 	Results   []TestResult
 
+	// Installation metadata (cached during setup for summary display)
+	InstalledRepoURL string
+
 	// Current test tracking
 	currentTestStart time.Time
 }

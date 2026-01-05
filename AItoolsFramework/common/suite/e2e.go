@@ -191,8 +191,11 @@ func (s *E2ESuite) printE2ESummary() {
 			fmt.Printf("🐘 PostgreSQL Version: %s\n", text.FgCyan.Sprint(s.Config.PostgreSQL.Version))
 		}
 
-		// Repository URL
-		repoURL := s.getRepositoryURL()
+		// Repository URL (use cached value from installation, fallback to detection)
+		repoURL := s.InstalledRepoURL
+		if repoURL == "" {
+			repoURL = s.getRepositoryURL()
+		}
 		if repoURL != "" {
 			fmt.Printf("📦 Repository: %s\n", text.FgCyan.Sprint(repoURL))
 		}

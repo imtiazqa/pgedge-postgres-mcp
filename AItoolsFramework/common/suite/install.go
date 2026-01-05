@@ -58,6 +58,8 @@ func (s *E2ESuite) installDebianRepository() {
 	s.T().Log("Downloading and installing pgedge-release package...")
 	repoURL := s.getRepositoryURL()
 	s.T().Logf("Using repository URL: %s", repoURL)
+	// Cache the repository URL for summary display
+	s.InstalledRepoURL = repoURL
 	commands = []string{
 		fmt.Sprintf("curl -sSL %s -o /tmp/pgedge-release.deb", repoURL),
 		"dpkg -i /tmp/pgedge-release.deb",
@@ -111,6 +113,8 @@ func (s *E2ESuite) installRHELRepository() {
 	s.T().Log("Installing pgEdge repository...")
 	repoURL := s.getRepositoryURL()
 	s.T().Logf("Using repository URL: %s", repoURL)
+	// Cache the repository URL for summary display
+	s.InstalledRepoURL = repoURL
 	pgedgeCmd := fmt.Sprintf("dnf install -y %s", repoURL)
 	output, exitCode, err = s.ExecCommand(pgedgeCmd)
 	s.NoError(err, "pgEdge repo installation failed: %s", output)
