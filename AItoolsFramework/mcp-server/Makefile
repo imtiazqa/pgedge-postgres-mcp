@@ -13,7 +13,7 @@ test:
 	@mkdir -p test-results
 	@go clean -cache -testcache
 	@touch testcases/*.go
-	TESTFW_CONFIG=$(MAKEFILE_DIR)/$(CONFIG_FILE) go test -count=1 -timeout 30m ./testcases 2>&1 | tee $(LOG_FILE)
+	TESTFW_CONFIG=$(MAKEFILE_DIR)/$(CONFIG_FILE) go test -v -count=1 -timeout 30m ./testcases 2>&1 | tee $(LOG_FILE)
 
 test-verbose:
 	@echo "Running MCP Server tests (verbose) with $(CONFIG_FILE)..."
