@@ -1,0 +1,6 @@
+--- FAIL: TestMCPServerTestSuite (0.06s)
+    base.go:162: Loaded configuration from: /Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/config/local.yaml (environment: local)
+    base.go:198: Failed to start executor: sudo access required for local execution. Please configure passwordless sudo or run with appropriate privileges. Output: sudo: a password is required
+FAIL
+FAIL	github.com/pgedge/AItoolsFramework/mcp-server/testcases	1.594s
+FAIL
