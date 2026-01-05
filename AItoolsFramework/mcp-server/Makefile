@@ -4,24 +4,29 @@
 CONFIG_FILE ?= config/local.yaml
 # Get absolute path to Makefile directory
 MAKEFILE_DIR := $(shell pwd)
+# Log file for detailed output
+LOG_FILE ?= test-results/test-execution.log
 
 # Test targets - Run all tests
 test:
 	@echo "Running MCP Server tests with $(CONFIG_FILE)..."
-	TESTFW_CONFIG=$(MAKEFILE_DIR)/$(CONFIG_FILE) go test -timeout 30m ./testcases
+	@mkdir -p test-results
+	TESTFW_CONFIG=$(MAKEFILE_DIR)/$(CONFIG_FILE) go test -timeout 30m ./testcases 2>&1 | tee $(LOG_FILE)
 
 test-verbose:
 	@echo "Running MCP Server tests (verbose) with $(CONFIG_FILE)..."
-	TESTFW_CONFIG=$(MAKEFILE_DIR)/$(CONFIG_FILE) go test -v -timeout 30m ./testcases
+	@mkdir -p test-results
+	TESTFW_CONFIG=$(MAKEFILE_DIR)/$(CONFIG_FILE) go test -v -timeout 30m ./testcases 2>&1 | tee $(LOG_FILE)
 
 test-local:
 	@echo "Running tests in local mode (uses server_env from local.yaml)..."
-	$(MAKE) test CONFIG_FILE=config/local.yaml
+	$(MAKE) test CONFIG_FILE=config/local.yaml LOG_FILE=test-results/test-local.log
 
 test-container:
 	@echo "Running tests in container mode (uses server_env from container.yaml)..."
 	@echo "Note: Single package = single container (fast!)"
-	TESTFW_CONFIG=$(MAKEFILE_DIR)/config/container.yaml go test -timeout 30m ./testcases
+	@mkdir -p test-results
+	TESTFW_CONFIG=$(MAKEFILE_DIR)/config/container.yaml go test -timeout 30m ./testcases 2>&1 | tee test-results/test-container.log
 
 test-container-examples:
 	@echo "Running example tests in container mode..."

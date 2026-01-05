@@ -194,6 +194,7 @@ type OutputPathsConfig struct {
 	JSON     string `yaml:"json"`
 	JUnit    string `yaml:"junit"`
 	Markdown string `yaml:"markdown"`
+	LogFile  string `yaml:"log_file"` // Detailed test execution log
 }
 
 // ConsoleSettingsConfig defines console output settings
