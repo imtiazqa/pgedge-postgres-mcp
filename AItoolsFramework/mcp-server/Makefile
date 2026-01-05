@@ -13,10 +13,11 @@ test:
 	@mkdir -p test-results
 	@go clean -cache -testcache
 	@touch testcases/*.go
-	@LOG_LEVEL=$$(grep -A2 "^reporting:" $(CONFIG_FILE) | grep "log_level:" | awk '{print $$2}' | tr -d '"' | tr -d "'"); \
-	if [ "$$LOG_LEVEL" = "minimal" ]; then \
+	@if grep -q "log_level.*minimal" $(CONFIG_FILE); then \
+		echo "Using minimal logging mode..."; \
 		TESTFW_CONFIG=$(MAKEFILE_DIR)/$(CONFIG_FILE) go test -count=1 -timeout 30m ./testcases 2>&1 | tee $(LOG_FILE); \
 	else \
+		echo "Using detailed logging mode..."; \
 		TESTFW_CONFIG=$(MAKEFILE_DIR)/$(CONFIG_FILE) go test -v -count=1 -timeout 30m ./testcases 2>&1 | tee $(LOG_FILE); \
 	fi
 
