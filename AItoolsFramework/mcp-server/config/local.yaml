@@ -67,7 +67,7 @@ database:
 
 # Logging configuration
 logging:
-  level: detailed  # minimal, detailed, verbose
+  level: minimal  # minimal, detailed, verbose
   log_commands: true
   log_output: false
 
