@@ -1,4 +1,4 @@
-.PHONY: test test-verbose test-local test-container test-container-examples test-installation test-database test-service test-mcp test-kb test-examples config clean help
+.PHONY: test test-verbose test-local test-container test-container-examples test-installation test-database test-service test-mcp test-kb test-examples config clean cleanup help
 
 # Default configuration file
 CONFIG_FILE ?= config/local.yaml
@@ -106,11 +106,16 @@ list-tests:
 		echo ""; \
 	done
 
-# Clean test cache
+# Clean test cache and results
 clean:
-	@echo "Cleaning test cache..."
+	@echo "Cleaning test cache and results..."
 	go clean -testcache
 	rm -rf test-results/
+
+# Full cleanup including packages and services
+cleanup:
+	@echo "Running full cleanup script..."
+	@bash ../common/utils/cleanup.sh
 
 # Tidy dependencies
 tidy:
@@ -158,6 +163,7 @@ help:
 	@echo "  list-tests          - List all available tests"
 	@echo "  config              - Display current configuration"
 	@echo "  clean               - Clean test cache and results"
+	@echo "  cleanup             - Full cleanup (packages, services, data, containers)"
 	@echo "  tidy                - Tidy Go module dependencies"
 	@echo "  fmt                 - Format Go code"
 	@echo "  lint                - Run linter (if available)"
