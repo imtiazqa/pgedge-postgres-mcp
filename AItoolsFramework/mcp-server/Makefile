@@ -13,7 +13,14 @@ test:
 	@mkdir -p test-results
 	@go clean -cache -testcache
 	@touch testcases/*.go
-	TESTFW_CONFIG=$(MAKEFILE_DIR)/$(CONFIG_FILE) go test -v -count=1 -timeout 30m ./testcases 2>&1 | tee $(LOG_FILE)
+	@LOG_LEVEL=$$(grep -A2 "^logging:" $(CONFIG_FILE) | grep "level:" | awk '{print $$2}' | tr -d '"' | tr -d "'"); \
+	if [ "$$LOG_LEVEL" = "minimal" ]; then \
+		echo "Logging level: minimal (terminal shows summary only, full logs in file)"; \
+		TESTFW_CONFIG=$(MAKEFILE_DIR)/$(CONFIG_FILE) go test -v -count=1 -timeout 30m ./testcases 2>&1 | tee $(LOG_FILE) | sed -n '/🧪 Test Suite Summary/,/Total Duration:/p; /^ok[[:space:]]/p'; \
+	else \
+		echo "Logging level: $$LOG_LEVEL (full logs on terminal and file)"; \
+		TESTFW_CONFIG=$(MAKEFILE_DIR)/$(CONFIG_FILE) go test -v -count=1 -timeout 30m ./testcases 2>&1 | tee $(LOG_FILE); \
+	fi
 
 test-verbose:
 	@echo "Running MCP Server tests (verbose) with $(CONFIG_FILE)..."
