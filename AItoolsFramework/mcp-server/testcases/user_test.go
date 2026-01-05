@@ -17,6 +17,12 @@ func (s *MCPServerTestSuite) testUser_CreateUser() {
 	configFile := fmt.Sprintf("%s/postgres-mcp.yaml", s.Config.ConfigDir)
 	userFile := fmt.Sprintf("%s/pgedge-postgres-mcp-users.yaml", s.Config.ConfigDir)
 
+	// Clean up any existing test user from previous runs
+	s.T().Log("Cleaning up any existing test user...")
+	deleteCmd := fmt.Sprintf("%s -config %s -delete-user -user-file %s -username testuser 2>/dev/null || true",
+		mcpBinary, configFile, userFile)
+	s.ExecCommand(deleteCmd)
+
 	createCmd := fmt.Sprintf("%s -config %s -add-user -user-file %s -username testuser -password testpass123 -user-note \"test user\"",
 		mcpBinary, configFile, userFile)
 

@@ -14,7 +14,7 @@ execution:
   server_env: live                      # live, staging (change to 'staging' for staging repos)
   parallel: false
   max_workers: 4
-  skip_sudo_check: false                # Set to true for simple tests without sudo
+  skip_sudo_check: true                 # Set to true for simple tests without sudo
 
 # PostgreSQL installation configuration
 postgresql:

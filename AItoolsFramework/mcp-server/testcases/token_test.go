@@ -55,8 +55,10 @@ func (s *MCPServerTestSuite) testToken_FileExists() {
 
 	tokenFile := fmt.Sprintf("%s/pgedge-postgres-mcp-tokens.yaml", s.Config.ConfigDir)
 
-	// Token file may not exist initially - that's okay
-	// It will be created when the first token is created
+	// Clean up token file from previous runs to ensure fresh state
+	s.T().Log("Cleaning up token file from previous runs...")
+	s.ExecCommand(fmt.Sprintf("rm -f %s", tokenFile))
+
 	output, _, _ := s.ExecCommand(fmt.Sprintf("test -f %s && echo exists || echo missing", tokenFile))
 
 	if strings.Contains(output, "missing") {

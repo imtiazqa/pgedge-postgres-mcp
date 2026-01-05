@@ -1,6 +1,913 @@
---- FAIL: TestMCPServerTestSuite (0.06s)
-    base.go:162: Loaded configuration from: /Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/config/local.yaml (environment: local)
-    base.go:198: Failed to start executor: sudo access required for local execution. Please configure passwordless sudo or run with appropriate privileges. Output: sudo: a password is required
+
+[96;100;1m 🧪 Test Suite Summary                                                         [0m
+[106;30m  # [0m[106;30m TEST NAME                       [0m[106;30m STATUS                         [0m[106;30m DURATION [0m
+[107;30m  1 [0m[107;30m Test01_RepositoryInstallation   [0m[107;30m [31m✗ FAIL[0m[107;30m                         [0m[107;30m   0.024s [0m
+[47;30m  2 [0m[47;30m Test02_PostgreSQLSetup          [0m[47;30m [31m✗ FAIL[0m[47;30m                         [0m[47;30m   0.016s [0m
+[107;30m  3 [0m[107;30m Test03_MCPServerInstallation    [0m[107;30m [31m✗ FAIL[0m[107;30m                         [0m[107;30m   0.048s [0m
+[47;30m  4 [0m[47;30m Test04_InstallationValidation   [0m[47;30m [31m✗ FAIL[0m[47;30m                         [0m[47;30m   0.020s [0m
+[107;30m  5 [0m[107;30m Test05_TokenManagement          [0m[107;30m [31m✗ FAIL[0m[107;30m                         [0m[107;30m   0.017s [0m
+[47;30m  6 [0m[47;30m Test06_UserManagement           [0m[47;30m [31m✗ FAIL[0m[47;30m                         [0m[47;30m   0.013s [0m
+[107;30m  7 [0m[107;30m Test07_PackageFilesVerification [0m[107;30m [31m✗ FAIL[0m[107;30m                         [0m[107;30m   0.061s [0m
+[47;30m  8 [0m[47;30m Test08_ServiceManagement        [0m[47;30m [31m✗ FAIL[0m[47;30m                         [0m[47;30m   0.002s [0m
+[107;30m  9 [0m[107;30m Test09_KnowledgeBuilder         [0m[107;30m [31m✗ FAIL[0m[107;30m                         [0m[107;30m   0.012s [0m
+[47;30m 10 [0m[47;30m Test10_MCPServerWithKB          [0m[47;30m [31m✗ FAIL[0m[47;30m                         [0m[47;30m   0.010s [0m
+[107;30m 11 [0m[107;30m Test11_StdioMode                [0m[107;30m [31m✗ FAIL[0m[107;30m                         [0m[107;30m   0.009s [0m
+[106;30m    [0m[106;30m TOTAL: 11 TESTS                 [0m[106;30m 0 PASSED, 11 FAILED, 0 SKIPPED [0m[106;30m 5.415S   [0m
+
+📋 Execution Mode: [36mlocal[0m
+💻 System OS: [36mProductName:		macOS[0m
+🟢 Server Environment: [36mlive[0m
+🐘 PostgreSQL Version: [36m17[0m
+📦 Repository: [36mhttps://dnf.pgedge.com/reporpm/pgedge-release-latest.noarch.rpm[0m
+⏱️  Total Duration: [36m5.415s[0m
+
+--- FAIL: TestMCPServerTestSuite (5.43s)
+    base.go:165: Loaded configuration from: /Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/config/local.yaml (environment: local)
+    base.go:206: Executor initialized: local
+    base.go:62: Test suite started at 2026-01-05T19:36:38+05:00
+    e2e.go:34: E2E Suite initialized
+    e2e.go:329: Installing pgEdge repository...
+    install.go:93: Installing repository on RHEL/Rocky/Alma system...
+    install.go:103: Detected EL version: /bin/bash: rpm: command not found
+    install.go:106: Installing EPEL repository...
+    install.go:110: 
+        	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/install.go:110
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/install.go:37
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/e2e.go:330
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/e2e.go:346
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/e2e.go:366
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/suite_test.go:29
+        	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:211
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/suite_test.go:36
+        	Error:      	Not equal: 
+        	            	expected: 0
+        	            	actual  : 127
+        	Test:       	TestMCPServerTestSuite
+        	Messages:   	EPEL installation exited with non-zero: /bin/bash: dnf: command not found
+    install.go:113: Installing pgEdge repository...
+    install.go:115: Using repository URL: https://dnf.pgedge.com/reporpm/pgedge-release-latest.noarch.rpm
+    install.go:121: 
+        	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/install.go:121
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/install.go:37
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/e2e.go:330
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/e2e.go:346
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/e2e.go:366
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/suite_test.go:29
+        	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:211
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/suite_test.go:36
+        	Error:      	Not equal: 
+        	            	expected: 0
+        	            	actual  : 127
+        	Test:       	TestMCPServerTestSuite
+        	Messages:   	pgEdge repo installation exited with non-zero: /bin/bash: dnf: command not found
+    install.go:124: Updating package manager metadata...
+    install.go:129: Verifying repository is available...
+    install.go:132: 
+        	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/install.go:132
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/install.go:37
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/e2e.go:330
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/e2e.go:346
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/e2e.go:366
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/suite_test.go:29
+        	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:211
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/suite_test.go:36
+        	Error:      	Not equal: 
+        	            	expected: 0
+        	            	actual  : 127
+        	Test:       	TestMCPServerTestSuite
+    install.go:133: 
+        	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/install.go:133
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/install.go:37
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/e2e.go:330
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/e2e.go:346
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/e2e.go:366
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/suite_test.go:29
+        	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:211
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/suite_test.go:36
+        	Error:      	"/bin/bash: dnf: command not found\n" does not contain "pgedge-postgres-mcp"
+        	Test:       	TestMCPServerTestSuite
+        	Messages:   	Package should be available in repo
+    install.go:135: ✓ RHEL repository installed successfully
+    e2e.go:349: Installing PostgreSQL...
+    install.go:147: Installing PostgreSQL 17...
+    install.go:150: Step 1: Installing PostgreSQL 17 packages
+    install.go:221: 
+        	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/install.go:221
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/install.go:154
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/e2e.go:350
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/e2e.go:366
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/suite_test.go:29
+        	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:211
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/suite_test.go:36
+        	Error:      	Not equal: 
+        	            	expected: 0
+        	            	actual  : 127
+        	Test:       	TestMCPServerTestSuite
+        	Messages:   	PostgreSQL install exited with error: dnf install -y pgedge-postgresql17-server pgedge-postgresql17
+        	            	Output: /bin/bash: dnf: command not found
+    install.go:158: Step 2: Initializing PostgreSQL 17 database
+    install.go:280:   Stopping any existing PostgreSQL instances...
+    install.go:289:   Cleaning up existing data directory...
+    install.go:294:   Initializing new PostgreSQL 17 database...
+    install.go:298: 
+        	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/install.go:298
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/install.go:162
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/e2e.go:350
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/e2e.go:366
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/suite_test.go:29
+        	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:211
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/suite_test.go:36
+        	Error:      	Not equal: 
+        	            	expected: 0
+        	            	actual  : 1
+        	Test:       	TestMCPServerTestSuite
+        	Messages:   	PostgreSQL initdb failed: su: Sorry
+    install.go:304: 
+        	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/install.go:304
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/install.go:162
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/e2e.go:350
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/e2e.go:366
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/suite_test.go:29
+        	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:211
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/suite_test.go:36
+        	Error:      	Not equal: 
+        	            	expected: 0
+        	            	actual  : 1
+        	Test:       	TestMCPServerTestSuite
+        	Messages:   	pg_hba.conf config failed: /bin/bash: /var/lib/pgsql/17/data/pg_hba.conf: No such file or directory
+    install.go:307:   Starting PostgreSQL 17...
+    install.go:311: 
+        	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/install.go:311
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/install.go:162
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/e2e.go:350
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/e2e.go:366
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/suite_test.go:29
+        	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:211
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/suite_test.go:36
+        	Error:      	Not equal: 
+        	            	expected: 0
+        	            	actual  : 1
+        	Test:       	TestMCPServerTestSuite
+        	Messages:   	PostgreSQL start failed: su: Sorry
+    install.go:166: Step 3: Setting postgres user password
+    install.go:172: 
+        	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/install.go:172
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/e2e.go:350
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/e2e.go:366
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/suite_test.go:29
+        	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:211
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/suite_test.go:36
+        	Error:      	Not equal: 
+        	            	expected: 0
+        	            	actual  : 1
+        	Test:       	TestMCPServerTestSuite
+        	Messages:   	Set password failed: su: Sorry
+    install.go:175: Step 3.5: Configuring password-based authentication
+    install.go:274:   ✓ PostgreSQL authentication already configured for md5
+    install.go:183: Step 4: Creating MCP database
+    install.go:198: ℹ Using existing system database: postgres
+    install.go:201: ✓ PostgreSQL installed and configured successfully
+    e2e.go:369: Installing MCP server packages...
+    install.go:323: Installing MCP server packages...
+    install.go:338: 
+        	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/install.go:338
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/e2e.go:370
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/suite_test.go:29
+        	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:211
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/suite_test.go:36
+        	            				/opt/homebrew/Cellar/go/1.25.5/libexec/src/runtime/asm_arm64.s:1268
+        	Error:      	Not equal: 
+        	            	expected: 0
+        	            	actual  : 127
+        	Test:       	TestMCPServerTestSuite
+        	Messages:   	Package install exited with error: dnf install -y pgedge-postgres-mcp
+        	            	Output: /bin/bash: dnf: command not found
+    install.go:338: 
+        	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/install.go:338
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/e2e.go:370
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/suite_test.go:29
+        	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:211
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/suite_test.go:36
+        	            				/opt/homebrew/Cellar/go/1.25.5/libexec/src/runtime/asm_arm64.s:1268
+        	Error:      	Not equal: 
+        	            	expected: 0
+        	            	actual  : 127
+        	Test:       	TestMCPServerTestSuite
+        	Messages:   	Package install exited with error: dnf install -y pgedge-nla-cli
+        	            	Output: /bin/bash: dnf: command not found
+    install.go:338: 
+        	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/install.go:338
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/e2e.go:370
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/suite_test.go:29
+        	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:211
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/suite_test.go:36
+        	            				/opt/homebrew/Cellar/go/1.25.5/libexec/src/runtime/asm_arm64.s:1268
+        	Error:      	Not equal: 
+        	            	expected: 0
+        	            	actual  : 127
+        	Test:       	TestMCPServerTestSuite
+        	Messages:   	Package install exited with error: dnf install -y pgedge-nla-web
+        	            	Output: /bin/bash: dnf: command not found
+    install.go:338: 
+        	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/install.go:338
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/e2e.go:370
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/suite_test.go:29
+        	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:211
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/suite_test.go:36
+        	            				/opt/homebrew/Cellar/go/1.25.5/libexec/src/runtime/asm_arm64.s:1268
+        	Error:      	Not equal: 
+        	            	expected: 0
+        	            	actual  : 127
+        	Test:       	TestMCPServerTestSuite
+        	Messages:   	Package install exited with error: dnf install -y pgedge-postgres-mcp-kb
+        	            	Output: /bin/bash: dnf: command not found
+    install.go:343: Configuring database password...
+    install.go:353: 
+        	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/install.go:353
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/e2e.go:370
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/suite_test.go:29
+        	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:211
+        	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/suite_test.go:36
+        	            				/opt/homebrew/Cellar/go/1.25.5/libexec/src/runtime/asm_arm64.s:1268
+        	Error:      	Not equal: 
+        	            	expected: 0
+        	            	actual  : 1
+        	Test:       	TestMCPServerTestSuite
+        	Messages:   	Set database password failed: /bin/bash: line 2: /etc/pgedge/postgres-mcp.env: No such file or directory
+    install.go:355: ✓ All MCP server packages installed and configured successfully
+    suite_test.go:31: MCP Server Test Suite initialized - all packages installed
+    --- FAIL: TestMCPServerTestSuite/Test01_RepositoryInstallation (0.02s)
+        base.go:75: Test started: TestMCPServerTestSuite/Test01_RepositoryInstallation
+        regression_suite_test.go:26: === Test 01: Repository Installation ===
+        --- FAIL: TestMCPServerTestSuite/Test01_RepositoryInstallation/Repository_Installation (0.01s)
+            repository_test.go:8: Testing repository installation...
+            repository_test.go:23: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/repository_test.go:23
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	Not equal: 
+                	            	expected: 0
+                	            	actual  : 1
+                	Test:       	TestMCPServerTestSuite/Test01_RepositoryInstallation/Repository_Installation
+                	Messages:   	pgEdge repository should be in dnf repos
+            repository_test.go:24: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/repository_test.go:24
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"/bin/bash: dnf: command not found\n" does not contain "pgedge"
+                	Test:       	TestMCPServerTestSuite/Test01_RepositoryInstallation/Repository_Installation
+                	Messages:   	Repository should contain pgedge packages
+            repository_test.go:25: ✓ pgEdge dnf repository is installed
+        --- FAIL: TestMCPServerTestSuite/Test01_RepositoryInstallation/Repository_PackageAvailability (0.02s)
+            repository_test.go:30: Testing package availability in repository...
+            repository_test.go:49: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/repository_test.go:49
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	Not equal: 
+                	            	expected: 0
+                	            	actual  : 127
+                	Test:       	TestMCPServerTestSuite/Test01_RepositoryInstallation/Repository_PackageAvailability
+                	Messages:   	Package search should succeed for pgedge-postgres-mcp
+            repository_test.go:50: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/repository_test.go:50
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"/bin/bash: dnf: command not found\n" does not contain "pgedge-postgres-mcp"
+                	Test:       	TestMCPServerTestSuite/Test01_RepositoryInstallation/Repository_PackageAvailability
+                	Messages:   	Package pgedge-postgres-mcp should be available in repository
+            repository_test.go:52:   ✓ Package pgedge-postgres-mcp is available in repository
+            repository_test.go:49: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/repository_test.go:49
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	Not equal: 
+                	            	expected: 0
+                	            	actual  : 127
+                	Test:       	TestMCPServerTestSuite/Test01_RepositoryInstallation/Repository_PackageAvailability
+                	Messages:   	Package search should succeed for pgedge-nla-cli
+            repository_test.go:50: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/repository_test.go:50
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"/bin/bash: dnf: command not found\n" does not contain "pgedge-nla-cli"
+                	Test:       	TestMCPServerTestSuite/Test01_RepositoryInstallation/Repository_PackageAvailability
+                	Messages:   	Package pgedge-nla-cli should be available in repository
+            repository_test.go:52:   ✓ Package pgedge-nla-cli is available in repository
+            repository_test.go:49: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/repository_test.go:49
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	Not equal: 
+                	            	expected: 0
+                	            	actual  : 127
+                	Test:       	TestMCPServerTestSuite/Test01_RepositoryInstallation/Repository_PackageAvailability
+                	Messages:   	Package search should succeed for pgedge-nla-web
+            repository_test.go:50: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/repository_test.go:50
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"/bin/bash: dnf: command not found\n" does not contain "pgedge-nla-web"
+                	Test:       	TestMCPServerTestSuite/Test01_RepositoryInstallation/Repository_PackageAvailability
+                	Messages:   	Package pgedge-nla-web should be available in repository
+            repository_test.go:52:   ✓ Package pgedge-nla-web is available in repository
+            repository_test.go:49: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/repository_test.go:49
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	Not equal: 
+                	            	expected: 0
+                	            	actual  : 127
+                	Test:       	TestMCPServerTestSuite/Test01_RepositoryInstallation/Repository_PackageAvailability
+                	Messages:   	Package search should succeed for pgedge-postgres-mcp-kb
+            repository_test.go:50: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/repository_test.go:50
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"/bin/bash: dnf: command not found\n" does not contain "pgedge-postgres-mcp-kb"
+                	Test:       	TestMCPServerTestSuite/Test01_RepositoryInstallation/Repository_PackageAvailability
+                	Messages:   	Package pgedge-postgres-mcp-kb should be available in repository
+            repository_test.go:52:   ✓ Package pgedge-postgres-mcp-kb is available in repository
+        base.go:92: Test FAIL: TestMCPServerTestSuite/Test01_RepositoryInstallation (duration: 24.35975ms)
+    --- FAIL: TestMCPServerTestSuite/Test02_PostgreSQLSetup (0.02s)
+        base.go:75: Test started: TestMCPServerTestSuite/Test02_PostgreSQLSetup
+        regression_suite_test.go:35: === Test 02: PostgreSQL Setup ===
+        --- FAIL: TestMCPServerTestSuite/Test02_PostgreSQLSetup/PostgreSQL_Installation (0.00s)
+            postgresql_test.go:10: Testing PostgreSQL installation...
+            postgresql_test.go:15: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/postgresql_test.go:15
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	Not equal: 
+                	            	expected: 0
+                	            	actual  : 127
+                	Test:       	TestMCPServerTestSuite/Test02_PostgreSQLSetup/PostgreSQL_Installation
+            postgresql_test.go:16: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/postgresql_test.go:16
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"/bin/bash: psql: command not found\n" does not contain "PostgreSQL"
+                	Test:       	TestMCPServerTestSuite/Test02_PostgreSQLSetup/PostgreSQL_Installation
+                	Messages:   	PostgreSQL should be installed
+            postgresql_test.go:18: ✓ PostgreSQL installed successfully
+        base.go:92: Test FAIL: TestMCPServerTestSuite/Test02_PostgreSQLSetup (duration: 15.933334ms)
+    --- FAIL: TestMCPServerTestSuite/Test03_MCPServerInstallation (0.05s)
+        base.go:75: Test started: TestMCPServerTestSuite/Test03_MCPServerInstallation
+        regression_suite_test.go:46: === Test 03: MCP Server Installation ===
+        --- FAIL: TestMCPServerTestSuite/Test03_MCPServerInstallation/Installation_MCPPackages (0.01s)
+            installation_test.go:10: Testing MCP package installation...
+            e2e.go:243: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/e2e.go:243
+                	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/installation_test.go:13
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"missing\n" does not contain "exists"
+                	Test:       	TestMCPServerTestSuite/Test03_MCPServerInstallation/Installation_MCPPackages
+                	Messages:   	File /usr/bin/pgedge-postgres-mcp should exist
+            e2e.go:243: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/e2e.go:243
+                	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/installation_test.go:14
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"missing\n" does not contain "exists"
+                	Test:       	TestMCPServerTestSuite/Test03_MCPServerInstallation/Installation_MCPPackages
+                	Messages:   	File /usr/bin/pgedge-nla-cli should exist
+            e2e.go:243: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/e2e.go:243
+                	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/installation_test.go:15
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"missing\n" does not contain "exists"
+                	Test:       	TestMCPServerTestSuite/Test03_MCPServerInstallation/Installation_MCPPackages
+                	Messages:   	File /usr/bin/pgedge-nla-kb-builder should exist
+            e2e.go:243: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/e2e.go:243
+                	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/installation_test.go:19
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"missing\n" does not contain "exists"
+                	Test:       	TestMCPServerTestSuite/Test03_MCPServerInstallation/Installation_MCPPackages
+                	Messages:   	File /etc/pgedge/postgres-mcp.yaml should exist
+            e2e.go:243: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/e2e.go:243
+                	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/installation_test.go:20
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"missing\n" does not contain "exists"
+                	Test:       	TestMCPServerTestSuite/Test03_MCPServerInstallation/Installation_MCPPackages
+                	Messages:   	File /etc/pgedge/postgres-mcp.env should exist
+            installation_test.go:22: ✓ All MCP packages installed correctly
+        --- FAIL: TestMCPServerTestSuite/Test03_MCPServerInstallation/Installation_Repository (0.01s)
+            installation_test.go:46: Testing repository installation...
+            installation_test.go:60: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/installation_test.go:60
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	Not equal: 
+                	            	expected: 0
+                	            	actual  : 1
+                	Test:       	TestMCPServerTestSuite/Test03_MCPServerInstallation/Installation_Repository
+                	Messages:   	pgEdge repository should be in dnf repos
+            installation_test.go:61: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/installation_test.go:61
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"/bin/bash: dnf: command not found\n" does not contain "pgedge"
+                	Test:       	TestMCPServerTestSuite/Test03_MCPServerInstallation/Installation_Repository
+                	Messages:   	Repository should contain pgedge packages
+            installation_test.go:64: ✓ Repository installed and available
+        base.go:92: Test FAIL: TestMCPServerTestSuite/Test03_MCPServerInstallation (duration: 47.715709ms)
+    --- FAIL: TestMCPServerTestSuite/Test04_InstallationValidation (0.02s)
+        base.go:75: Test started: TestMCPServerTestSuite/Test04_InstallationValidation
+        regression_suite_test.go:56: === Test 04: Installation Validation ===
+        --- FAIL: TestMCPServerTestSuite/Test04_InstallationValidation/MCPServer_BinaryFunctional (0.00s)
+            mcp_server_test.go:39: Testing MCP server binary is functional...
+            mcp_server_test.go:46: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/mcp_server_test.go:46
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	Not equal: 
+                	            	expected: 0
+                	            	actual  : 1
+                	Test:       	TestMCPServerTestSuite/Test04_InstallationValidation/MCPServer_BinaryFunctional
+            mcp_server_test.go:47: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/mcp_server_test.go:47
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"" does not contain "OK"
+                	Test:       	TestMCPServerTestSuite/Test04_InstallationValidation/MCPServer_BinaryFunctional
+                	Messages:   	MCP server binary should exist and be executable
+            mcp_server_test.go:49: ✓ MCP server binary is functional
+        --- FAIL: TestMCPServerTestSuite/Test04_InstallationValidation/MCPServer_ConfigValid (0.00s)
+            mcp_server_test.go:53: Testing MCP server configuration is valid...
+            mcp_server_test.go:60: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/mcp_server_test.go:60
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	Not equal: 
+                	            	expected: 0
+                	            	actual  : 1
+                	Test:       	TestMCPServerTestSuite/Test04_InstallationValidation/MCPServer_ConfigValid
+            mcp_server_test.go:64: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/mcp_server_test.go:64
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"cat: /etc/pgedge/postgres-mcp.yaml: No such file or directory\n" does not contain "databases:"
+                	Test:       	TestMCPServerTestSuite/Test04_InstallationValidation/MCPServer_ConfigValid
+                	Messages:   	Config should have databases section
+            mcp_server_test.go:65: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/mcp_server_test.go:65
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"cat: /etc/pgedge/postgres-mcp.yaml: No such file or directory\n" does not contain "http:"
+                	Test:       	TestMCPServerTestSuite/Test04_InstallationValidation/MCPServer_ConfigValid
+                	Messages:   	Config should have http section
+            mcp_server_test.go:67: ✓ MCP server configuration is valid
+        --- FAIL: TestMCPServerTestSuite/Test04_InstallationValidation/MCPServer_EnvironmentFile (0.01s)
+            mcp_server_test.go:71: Testing MCP server environment file...
+            e2e.go:243: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/e2e.go:243
+                	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/mcp_server_test.go:76
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"missing\n" does not contain "exists"
+                	Test:       	TestMCPServerTestSuite/Test04_InstallationValidation/MCPServer_EnvironmentFile
+                	Messages:   	File /etc/pgedge/postgres-mcp.env should exist
+            mcp_server_test.go:81: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/mcp_server_test.go:81
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	Not equal: 
+                	            	expected: 0
+                	            	actual  : 1
+                	Test:       	TestMCPServerTestSuite/Test04_InstallationValidation/MCPServer_EnvironmentFile
+            mcp_server_test.go:84: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/mcp_server_test.go:84
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"cat: /etc/pgedge/postgres-mcp.env: No such file or directory\n" does not contain "PGEDGE_DB_PASSWORD"
+                	Test:       	TestMCPServerTestSuite/Test04_InstallationValidation/MCPServer_EnvironmentFile
+                	Messages:   	Environment file should contain database password
+            mcp_server_test.go:86: ✓ MCP server environment file is configured
+        base.go:92: Test FAIL: TestMCPServerTestSuite/Test04_InstallationValidation (duration: 20.104541ms)
+    --- FAIL: TestMCPServerTestSuite/Test05_TokenManagement (0.02s)
+        base.go:75: Test started: TestMCPServerTestSuite/Test05_TokenManagement
+        regression_suite_test.go:67: === Test 05: Token Management ===
+        --- FAIL: TestMCPServerTestSuite/Test05_TokenManagement/Token_FileExists (0.00s)
+            token_test.go:54: Testing token file can be created...
+            token_test.go:63:   ℹ Token file doesn't exist yet (will be created on first token creation)
+            e2e.go:251: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/e2e.go:251
+                	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/token_test.go:70
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"missing\n" does not contain "exists"
+                	Test:       	TestMCPServerTestSuite/Test05_TokenManagement/Token_FileExists
+                	Messages:   	Directory /etc/pgedge should exist
+            token_test.go:72: ✓ Token file location is accessible
+        --- FAIL: TestMCPServerTestSuite/Test05_TokenManagement/Token_CreateToken (0.01s)
+            token_test.go:13: Testing token creation...
+            token_test.go:24: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/token_test.go:24
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	Not equal: 
+                	            	expected: 0
+                	            	actual  : 127
+                	Test:       	TestMCPServerTestSuite/Test05_TokenManagement/Token_CreateToken
+            token_test.go:25: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/token_test.go:25
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"/bin/bash: /usr/bin/pgedge-postgres-mcp: No such file or directory\n" does not contain "Token:"
+                	Test:       	TestMCPServerTestSuite/Test05_TokenManagement/Token_CreateToken
+                	Messages:   	Should show generated token
+            token_test.go:26: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/token_test.go:26
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"/bin/bash: /usr/bin/pgedge-postgres-mcp: No such file or directory\n" does not contain "Hash:"
+                	Test:       	TestMCPServerTestSuite/Test05_TokenManagement/Token_CreateToken
+                	Messages:   	Should show token hash
+            token_test.go:32: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/token_test.go:32
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	Not equal: 
+                	            	expected: 0
+                	            	actual  : 1
+                	Test:       	TestMCPServerTestSuite/Test05_TokenManagement/Token_CreateToken
+                	Messages:   	chown failed: chown: pgedge: illegal group name
+            token_test.go:34: ✓ Token created successfully
+        --- FAIL: TestMCPServerTestSuite/Test05_TokenManagement/Token_ListTokens (0.00s)
+            token_test.go:38: Testing token listing...
+            token_test.go:47: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/token_test.go:47
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	Not equal: 
+                	            	expected: 0
+                	            	actual  : 127
+                	Test:       	TestMCPServerTestSuite/Test05_TokenManagement/Token_ListTokens
+            token_test.go:48: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/token_test.go:48
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"/bin/bash: /usr/bin/pgedge-postgres-mcp: No such file or directory\n" does not contain "test-token"
+                	Test:       	TestMCPServerTestSuite/Test05_TokenManagement/Token_ListTokens
+                	Messages:   	Should list created token
+            token_test.go:50: ✓ Token listing successful
+        base.go:92: Test FAIL: TestMCPServerTestSuite/Test05_TokenManagement (duration: 17.396ms)
+    --- FAIL: TestMCPServerTestSuite/Test06_UserManagement (0.01s)
+        base.go:75: Test started: TestMCPServerTestSuite/Test06_UserManagement
+        regression_suite_test.go:77: === Test 06: User Management ===
+        --- FAIL: TestMCPServerTestSuite/Test06_UserManagement/User_CreateUser (0.00s)
+            user_test.go:13: Testing user creation...
+            user_test.go:25: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/user_test.go:25
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	Not equal: 
+                	            	expected: 0
+                	            	actual  : 127
+                	Test:       	TestMCPServerTestSuite/Test06_UserManagement/User_CreateUser
+            user_test.go:26: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/user_test.go:26
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"/bin/bash: /usr/bin/pgedge-postgres-mcp: No such file or directory\n" does not contain "User created"
+                	Test:       	TestMCPServerTestSuite/Test06_UserManagement/User_CreateUser
+                	Messages:   	Should confirm user creation
+            user_test.go:28: ✓ User created successfully
+        --- FAIL: TestMCPServerTestSuite/Test06_UserManagement/User_ListUsers (0.00s)
+            user_test.go:32: Testing user listing...
+            user_test.go:41: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/user_test.go:41
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	Not equal: 
+                	            	expected: 0
+                	            	actual  : 127
+                	Test:       	TestMCPServerTestSuite/Test06_UserManagement/User_ListUsers
+            user_test.go:42: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/user_test.go:42
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"/bin/bash: /usr/bin/pgedge-postgres-mcp: No such file or directory\n" does not contain "testuser"
+                	Test:       	TestMCPServerTestSuite/Test06_UserManagement/User_ListUsers
+                	Messages:   	Should list created user
+            user_test.go:44: ✓ User listing successful
+        --- FAIL: TestMCPServerTestSuite/Test06_UserManagement/User_FilePermissions (0.01s)
+            user_test.go:48: Testing user file permissions...
+            e2e.go:243: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/e2e.go:243
+                	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/user_test.go:53
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"missing\n" does not contain "exists"
+                	Test:       	TestMCPServerTestSuite/Test06_UserManagement/User_FilePermissions
+                	Messages:   	File /etc/pgedge/pgedge-postgres-mcp-users.yaml should exist
+            user_test.go:58: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/user_test.go:58
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	Not equal: 
+                	            	expected: 0
+                	            	actual  : 1
+                	Test:       	TestMCPServerTestSuite/Test06_UserManagement/User_FilePermissions
+            user_test.go:60: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/user_test.go:60
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	Expect "stat: illegal option -- c
+                	            	usage: stat [-FLnq] [-f format | -l | -r | -s | -x] [-t timefmt] [file ...]" to match "^[0-9]{3}$"
+                	Test:       	TestMCPServerTestSuite/Test06_UserManagement/User_FilePermissions
+                	Messages:   	Should have valid permissions
+            user_test.go:62: ✓ User file has correct permissions
+        base.go:92: Test FAIL: TestMCPServerTestSuite/Test06_UserManagement (duration: 12.965833ms)
+    --- FAIL: TestMCPServerTestSuite/Test07_PackageFilesVerification (0.06s)
+        base.go:75: Test started: TestMCPServerTestSuite/Test07_PackageFilesVerification
+        regression_suite_test.go:87: === Test 07: Package Files Verification ===
+        --- FAIL: TestMCPServerTestSuite/Test07_PackageFilesVerification/Files_BinariesExist (0.02s)
+            files_test.go:10: Testing binaries...
+            e2e.go:243: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/e2e.go:243
+                	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/files_test.go:23
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"missing\n" does not contain "exists"
+                	Test:       	TestMCPServerTestSuite/Test07_PackageFilesVerification/Files_BinariesExist
+                	Messages:   	File /usr/bin/pgedge-postgres-mcp should exist
+            files_test.go:28: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/files_test.go:28
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	Not equal: 
+                	            	expected: 0
+                	            	actual  : 1
+                	Test:       	TestMCPServerTestSuite/Test07_PackageFilesVerification/Files_BinariesExist
+                	Messages:   	Should get permissions for /usr/bin/pgedge-postgres-mcp
+            files_test.go:29: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/files_test.go:29
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"stat: illegal option -- c\nusage: stat [-FLnq] [-f format | -l | -r | -s | -x] [-t timefmt] [file ...]\n" does not contain "755"
+                	Test:       	TestMCPServerTestSuite/Test07_PackageFilesVerification/Files_BinariesExist
+                	Messages:   	/usr/bin/pgedge-postgres-mcp should have 755 permissions
+            files_test.go:31:   ✓ /usr/bin/pgedge-postgres-mcp exists with correct permissions (755)
+            e2e.go:243: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/e2e.go:243
+                	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/files_test.go:23
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"missing\n" does not contain "exists"
+                	Test:       	TestMCPServerTestSuite/Test07_PackageFilesVerification/Files_BinariesExist
+                	Messages:   	File /usr/bin/pgedge-nla-kb-builder should exist
+            files_test.go:28: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/files_test.go:28
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	Not equal: 
+                	            	expected: 0
+                	            	actual  : 1
+                	Test:       	TestMCPServerTestSuite/Test07_PackageFilesVerification/Files_BinariesExist
+                	Messages:   	Should get permissions for /usr/bin/pgedge-nla-kb-builder
+            files_test.go:29: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/files_test.go:29
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"stat: illegal option -- c\nusage: stat [-FLnq] [-f format | -l | -r | -s | -x] [-t timefmt] [file ...]\n" does not contain "755"
+                	Test:       	TestMCPServerTestSuite/Test07_PackageFilesVerification/Files_BinariesExist
+                	Messages:   	/usr/bin/pgedge-nla-kb-builder should have 755 permissions
+            files_test.go:31:   ✓ /usr/bin/pgedge-nla-kb-builder exists with correct permissions (755)
+            e2e.go:243: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/e2e.go:243
+                	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/files_test.go:23
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"missing\n" does not contain "exists"
+                	Test:       	TestMCPServerTestSuite/Test07_PackageFilesVerification/Files_BinariesExist
+                	Messages:   	File /usr/bin/pgedge-nla-cli should exist
+            files_test.go:28: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/files_test.go:28
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	Not equal: 
+                	            	expected: 0
+                	            	actual  : 1
+                	Test:       	TestMCPServerTestSuite/Test07_PackageFilesVerification/Files_BinariesExist
+                	Messages:   	Should get permissions for /usr/bin/pgedge-nla-cli
+            files_test.go:29: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/files_test.go:29
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"stat: illegal option -- c\nusage: stat [-FLnq] [-f format | -l | -r | -s | -x] [-t timefmt] [file ...]\n" does not contain "755"
+                	Test:       	TestMCPServerTestSuite/Test07_PackageFilesVerification/Files_BinariesExist
+                	Messages:   	/usr/bin/pgedge-nla-cli should have 755 permissions
+            files_test.go:31:   ✓ /usr/bin/pgedge-nla-cli exists with correct permissions (755)
+        --- FAIL: TestMCPServerTestSuite/Test07_PackageFilesVerification/Files_ConfigFiles (0.02s)
+            files_test.go:53: Testing configuration files...
+            e2e.go:243: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/e2e.go:243
+                	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/files_test.go:70
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"missing\n" does not contain "exists"
+                	Test:       	TestMCPServerTestSuite/Test07_PackageFilesVerification/Files_ConfigFiles
+                	Messages:   	File /etc/pgedge/postgres-mcp.env should exist
+            files_test.go:75: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/files_test.go:75
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	Not equal: 
+                	            	expected: 0
+                	            	actual  : 1
+                	Test:       	TestMCPServerTestSuite/Test07_PackageFilesVerification/Files_ConfigFiles
+                	Messages:   	Should get permissions for /etc/pgedge/postgres-mcp.env
+            files_test.go:76: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/files_test.go:76
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"stat: illegal option -- c\nusage: stat [-FLnq] [-f format | -l | -r | -s | -x] [-t timefmt] [file ...]\n" does not contain "644"
+                	Test:       	TestMCPServerTestSuite/Test07_PackageFilesVerification/Files_ConfigFiles
+                	Messages:   	/etc/pgedge/postgres-mcp.env should have 644 permissions
+            files_test.go:78:   ✓ /etc/pgedge/postgres-mcp.env exists with correct permissions (644)
+            e2e.go:243: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/e2e.go:243
+                	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/files_test.go:70
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"missing\n" does not contain "exists"
+                	Test:       	TestMCPServerTestSuite/Test07_PackageFilesVerification/Files_ConfigFiles
+                	Messages:   	File /etc/pgedge/pgedge-nla-kb-builder.yaml should exist
+            files_test.go:75: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/files_test.go:75
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	Not equal: 
+                	            	expected: 0
+                	            	actual  : 1
+                	Test:       	TestMCPServerTestSuite/Test07_PackageFilesVerification/Files_ConfigFiles
+                	Messages:   	Should get permissions for /etc/pgedge/pgedge-nla-kb-builder.yaml
+            files_test.go:76: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/files_test.go:76
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"stat: illegal option -- c\nusage: stat [-FLnq] [-f format | -l | -r | -s | -x] [-t timefmt] [file ...]\n" does not contain "644"
+                	Test:       	TestMCPServerTestSuite/Test07_PackageFilesVerification/Files_ConfigFiles
+                	Messages:   	/etc/pgedge/pgedge-nla-kb-builder.yaml should have 644 permissions
+            files_test.go:78:   ✓ /etc/pgedge/pgedge-nla-kb-builder.yaml exists with correct permissions (644)
+            e2e.go:243: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/e2e.go:243
+                	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/files_test.go:70
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"missing\n" does not contain "exists"
+                	Test:       	TestMCPServerTestSuite/Test07_PackageFilesVerification/Files_ConfigFiles
+                	Messages:   	File /etc/pgedge/nla-cli.yaml should exist
+            files_test.go:75: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/files_test.go:75
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	Not equal: 
+                	            	expected: 0
+                	            	actual  : 1
+                	Test:       	TestMCPServerTestSuite/Test07_PackageFilesVerification/Files_ConfigFiles
+                	Messages:   	Should get permissions for /etc/pgedge/nla-cli.yaml
+            files_test.go:76: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/files_test.go:76
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"stat: illegal option -- c\nusage: stat [-FLnq] [-f format | -l | -r | -s | -x] [-t timefmt] [file ...]\n" does not contain "644"
+                	Test:       	TestMCPServerTestSuite/Test07_PackageFilesVerification/Files_ConfigFiles
+                	Messages:   	/etc/pgedge/nla-cli.yaml should have 644 permissions
+            files_test.go:78:   ✓ /etc/pgedge/nla-cli.yaml exists with correct permissions (644)
+            e2e.go:243: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/e2e.go:243
+                	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/files_test.go:70
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"missing\n" does not contain "exists"
+                	Test:       	TestMCPServerTestSuite/Test07_PackageFilesVerification/Files_ConfigFiles
+                	Messages:   	File /etc/pgedge/postgres-mcp.yaml should exist
+            files_test.go:75: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/files_test.go:75
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	Not equal: 
+                	            	expected: 0
+                	            	actual  : 1
+                	Test:       	TestMCPServerTestSuite/Test07_PackageFilesVerification/Files_ConfigFiles
+                	Messages:   	Should get permissions for /etc/pgedge/postgres-mcp.yaml
+            files_test.go:76: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/files_test.go:76
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"stat: illegal option -- c\nusage: stat [-FLnq] [-f format | -l | -r | -s | -x] [-t timefmt] [file ...]\n" does not contain "644"
+                	Test:       	TestMCPServerTestSuite/Test07_PackageFilesVerification/Files_ConfigFiles
+                	Messages:   	/etc/pgedge/postgres-mcp.yaml should have 644 permissions
+            files_test.go:78:   ✓ /etc/pgedge/postgres-mcp.yaml exists with correct permissions (644)
+        --- FAIL: TestMCPServerTestSuite/Test07_PackageFilesVerification/Files_DataDirectory (0.01s)
+            files_test.go:83: Testing data directory...
+            e2e.go:251: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/e2e.go:251
+                	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/files_test.go:88
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"missing\n" does not contain "exists"
+                	Test:       	TestMCPServerTestSuite/Test07_PackageFilesVerification/Files_DataDirectory
+                	Messages:   	Directory /var/lib/pgedge/postgres-mcp should exist
+            files_test.go:93: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/files_test.go:93
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	Not equal: 
+                	            	expected: 0
+                	            	actual  : 1
+                	Test:       	TestMCPServerTestSuite/Test07_PackageFilesVerification/Files_DataDirectory
+                	Messages:   	Should get data directory permissions
+            files_test.go:94: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/files_test.go:94
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"stat: illegal option -- c\nusage: stat [-FLnq] [-f format | -l | -r | -s | -x] [-t timefmt] [file ...]\n" does not contain "755"
+                	Test:       	TestMCPServerTestSuite/Test07_PackageFilesVerification/Files_DataDirectory
+                	Messages:   	Data directory should have 755 permissions
+            files_test.go:99: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/files_test.go:99
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	Not equal: 
+                	            	expected: 0
+                	            	actual  : 1
+                	Test:       	TestMCPServerTestSuite/Test07_PackageFilesVerification/Files_DataDirectory
+                	Messages:   	Should get data directory ownership
+            files_test.go:100: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/files_test.go:100
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"stat: illegal option -- c\nusage: stat [-FLnq] [-f format | -l | -r | -s | -x] [-t timefmt] [file ...]\n" does not contain "pgedge:pgedge"
+                	Test:       	TestMCPServerTestSuite/Test07_PackageFilesVerification/Files_DataDirectory
+                	Messages:   	/var/lib/pgedge/postgres-mcp should be owned by pgedge:pgedge
+            files_test.go:102:   ✓ /var/lib/pgedge/postgres-mcp exists with correct ownership (pgedge:pgedge)
+        --- FAIL: TestMCPServerTestSuite/Test07_PackageFilesVerification/Files_SystemdService (0.01s)
+            files_test.go:36: Testing systemd service file...
+            e2e.go:243: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/e2e.go:243
+                	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/files_test.go:41
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"missing\n" does not contain "exists"
+                	Test:       	TestMCPServerTestSuite/Test07_PackageFilesVerification/Files_SystemdService
+                	Messages:   	File /usr/lib/systemd/system/pgedge-postgres-mcp.service should exist
+            files_test.go:46: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/files_test.go:46
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	Not equal: 
+                	            	expected: 0
+                	            	actual  : 1
+                	Test:       	TestMCPServerTestSuite/Test07_PackageFilesVerification/Files_SystemdService
+                	Messages:   	Should get service file permissions
+            files_test.go:47: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/files_test.go:47
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"stat: illegal option -- c\nusage: stat [-FLnq] [-f format | -l | -r | -s | -x] [-t timefmt] [file ...]\n" does not contain "644"
+                	Test:       	TestMCPServerTestSuite/Test07_PackageFilesVerification/Files_SystemdService
+                	Messages:   	Service file should have 644 permissions
+            files_test.go:49:   ✓ /usr/lib/systemd/system/pgedge-postgres-mcp.service exists with correct permissions (644)
+        base.go:92: Test FAIL: TestMCPServerTestSuite/Test07_PackageFilesVerification (duration: 61.352333ms)
+    --- FAIL: TestMCPServerTestSuite/Test08_ServiceManagement (0.00s)
+        base.go:75: Test started: TestMCPServerTestSuite/Test08_ServiceManagement
+        regression_suite_test.go:99: === Test 08: Service Management ===
+        --- FAIL: TestMCPServerTestSuite/Test08_ServiceManagement/Service_MCPServerBinary (0.00s)
+            service_test.go:10: Testing MCP server binary...
+            service_test.go:18: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/service_test.go:18
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"/bin/bash: /usr/bin/pgedge-postgres-mcp: No such file or directory\n" does not contain "Usage"
+                	Test:       	TestMCPServerTestSuite/Test08_ServiceManagement/Service_MCPServerBinary
+                	Messages:   	Help should show usage information
+            service_test.go:20: ✓ MCP server binary is functional
+        base.go:92: Test FAIL: TestMCPServerTestSuite/Test08_ServiceManagement (duration: 2.136958ms)
+    --- FAIL: TestMCPServerTestSuite/Test09_KnowledgeBuilder (0.01s)
+        base.go:75: Test started: TestMCPServerTestSuite/Test09_KnowledgeBuilder
+        regression_suite_test.go:107: === Test 09: Knowledge Builder ===
+        --- FAIL: TestMCPServerTestSuite/Test09_KnowledgeBuilder/KB_BuilderBinary (0.00s)
+            kb_test.go:10: Testing KB builder binary...
+            e2e.go:243: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/e2e.go:243
+                	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/kb_test.go:14
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"missing\n" does not contain "exists"
+                	Test:       	TestMCPServerTestSuite/Test09_KnowledgeBuilder/KB_BuilderBinary
+                	Messages:   	File /usr/bin/pgedge-nla-kb-builder should exist
+            kb_test.go:20: KB builder output: /bin/bash: /usr/bin/pgedge-nla-kb-builder: No such file or directory
+            kb_test.go:22: ✓ KB builder binary available
+        --- FAIL: TestMCPServerTestSuite/Test09_KnowledgeBuilder/MCPKB_BuilderBinary (0.00s)
+            mcp_kb_test.go:10: Testing KB builder binary...
+            e2e.go:243: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/e2e.go:243
+                	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/mcp_kb_test.go:15
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"missing\n" does not contain "exists"
+                	Test:       	TestMCPServerTestSuite/Test09_KnowledgeBuilder/MCPKB_BuilderBinary
+                	Messages:   	File /usr/bin/pgedge-nla-kb-builder should exist
+            mcp_kb_test.go:20: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/mcp_kb_test.go:20
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	Not equal: 
+                	            	expected: 0
+                	            	actual  : 1
+                	Test:       	TestMCPServerTestSuite/Test09_KnowledgeBuilder/MCPKB_BuilderBinary
+            mcp_kb_test.go:21: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/mcp_kb_test.go:21
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"" does not contain "OK"
+                	Test:       	TestMCPServerTestSuite/Test09_KnowledgeBuilder/MCPKB_BuilderBinary
+                	Messages:   	KB builder should be executable
+            mcp_kb_test.go:23: ✓ KB builder binary is available and executable
+        --- FAIL: TestMCPServerTestSuite/Test09_KnowledgeBuilder/MCPKB_BuilderHelp (0.00s)
+            mcp_kb_test.go:27: Testing KB builder help command...
+            mcp_kb_test.go:36: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/mcp_kb_test.go:36
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"/bin/bash: /usr/bin/pgedge-nla-kb-builder: No such file or directory\n" does not contain "Usage:"
+                	Test:       	TestMCPServerTestSuite/Test09_KnowledgeBuilder/MCPKB_BuilderHelp
+                	Messages:   	Help should contain usage information
+            mcp_kb_test.go:37: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/mcp_kb_test.go:37
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"/bin/bash: /usr/bin/pgedge-nla-kb-builder: No such file or directory\n" does not contain "Flags:"
+                	Test:       	TestMCPServerTestSuite/Test09_KnowledgeBuilder/MCPKB_BuilderHelp
+                	Messages:   	Help should contain flags information
+            mcp_kb_test.go:39: ✓ KB builder help command works
+        base.go:92: Test FAIL: TestMCPServerTestSuite/Test09_KnowledgeBuilder (duration: 11.854958ms)
+    --- FAIL: TestMCPServerTestSuite/Test10_MCPServerWithKB (0.01s)
+        base.go:75: Test started: TestMCPServerTestSuite/Test10_MCPServerWithKB
+        regression_suite_test.go:117: === Test 10: MCP Server with Knowledge Base ===
+        --- FAIL: TestMCPServerTestSuite/Test10_MCPServerWithKB/MCPKB_ConfigFile (0.01s)
+            mcp_kb_test.go:43: Testing KB builder configuration file...
+            e2e.go:243: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/common/suite/e2e.go:243
+                	            				/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/mcp_kb_test.go:48
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"missing\n" does not contain "exists"
+                	Test:       	TestMCPServerTestSuite/Test10_MCPServerWithKB/MCPKB_ConfigFile
+                	Messages:   	File /etc/pgedge/pgedge-nla-kb-builder.yaml should exist
+            mcp_kb_test.go:53: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/mcp_kb_test.go:53
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	Not equal: 
+                	            	expected: 0
+                	            	actual  : 1
+                	Test:       	TestMCPServerTestSuite/Test10_MCPServerWithKB/MCPKB_ConfigFile
+            mcp_kb_test.go:56: ✓ KB builder configuration file exists
+        base.go:92: Test FAIL: TestMCPServerTestSuite/Test10_MCPServerWithKB (duration: 10.240208ms)
+    --- FAIL: TestMCPServerTestSuite/Test11_StdioMode (0.01s)
+        base.go:75: Test started: TestMCPServerTestSuite/Test11_StdioMode
+        regression_suite_test.go:126: === Test 11: Stdio Mode ===
+        --- FAIL: TestMCPServerTestSuite/Test11_StdioMode/Stdio_BinarySupportsStdio (0.00s)
+            stdio_test.go:44: Testing MCP server supports stdio mode...
+            stdio_test.go:53: 
+                	Error Trace:	/Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/testcases/stdio_test.go:53
+                	            				/Users/imtiaz/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"/bin/bash: /usr/bin/pgedge-postgres-mcp: No such file or directory\n" does not contain "config"
+                	Test:       	TestMCPServerTestSuite/Test11_StdioMode/Stdio_BinarySupportsStdio
+                	Messages:   	Help should mention configuration
+            stdio_test.go:55: ✓ MCP server binary supports stdio mode
+        base.go:92: Test FAIL: TestMCPServerTestSuite/Test11_StdioMode (duration: 8.653209ms)
 FAIL
-FAIL	github.com/pgedge/AItoolsFramework/mcp-server/testcases	1.594s
+FAIL	github.com/pgedge/AItoolsFramework/mcp-server/testcases	7.370s
 FAIL
