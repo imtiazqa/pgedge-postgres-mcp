@@ -337,11 +337,16 @@ func (s *E2ESuite) installMCPPackages() {
 		totalPackages += len(pkgList)
 	}
 
-	// Start progress animation with initial message
-	s.T().Log("Downloading dependencies.....")
+	// Show progress animation only in minimal log mode
+	isMinimalLogging := s.Config.Reporting.LogLevel == "minimal"
+
+	if isMinimalLogging {
+		s.T().Log("Downloading dependencies.....")
+	}
+
 	progressDots := "."
 
-	// Install packages with progress animation
+	// Install packages with progress animation (minimal mode only)
 	packageIndex := 0
 	for _, pkgList := range packageLists {
 		for _, pkg := range pkgList {
@@ -349,7 +354,7 @@ func (s *E2ESuite) installMCPPackages() {
 
 			// Update progress dots (add one more dot with each package)
 			progressDots += "."
-			if packageIndex < totalPackages {
+			if isMinimalLogging && packageIndex < totalPackages {
 				s.T().Logf("Downloading dependencies%s", progressDots)
 			}
 
@@ -360,8 +365,10 @@ func (s *E2ESuite) installMCPPackages() {
 		}
 	}
 
-	// Final completion message
-	s.T().Log("Downloading dependencies... ✓ Complete")
+	// Final completion message (minimal mode only)
+	if isMinimalLogging {
+		s.T().Log("Downloading dependencies... ✓ Complete")
+	}
 
 	// Configure database password in env file
 	s.T().Log("Configuring database password...")
