@@ -323,9 +323,7 @@ func (s *E2ESuite) initializePostgreSQLRHEL(pgVersion string) {
 
 // installMCPPackages performs the actual MCP package installation
 func (s *E2ESuite) installMCPPackages() {
-	s.T().Log("Installing MCP server packages...")
-
-	// Get all packages from config and install them
+	// Get all packages from config to count them
 	var packageLists = [][]string{
 		s.Config.Packages.MCPServer,
 		s.Config.Packages.CLI,
@@ -333,14 +331,37 @@ func (s *E2ESuite) installMCPPackages() {
 		s.Config.Packages.KB,
 	}
 
+	// Count total packages
+	totalPackages := 0
+	for _, pkgList := range packageLists {
+		totalPackages += len(pkgList)
+	}
+
+	// Start progress animation with initial message
+	s.T().Log("Downloading dependencies.....")
+	progressDots := "."
+
+	// Install packages with progress animation
+	packageIndex := 0
 	for _, pkgList := range packageLists {
 		for _, pkg := range pkgList {
+			packageIndex++
+
+			// Update progress dots (add one more dot with each package)
+			progressDots += "."
+			if packageIndex < totalPackages {
+				s.T().Logf("Downloading dependencies%s", progressDots)
+			}
+
 			installCmd := s.getPkgManagerInstall(pkg)
 			output, exitCode, err := s.ExecCommand(installCmd)
 			s.NoError(err, "Package install failed: %s\nOutput: %s", installCmd, output)
 			s.Equal(0, exitCode, "Package install exited with error: %s\nOutput: %s", installCmd, output)
 		}
 	}
+
+	// Final completion message
+	s.T().Log("Downloading dependencies... ✓ Complete")
 
 	// Configure database password in env file
 	s.T().Log("Configuring database password...")
