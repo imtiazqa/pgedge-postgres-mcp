@@ -176,9 +176,6 @@ type RHELRepoConfig struct {
 
 // ReportingConfig defines test reporting settings
 type ReportingConfig struct {
-	// Log level: minimal, detailed
-	LogLevel string `yaml:"log_level"`
-
 	// Output formats
 	Console  bool `yaml:"console"`
 	JSON     bool `yaml:"json"`

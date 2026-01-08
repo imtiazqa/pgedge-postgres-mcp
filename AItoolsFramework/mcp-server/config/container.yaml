@@ -30,7 +30,7 @@ execution:
 
 # Logging configuration
 logging:
-  level: minimal  # minimal, detailed, verbose
+  level: detailed  # minimal, detailed, verbose
   log_commands: true
   log_output: false
 
@@ -96,7 +96,6 @@ timeouts:
 
 # Reporting configuration
 reporting:
-  log_level: minimal              # minimal (summary only), detailed (all test logs)
   console: true
   json: false
   junit: false

@@ -34,11 +34,11 @@ func (v *Validator) Validate(config *TestConfig) error {
 		}
 	}
 
-	// Validate reporting config
-	if config.Reporting.LogLevel != "" {
-		validLevels := []string{"minimal", "detailed"}
-		if !contains(validLevels, config.Reporting.LogLevel) {
-			errors = append(errors, fmt.Sprintf("reporting.log_level must be one of: %s", strings.Join(validLevels, ", ")))
+	// Validate logging config
+	if config.Logging.Level != "" {
+		validLevels := []string{"minimal", "detailed", "verbose"}
+		if !contains(validLevels, config.Logging.Level) {
+			errors = append(errors, fmt.Sprintf("logging.level must be one of: %s", strings.Join(validLevels, ", ")))
 		}
 	}
 
@@ -78,10 +78,12 @@ func (v *Validator) SetDefaults(config *TestConfig) {
 		config.Database.MaxConnections = 10
 	}
 
-	// Set default reporting config
-	if config.Reporting.LogLevel == "" {
-		config.Reporting.LogLevel = "detailed"
+	// Set default logging config
+	if config.Logging.Level == "" {
+		config.Logging.Level = "detailed"
 	}
+
+	// Set default reporting config
 	if !config.Reporting.Console && !config.Reporting.JSON && !config.Reporting.JUnit {
 		config.Reporting.Console = true
 	}

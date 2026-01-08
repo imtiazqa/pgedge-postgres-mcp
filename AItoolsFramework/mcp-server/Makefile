@@ -37,6 +37,7 @@ test-local:
 test-container:
 	@echo "Running tests in container mode (uses server_env from container.yaml)..."
 	@echo "Note: Single package = single container (fast!)"
+	@echo "CONFIG_FILE=config/container.yaml LOG_FILE=test-results/test-container.log"
 	@echo "Checking logging configuration..."
 	@mkdir -p test-results
 	@go clean -cache -testcache

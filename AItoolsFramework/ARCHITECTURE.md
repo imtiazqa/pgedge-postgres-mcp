@@ -1,17 +1,17 @@
 # Test Framework Architecture
 
-This document describes the organization and structure of the AItoolsFramework test framework.
+This document describes the organization and structure of the AItoolsFramework
+test framework.
 
 ## Directory Structure
 
 ```
 AItoolsFramework/
-├── common/                 # Shared framework components
+├── common/                 # Shared framework components (Go module)
 │   ├── assertions/        # Custom test assertions
 │   ├── config/            # Configuration management
 │   ├── database/          # Database helpers
-│   ├── executor/          # Test execution (local, container)
-│   ├── fixtures/          # Test data management
+│   ├── executor/          # Test execution (local, container-systemd)
 │   ├── http/              # HTTP client helpers
 │   ├── mcp/               # MCP protocol helpers
 │   └── suite/             # Test suite base classes ⭐
@@ -22,10 +22,10 @@ AItoolsFramework/
 │       ├── api.go         # APISuite
 │       └── database.go    # DatabaseSuite
 │
-└── mcp-server/            # MCP server test project
+└── mcp-server/            # MCP server test project (Go module)
     ├── config/            # Test configurations
-    │   ├── dev.yaml       # Local development
-    │   └── container.yaml # Container mode
+    │   ├── local.yaml       # Local development
+    │   └── container.yaml   # Container mode
     └── testcases/         # Actual tests
         ├── database/      # Database tests
         ├── installation/  # Installation tests
@@ -35,54 +35,107 @@ AItoolsFramework/
         └── examples/      # Example tests
 ```
 
+## Multi-Module Architecture
+
+### Why Two Go Modules?
+
+The framework uses Go's multi-module workspace pattern:
+
+**1. `common/` Module**
+- Independent, reusable framework library
+- Can be versioned separately
+- Shareable across multiple test projects
+- Contains all base functionality
+
+**2. `mcp-server/` Module**
+- Specific test suite for MCP server
+- Uses `common` via `replace` directive  
+- Has its own dependencies
+- Focused on MCP server testing
+
+**Benefits:**
+- **Reusability**: Other projects can use the same framework
+- **Isolation**: Changes in test suites don't affect the framework  
+- **Local Development**: `replace` directive allows immediate code changes
+- **Scalability**: Easy to add more test projects
+
+### Module Relationship
+
+\`\`\`go
+// mcp-server/go.mod
+module github.com/pgedge/AItoolsFramework/mcp-server
+
+replace github.com/pgedge/AItoolsFramework/common => ../common
+
+require (
+    github.com/pgedge/AItoolsFramework/common v0.0.0
+    github.com/stretchr/testify v1.11.1
+)
+\`\`\`
+
+## Configuration System
+
+### Logging vs Reporting Separation
+
+The framework separates logging control from reporting configuration:
+
+**logging**: Controls verbosity and what gets logged
+- `level`: minimal, detailed, verbose
+- `log_commands`: Log executed commands
+- `log_output`: Log command output
+
+**reporting**: Controls output formats and where reports are saved
+- `console`, `json`, `junit`, `markdown`: Output formats
+- `output_paths`: File locations for reports
+- `console_settings`: Display preferences
+
+\`\`\`yaml
+logging:
+  level: minimal
+  log_commands: true
+  log_output: false
+
+reporting:
+  console: true
+  json: false
+  junit: false
+  output_paths:
+    log_file: test-results/test-local.log
+\`\`\`
+
 ## Key Design Decisions
 
-### 1. Suite File Organization (common/suite)
+### 1. Suite File Organization
 
 **Decision**: Split E2ESuite across two files (e2e.go + install.go)
 
 **Rationale**:
-- Prevents single file from becoming too large
+- Prevents single file from becoming too large  
 - Clear separation: public API vs implementation
-- Installation logic (~300 lines) isolated for easier maintenance
-- Follows Go convention of multi-file types in same package
+- Installation logic (~300 lines) isolated for maintenance
+- Follows Go convention of multi-file types
 
-**Files**:
-- `e2e.go`: Public methods (`EnsureMCPPackagesInstalled()`, assertion helpers)
-- `install.go`: Private implementation (`installRepository()`, OS-specific logic)
+### 2. Global Installation State
 
-### 2. Installation State Tracking
-
-**Decision**: Use `setupState` struct to track installed components
+**Decision**: Use package-level `globalInstallState` instead of per-suite state
 
 **Rationale**:
-- Ensures idempotent installations (install only once)
-- Avoids redundant package installations
-- Tracks dependency chain (repo → PostgreSQL → MCP packages)
+- Ensures packages are installed only once across all test suites
+- Saves ~2 minutes per test run
+- Thread-safe with `sync.Mutex`
+- Idempotent: first suite installs, others skip instantly
 
-**Implementation**:
-```go
-setupState struct {
-    repoInstalled        bool
-    postgresqlInstalled  bool
-    mcpPackagesInstalled bool
-}
-```
+See [OPTIMIZATION.md](OPTIMIZATION.md) for details.
 
 ### 3. Configuration-Driven Installation
 
-**Decision**: PostgreSQL version and settings from config files
+**Decision**: All installation parameters from config files
 
 **Rationale**:
 - No hardcoded values in test code
 - Easy to test different PostgreSQL versions
-- Supports different environments (dev, staging, container)
-
-**Example**:
-```yaml
-postgresql:
-  version: "17"  # Configurable per environment
-```
+- Supports different environments  
+- Repository URLs automatically selected based on `server_env`
 
 ### 4. Dependency Chain Management
 
@@ -93,17 +146,12 @@ postgresql:
 - Simple API: just call `EnsureMCPPackagesInstalled()`
 - Framework handles: repo → PostgreSQL → MCP packages
 
-**Flow**:
-```
-Test calls: s.EnsureMCPPackagesInstalled()
-   ↓
-Framework ensures: Repository → PostgreSQL → MCP Packages
-```
-
 ## Suite Hierarchy
 
-```
+\`\`\`
 BaseSuite (base.go)
+    │   - Purpose: Core functionality for all suites
+    │   - Features: Config access, executor, logging
     │
     ├─→ E2ESuite (e2e.go + install.go)
     │   │   - Purpose: End-to-end testing with system dependencies
@@ -112,143 +160,80 @@ BaseSuite (base.go)
     │   │
     │   └─→ APISuite (api.go)
     │       - Purpose: API/MCP protocol testing
-    │       - Features: MCP server lifecycle, protocol assertions, installation helpers
+    │       - Features: MCP server lifecycle, protocol assertions
+    │       - Inherits: Installation methods from E2ESuite
     │       - Used by: MCP protocol, stdio, KB tests
-    │       - Note: Extends E2ESuite to inherit installation methods
     │
     └─→ DatabaseSuite (database.go)
         - Purpose: Database-specific testing
         - Features: Connection management, seeding, cleanup
         - Used by: Database tests
-```
+\`\`\`
 
 ## Test Execution Modes
 
-Tests can run in different execution modes configured via YAML:
-
-### 1. Local Mode (dev.yaml)
+### 1. Local Mode (local.yaml)
 - Runs on local machine
-- Requires pre-installed dependencies
-- Fast execution
+- Fast execution  
+- Uses existing or installs dependencies locally
+- Suitable for development
+
+\`\`\`yaml
+execution:
+  mode: local
+  skip_sudo_check: true
+\`\`\`
 
 ### 2. Container Mode (container.yaml)
 - Runs in Docker container with systemd
-- Fresh environment per test
+- Fresh environment per test run
 - Auto-installs dependencies
-- Slower but isolated
+- Isolated from host system
+- Perfect for CI/CD
 
-### 3. Configuration Example
-
-```yaml
-# container.yaml
+\`\`\`yaml
 execution:
   mode: container-systemd
   container:
     os_image: "jrei/systemd-ubuntu:22.04"
     use_systemd: true
     skip_sudo_check: true
-
-postgresql:
-  version: "17"
-
-database:
-  host: localhost
-  user: postgres
-  password: postgres123
-```
-
-## Adding New Tests
-
-### For Installation/Service Tests (use E2ESuite):
-
-```go
-type MyTestSuite struct {
-    suite.E2ESuite
-}
-
-func (s *MyTestSuite) SetupSuite() {
-    s.E2ESuite.SetupSuite()
-}
-
-func (s *MyTestSuite) TestSomething() {
-    // Install dependencies automatically
-    s.EnsureMCPPackagesInstalled()
-
-    // Test...
-    s.AssertFileExists("/usr/bin/pgedge-postgres-mcp")
-}
-```
-
-### For MCP Protocol Tests (use APISuite):
-
-```go
-type MyMCPTestSuite struct {
-    suite.APISuite
-}
-
-func (s *MyMCPTestSuite) TestProtocol() {
-    s.StartMCPServer(binary, config, mcp.ModeStdio)
-    defer s.StopMCPServer()
-
-    resp, _ := s.MCPServer.Initialize(s.Ctx)
-    s.MCPAssertions.AssertValidInitializeResponse(resp)
-}
-```
-
-### For Database Tests (use DatabaseSuite):
-
-```go
-type MyDatabaseTestSuite struct {
-    suite.DatabaseSuite
-}
-
-func (s *MyDatabaseTestSuite) TestQuery() {
-    db := s.GetDB()
-    s.SeedTable("users", []string{"name"}, [][]interface{}{{"Alice"}})
-    s.AssertRowCount("users", 1)
-}
-```
+\`\`\`
 
 ## Best Practices
 
 ### 1. File Placement
 - Suite base classes → `common/suite/`
-- Shared utilities → `common/{assertions,database,http,etc}/`
+- Shared utilities → `common/{assertions,database,http,mcp}/`
 - Actual tests → `mcp-server/testcases/{category}/`
 - Configuration → `mcp-server/config/`
 
-### 2. Suite Organization
-- Split large suites across files when logical (like E2ESuite)
-- Keep public API in main file
-- Keep implementation details in separate files
-- Document file relationships clearly
-
-### 3. Installation Patterns
+### 2. Installation Patterns
 - Always use `Ensure*` methods (never direct installation)
 - Call appropriate `Ensure*` at start of each test method
 - Let framework handle dependency chains
 - Don't assume pre-installed software in container mode
 
-### 4. Documentation
-- Document file purpose at top of each file
-- Explain file relationships (see e2e.go ↔ install.go)
-- Provide usage examples in comments
-- Maintain README files for complex directories
+### 3. Configuration Management
+- Use `${VAR:-default}` for environment variables
+- Keep sensitive data in environment variables, not config files
+- Use `server_env: live/staging` to switch repositories
+
+### 4. Logging
+- Use `minimal` for CI/CD (clean output)
+- Use `detailed` for debugging
+- Use `verbose` for maximum information
 
 ## Future Enhancements
 
-Consider these improvements for future maintainers:
-
-1. **Parallel Installations**: Speed up by installing independent components concurrently
+1. **Parallel Test Execution**: Run independent tests concurrently
 2. **Installation Cache**: Reuse installed packages across test runs
-3. **Snapshot/Restore**: Save container state after installation for faster reruns
-4. **Installation Profiles**: Pre-configured sets (minimal, standard, full)
-5. **Cleanup Helpers**: Automatic uninstall for test isolation
-6. **Version Matrix Testing**: Test against multiple PostgreSQL versions
+3. **Snapshot/Restore**: Save container state after installation
+4. **Version Matrix Testing**: Test against multiple PostgreSQL versions
+5. **Remote Execution**: SSH-based executor for remote testing
 
-## Questions?
+## Documentation
 
-For questions about the framework design or organization:
-1. Check the relevant README in the component directory
-2. Look for inline comments in the code
-3. Review test examples in `testcases/examples/`
+- [README](README.md) - Main project documentation
+- [OPTIMIZATION](OPTIMIZATION.md) - Performance optimizations
+- [Test Cases](mcp-server/testcases/README.md) - Test guide

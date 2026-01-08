@@ -73,7 +73,6 @@ logging:
 
 # Reporting configuration
 reporting:
-  log_level: minimal              # minimal (summary only), detailed (all test logs)
   console: true
   json: false
   junit: false

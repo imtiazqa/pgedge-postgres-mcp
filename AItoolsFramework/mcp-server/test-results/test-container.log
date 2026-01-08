@@ -2,35 +2,30 @@
     base.go:165: Loaded configuration from: /Users/imtiaz/Documents/pgedge-postgres-mcp/AItoolsFramework/mcp-server/config/container.yaml (environment: dev)
     base.go:206: Executor initialized: container-systemd
     base.go:208: Container image: jrei/systemd-ubuntu:22.04 (systemd: true)
-    base.go:62: Test suite started at 2026-01-06T15:36:29+05:00
+    base.go:62: Test suite started at 2026-01-08T13:34:39+05:00
     e2e.go:34: E2E Suite initialized
     e2e.go:329: Installing pgEdge repository...
-    install.go:43: Installing repository on Debian/Ubuntu system...
-    install.go:58: Downloading and installing pgedge-release package...
-    install.go:60: Using repository URL: https://apt.pgedge.com/repodeb/pgedge-release_latest_all.deb
-    install.go:76: Updating package lists...
-    install.go:82: Verifying repository is available...
-    install.go:88: ✓ Debian repository installed successfully
+    install.go:44: Installing repository on Debian/Ubuntu system...
+    install.go:59: Downloading and installing pgedge-release package...
+    install.go:61: Using repository URL: https://apt.pgedge.com/repodeb/pgedge-release_latest_all.deb
+    install.go:77: Updating package lists...
+    install.go:83: Verifying repository is available...
+    install.go:89: ✓ Debian repository installed successfully
     e2e.go:349: Installing PostgreSQL...
-    install.go:150: Installing PostgreSQL 17...
-    install.go:153: Step 1: Installing PostgreSQL 17 packages
-    install.go:161: Step 2: Initializing PostgreSQL 17 database
-    install.go:230:   Starting PostgreSQL with default authentication...
-    install.go:169: Step 3: Setting postgres user password
-    install.go:178: Step 3.5: Configuring password-based authentication
-    install.go:243:   Configuring PostgreSQL md5 authentication...
-    install.go:270:   ✓ PostgreSQL authentication configured for md5
-    install.go:186: Step 4: Creating MCP database
-    install.go:201: ℹ Using existing system database: postgres
-    install.go:204: ✓ PostgreSQL installed and configured successfully
+    install.go:151: Installing PostgreSQL 17...
+    install.go:154: Step 1: Installing PostgreSQL 17 packages
+    install.go:162: Step 2: Initializing PostgreSQL 17 database
+    install.go:231:   Starting PostgreSQL with default authentication...
+    install.go:170: Step 3: Setting postgres user password
+    install.go:179: Step 3.5: Configuring password-based authentication
+    install.go:244:   Configuring PostgreSQL md5 authentication...
+    install.go:271:   ✓ PostgreSQL authentication configured for md5
+    install.go:187: Step 4: Creating MCP database
+    install.go:202: ℹ Using existing system database: postgres
+    install.go:205: ✓ PostgreSQL installed and configured successfully
     e2e.go:369: Installing MCP server packages...
-    install.go:341: Downloading dependencies.....
-    install.go:353: Downloading dependencies..
-    install.go:353: Downloading dependencies...
-    install.go:353: Downloading dependencies....
-    install.go:364: Downloading dependencies... ✓ Complete
-    install.go:367: Configuring database password...
-    install.go:379: ✓ All MCP server packages installed and configured successfully
+    install.go:375: Configuring database password...
+    install.go:387: ✓ All MCP server packages installed and configured successfully
     suite_test.go:31: MCP Server Test Suite initialized - all packages installed
 === RUN   TestMCPServerTestSuite/Test01_RepositoryInstallation
     base.go:75: Test started: TestMCPServerTestSuite/Test01_RepositoryInstallation
@@ -45,7 +40,7 @@
     repository_test.go:52:   ✓ Package pgedge-nla-web is available in repository
     repository_test.go:52:   ✓ Package pgedge-postgres-mcp-kb is available in repository
 === NAME  TestMCPServerTestSuite/Test01_RepositoryInstallation
-    base.go:92: Test PASS: TestMCPServerTestSuite/Test01_RepositoryInstallation (duration: 3.518964834s)
+    base.go:92: Test PASS: TestMCPServerTestSuite/Test01_RepositoryInstallation (duration: 3.489764542s)
 === RUN   TestMCPServerTestSuite/Test02_PostgreSQLSetup
     base.go:75: Test started: TestMCPServerTestSuite/Test02_PostgreSQLSetup
     regression_suite_test.go:35: === Test 02: PostgreSQL Setup ===
@@ -65,7 +60,7 @@
     postgresql_test.go:68: MCP database check:  (exit code: 1)
     postgresql_test.go:69: Note: MCP database may need to be created
 === NAME  TestMCPServerTestSuite/Test02_PostgreSQLSetup
-    base.go:92: Test PASS: TestMCPServerTestSuite/Test02_PostgreSQLSetup (duration: 239.427584ms)
+    base.go:92: Test PASS: TestMCPServerTestSuite/Test02_PostgreSQLSetup (duration: 318.50125ms)
 === RUN   TestMCPServerTestSuite/Test03_MCPServerInstallation
     base.go:75: Test started: TestMCPServerTestSuite/Test03_MCPServerInstallation
     regression_suite_test.go:46: === Test 03: MCP Server Installation ===
@@ -83,7 +78,7 @@
     installation_test.go:46: Testing repository installation...
     installation_test.go:64: ✓ Repository installed and available
 === NAME  TestMCPServerTestSuite/Test03_MCPServerInstallation
-    base.go:92: Test PASS: TestMCPServerTestSuite/Test03_MCPServerInstallation (duration: 978.411917ms)
+    base.go:92: Test PASS: TestMCPServerTestSuite/Test03_MCPServerInstallation (duration: 1.27129125s)
 === RUN   TestMCPServerTestSuite/Test04_InstallationValidation
     base.go:75: Test started: TestMCPServerTestSuite/Test04_InstallationValidation
     regression_suite_test.go:56: === Test 04: Installation Validation ===
@@ -100,7 +95,7 @@
     mcp_server_test.go:71: Testing MCP server environment file...
     mcp_server_test.go:86: ✓ MCP server environment file is configured
 === NAME  TestMCPServerTestSuite/Test04_InstallationValidation
-    base.go:92: Test PASS: TestMCPServerTestSuite/Test04_InstallationValidation (duration: 202.783417ms)
+    base.go:92: Test PASS: TestMCPServerTestSuite/Test04_InstallationValidation (duration: 301.222958ms)
 === RUN   TestMCPServerTestSuite/Test05_TokenManagement
     base.go:75: Test started: TestMCPServerTestSuite/Test05_TokenManagement
     regression_suite_test.go:67: === Test 05: Token Management ===
@@ -116,7 +111,7 @@
     token_test.go:38: Testing token listing...
     token_test.go:50: ✓ Token listing successful
 === NAME  TestMCPServerTestSuite/Test05_TokenManagement
-    base.go:92: Test PASS: TestMCPServerTestSuite/Test05_TokenManagement (duration: 253.045833ms)
+    base.go:92: Test PASS: TestMCPServerTestSuite/Test05_TokenManagement (duration: 401.690167ms)
 === RUN   TestMCPServerTestSuite/Test06_UserManagement
     base.go:75: Test started: TestMCPServerTestSuite/Test06_UserManagement
     regression_suite_test.go:77: === Test 06: User Management ===
@@ -131,7 +126,7 @@
     user_test.go:54: Testing user file permissions...
     user_test.go:68: ✓ User file has correct permissions
 === NAME  TestMCPServerTestSuite/Test06_UserManagement
-    base.go:92: Test PASS: TestMCPServerTestSuite/Test06_UserManagement (duration: 500.91ms)
+    base.go:92: Test PASS: TestMCPServerTestSuite/Test06_UserManagement (duration: 581.108ms)
 === RUN   TestMCPServerTestSuite/Test07_PackageFilesVerification
     base.go:75: Test started: TestMCPServerTestSuite/Test07_PackageFilesVerification
     regression_suite_test.go:87: === Test 07: Package Files Verification ===
@@ -157,7 +152,7 @@
     files_test.go:36: Testing systemd service file...
     files_test.go:49:   ✓ /usr/lib/systemd/system/pgedge-postgres-mcp.service exists with correct permissions (644)
 === NAME  TestMCPServerTestSuite/Test07_PackageFilesVerification
-    base.go:92: Test PASS: TestMCPServerTestSuite/Test07_PackageFilesVerification (duration: 811.88975ms)
+    base.go:92: Test PASS: TestMCPServerTestSuite/Test07_PackageFilesVerification (duration: 1.505193417s)
 === RUN   TestMCPServerTestSuite/Test08_ServiceManagement
     base.go:75: Test started: TestMCPServerTestSuite/Test08_ServiceManagement
     regression_suite_test.go:99: === Test 08: Service Management ===
@@ -165,7 +160,7 @@
     service_test.go:10: Testing MCP server binary...
     service_test.go:20: ✓ MCP server binary is functional
 === NAME  TestMCPServerTestSuite/Test08_ServiceManagement
-    base.go:92: Test PASS: TestMCPServerTestSuite/Test08_ServiceManagement (duration: 37.398083ms)
+    base.go:92: Test PASS: TestMCPServerTestSuite/Test08_ServiceManagement (duration: 71.881125ms)
 === RUN   TestMCPServerTestSuite/Test09_KnowledgeBuilder
     base.go:75: Test started: TestMCPServerTestSuite/Test09_KnowledgeBuilder
     regression_suite_test.go:107: === Test 09: Knowledge Builder ===
@@ -197,7 +192,7 @@
     mcp_kb_test.go:27: Testing KB builder help command...
     mcp_kb_test.go:39: ✓ KB builder help command works
 === NAME  TestMCPServerTestSuite/Test09_KnowledgeBuilder
-    base.go:92: Test PASS: TestMCPServerTestSuite/Test09_KnowledgeBuilder (duration: 174.507625ms)
+    base.go:92: Test PASS: TestMCPServerTestSuite/Test09_KnowledgeBuilder (duration: 342.964792ms)
 === RUN   TestMCPServerTestSuite/Test10_MCPServerWithKB
     base.go:75: Test started: TestMCPServerTestSuite/Test10_MCPServerWithKB
     regression_suite_test.go:117: === Test 10: MCP Server with Knowledge Base ===
@@ -208,7 +203,7 @@
     mcp_kb_test.go:60: Testing KB default database location...
     mcp_kb_test.go:74:   ℹ No default KB database found (this is normal for fresh installation)
 === NAME  TestMCPServerTestSuite/Test10_MCPServerWithKB
-    base.go:92: Test PASS: TestMCPServerTestSuite/Test10_MCPServerWithKB (duration: 155.043ms)
+    base.go:92: Test PASS: TestMCPServerTestSuite/Test10_MCPServerWithKB (duration: 297.703167ms)
 === RUN   TestMCPServerTestSuite/Test11_StdioMode
     base.go:75: Test started: TestMCPServerTestSuite/Test11_StdioMode
     regression_suite_test.go:126: === Test 11: Stdio Mode ===
@@ -219,73 +214,73 @@
     stdio_test.go:10: Testing stdio mode configuration...
     stdio_test.go:40: ✓ Stdio configuration file created
 === NAME  TestMCPServerTestSuite/Test11_StdioMode
-    base.go:92: Test PASS: TestMCPServerTestSuite/Test11_StdioMode (duration: 113.32475ms)
+    base.go:92: Test PASS: TestMCPServerTestSuite/Test11_StdioMode (duration: 235.894333ms)
 
 [96;100;1m 🧪 Test Suite Summary                                          [0m
 [106;30m  # [0m[106;30m TEST NAME                       [0m[106;30m STATUS          [0m[106;30m DURATION [0m
-[107;30m  1 [0m[107;30m Test01_RepositoryInstallation   [0m[107;30m [32m✓ PASS[0m[107;30m          [0m[107;30m   3.519s [0m
-[47;30m  2 [0m[47;30m Test02_PostgreSQLSetup          [0m[47;30m [32m✓ PASS[0m[47;30m          [0m[47;30m   0.239s [0m
-[107;30m  3 [0m[107;30m Test03_MCPServerInstallation    [0m[107;30m [32m✓ PASS[0m[107;30m          [0m[107;30m   0.978s [0m
-[47;30m  4 [0m[47;30m Test04_InstallationValidation   [0m[47;30m [32m✓ PASS[0m[47;30m          [0m[47;30m   0.203s [0m
-[107;30m  5 [0m[107;30m Test05_TokenManagement          [0m[107;30m [32m✓ PASS[0m[107;30m          [0m[107;30m   0.253s [0m
-[47;30m  6 [0m[47;30m Test06_UserManagement           [0m[47;30m [32m✓ PASS[0m[47;30m          [0m[47;30m   0.501s [0m
-[107;30m  7 [0m[107;30m Test07_PackageFilesVerification [0m[107;30m [32m✓ PASS[0m[107;30m          [0m[107;30m   0.812s [0m
-[47;30m  8 [0m[47;30m Test08_ServiceManagement        [0m[47;30m [32m✓ PASS[0m[47;30m          [0m[47;30m   0.037s [0m
-[107;30m  9 [0m[107;30m Test09_KnowledgeBuilder         [0m[107;30m [32m✓ PASS[0m[107;30m          [0m[107;30m   0.175s [0m
-[47;30m 10 [0m[47;30m Test10_MCPServerWithKB          [0m[47;30m [32m✓ PASS[0m[47;30m          [0m[47;30m   0.155s [0m
-[107;30m 11 [0m[107;30m Test11_StdioMode                [0m[107;30m [32m✓ PASS[0m[107;30m          [0m[107;30m   0.113s [0m
-[106;30m    [0m[106;30m TOTAL: 11 TESTS                 [0m[106;30m 11/11 PASSED ✨ [0m[106;30m 264.633S [0m
+[107;30m  1 [0m[107;30m Test01_RepositoryInstallation   [0m[107;30m [32m✓ PASS[0m[107;30m          [0m[107;30m   3.490s [0m
+[47;30m  2 [0m[47;30m Test02_PostgreSQLSetup          [0m[47;30m [32m✓ PASS[0m[47;30m          [0m[47;30m   0.319s [0m
+[107;30m  3 [0m[107;30m Test03_MCPServerInstallation    [0m[107;30m [32m✓ PASS[0m[107;30m          [0m[107;30m   1.271s [0m
+[47;30m  4 [0m[47;30m Test04_InstallationValidation   [0m[47;30m [32m✓ PASS[0m[47;30m          [0m[47;30m   0.301s [0m
+[107;30m  5 [0m[107;30m Test05_TokenManagement          [0m[107;30m [32m✓ PASS[0m[107;30m          [0m[107;30m   0.402s [0m
+[47;30m  6 [0m[47;30m Test06_UserManagement           [0m[47;30m [32m✓ PASS[0m[47;30m          [0m[47;30m   0.581s [0m
+[107;30m  7 [0m[107;30m Test07_PackageFilesVerification [0m[107;30m [32m✓ PASS[0m[107;30m          [0m[107;30m   1.505s [0m
+[47;30m  8 [0m[47;30m Test08_ServiceManagement        [0m[47;30m [32m✓ PASS[0m[47;30m          [0m[47;30m   0.072s [0m
+[107;30m  9 [0m[107;30m Test09_KnowledgeBuilder         [0m[107;30m [32m✓ PASS[0m[107;30m          [0m[107;30m   0.343s [0m
+[47;30m 10 [0m[47;30m Test10_MCPServerWithKB          [0m[47;30m [32m✓ PASS[0m[47;30m          [0m[47;30m   0.298s [0m
+[107;30m 11 [0m[107;30m Test11_StdioMode                [0m[107;30m [32m✓ PASS[0m[107;30m          [0m[107;30m   0.236s [0m
+[106;30m    [0m[106;30m TOTAL: 11 TESTS                 [0m[106;30m 11/11 PASSED ✨ [0m[106;30m 313.953S [0m
 
 📋 Execution Mode: [36mcontainer-systemd[0m
 🐳 OS Image: [36mjrei/systemd-ubuntu:22.04[0m
 🟢 Server Environment: [36mlive[0m
 🐘 PostgreSQL Version: [36m17[0m
 📦 Repository: [36mhttps://apt.pgedge.com/repodeb/pgedge-release_latest_all.deb[0m
-⏱️  Total Duration: [36m4m24.633s[0m
+⏱️  Total Duration: [36m5m13.953s[0m
 
---- PASS: TestMCPServerTestSuite (264.63s)
-    --- PASS: TestMCPServerTestSuite/Test01_RepositoryInstallation (3.52s)
-        --- PASS: TestMCPServerTestSuite/Test01_RepositoryInstallation/Repository_Installation (0.52s)
-        --- PASS: TestMCPServerTestSuite/Test01_RepositoryInstallation/Repository_PackageAvailability (3.00s)
-    --- PASS: TestMCPServerTestSuite/Test02_PostgreSQLSetup (0.24s)
+--- PASS: TestMCPServerTestSuite (313.95s)
+    --- PASS: TestMCPServerTestSuite/Test01_RepositoryInstallation (3.49s)
+        --- PASS: TestMCPServerTestSuite/Test01_RepositoryInstallation/Repository_Installation (0.63s)
+        --- PASS: TestMCPServerTestSuite/Test01_RepositoryInstallation/Repository_PackageAvailability (2.85s)
+    --- PASS: TestMCPServerTestSuite/Test02_PostgreSQLSetup (0.32s)
         --- PASS: TestMCPServerTestSuite/Test02_PostgreSQLSetup/PostgreSQL_Installation (0.07s)
-        --- PASS: TestMCPServerTestSuite/Test02_PostgreSQLSetup/PostgreSQL_ServiceStatus (0.05s)
-        --- PASS: TestMCPServerTestSuite/Test02_PostgreSQLSetup/PostgreSQL_DatabaseConnection (0.05s)
-        --- PASS: TestMCPServerTestSuite/Test02_PostgreSQLSetup/PostgreSQL_MCPDatabase (0.07s)
-    --- PASS: TestMCPServerTestSuite/Test03_MCPServerInstallation (0.98s)
-        --- PASS: TestMCPServerTestSuite/Test03_MCPServerInstallation/MCPServer_PackagesInstalled (0.22s)
-        --- PASS: TestMCPServerTestSuite/Test03_MCPServerInstallation/Installation_MCPPackages (0.23s)
-        --- PASS: TestMCPServerTestSuite/Test03_MCPServerInstallation/Installation_Repository (0.53s)
-    --- PASS: TestMCPServerTestSuite/Test04_InstallationValidation (0.20s)
-        --- PASS: TestMCPServerTestSuite/Test04_InstallationValidation/Installation_PackageFiles (0.08s)
-        --- PASS: TestMCPServerTestSuite/Test04_InstallationValidation/MCPServer_BinaryFunctional (0.03s)
-        --- PASS: TestMCPServerTestSuite/Test04_InstallationValidation/MCPServer_ConfigValid (0.03s)
-        --- PASS: TestMCPServerTestSuite/Test04_InstallationValidation/MCPServer_EnvironmentFile (0.07s)
-    --- PASS: TestMCPServerTestSuite/Test05_TokenManagement (0.25s)
-        --- PASS: TestMCPServerTestSuite/Test05_TokenManagement/Token_FileExists (0.10s)
+        --- PASS: TestMCPServerTestSuite/Test02_PostgreSQLSetup/PostgreSQL_ServiceStatus (0.07s)
+        --- PASS: TestMCPServerTestSuite/Test02_PostgreSQLSetup/PostgreSQL_DatabaseConnection (0.09s)
+        --- PASS: TestMCPServerTestSuite/Test02_PostgreSQLSetup/PostgreSQL_MCPDatabase (0.09s)
+    --- PASS: TestMCPServerTestSuite/Test03_MCPServerInstallation (1.27s)
+        --- PASS: TestMCPServerTestSuite/Test03_MCPServerInstallation/MCPServer_PackagesInstalled (0.34s)
+        --- PASS: TestMCPServerTestSuite/Test03_MCPServerInstallation/Installation_MCPPackages (0.31s)
+        --- PASS: TestMCPServerTestSuite/Test03_MCPServerInstallation/Installation_Repository (0.62s)
+    --- PASS: TestMCPServerTestSuite/Test04_InstallationValidation (0.30s)
+        --- PASS: TestMCPServerTestSuite/Test04_InstallationValidation/Installation_PackageFiles (0.11s)
+        --- PASS: TestMCPServerTestSuite/Test04_InstallationValidation/MCPServer_BinaryFunctional (0.04s)
+        --- PASS: TestMCPServerTestSuite/Test04_InstallationValidation/MCPServer_ConfigValid (0.06s)
+        --- PASS: TestMCPServerTestSuite/Test04_InstallationValidation/MCPServer_EnvironmentFile (0.09s)
+    --- PASS: TestMCPServerTestSuite/Test05_TokenManagement (0.40s)
+        --- PASS: TestMCPServerTestSuite/Test05_TokenManagement/Token_FileExists (0.20s)
         --- PASS: TestMCPServerTestSuite/Test05_TokenManagement/Token_CreateToken (0.12s)
-        --- PASS: TestMCPServerTestSuite/Test05_TokenManagement/Token_ListTokens (0.04s)
-    --- PASS: TestMCPServerTestSuite/Test06_UserManagement (0.50s)
-        --- PASS: TestMCPServerTestSuite/Test06_UserManagement/User_CreateUser (0.33s)
+        --- PASS: TestMCPServerTestSuite/Test05_TokenManagement/Token_ListTokens (0.08s)
+    --- PASS: TestMCPServerTestSuite/Test06_UserManagement (0.58s)
+        --- PASS: TestMCPServerTestSuite/Test06_UserManagement/User_CreateUser (0.37s)
         --- PASS: TestMCPServerTestSuite/Test06_UserManagement/User_ListUsers (0.07s)
-        --- PASS: TestMCPServerTestSuite/Test06_UserManagement/User_FilePermissions (0.11s)
-    --- PASS: TestMCPServerTestSuite/Test07_PackageFilesVerification (0.81s)
-        --- PASS: TestMCPServerTestSuite/Test07_PackageFilesVerification/Files_BinariesExist (0.20s)
-        --- PASS: TestMCPServerTestSuite/Test07_PackageFilesVerification/Files_ConfigFiles (0.32s)
-        --- PASS: TestMCPServerTestSuite/Test07_PackageFilesVerification/Files_DataDirectory (0.13s)
-        --- PASS: TestMCPServerTestSuite/Test07_PackageFilesVerification/Files_LogDirectories (0.08s)
-        --- PASS: TestMCPServerTestSuite/Test07_PackageFilesVerification/Files_SystemdService (0.07s)
-    --- PASS: TestMCPServerTestSuite/Test08_ServiceManagement (0.04s)
-        --- PASS: TestMCPServerTestSuite/Test08_ServiceManagement/Service_MCPServerBinary (0.04s)
-    --- PASS: TestMCPServerTestSuite/Test09_KnowledgeBuilder (0.17s)
-        --- PASS: TestMCPServerTestSuite/Test09_KnowledgeBuilder/KB_BuilderBinary (0.06s)
-        --- PASS: TestMCPServerTestSuite/Test09_KnowledgeBuilder/MCPKB_BuilderBinary (0.08s)
-        --- PASS: TestMCPServerTestSuite/Test09_KnowledgeBuilder/MCPKB_BuilderHelp (0.04s)
-    --- PASS: TestMCPServerTestSuite/Test10_MCPServerWithKB (0.16s)
-        --- PASS: TestMCPServerTestSuite/Test10_MCPServerWithKB/MCPKB_ConfigFile (0.06s)
-        --- PASS: TestMCPServerTestSuite/Test10_MCPServerWithKB/MCPKB_DefaultDatabaseLocation (0.10s)
-    --- PASS: TestMCPServerTestSuite/Test11_StdioMode (0.11s)
-        --- PASS: TestMCPServerTestSuite/Test11_StdioMode/Stdio_BinarySupportsStdio (0.06s)
-        --- PASS: TestMCPServerTestSuite/Test11_StdioMode/Stdio_ConfigurationFile (0.06s)
+        --- PASS: TestMCPServerTestSuite/Test06_UserManagement/User_FilePermissions (0.15s)
+    --- PASS: TestMCPServerTestSuite/Test07_PackageFilesVerification (1.51s)
+        --- PASS: TestMCPServerTestSuite/Test07_PackageFilesVerification/Files_BinariesExist (0.43s)
+        --- PASS: TestMCPServerTestSuite/Test07_PackageFilesVerification/Files_ConfigFiles (0.57s)
+        --- PASS: TestMCPServerTestSuite/Test07_PackageFilesVerification/Files_DataDirectory (0.22s)
+        --- PASS: TestMCPServerTestSuite/Test07_PackageFilesVerification/Files_LogDirectories (0.14s)
+        --- PASS: TestMCPServerTestSuite/Test07_PackageFilesVerification/Files_SystemdService (0.15s)
+    --- PASS: TestMCPServerTestSuite/Test08_ServiceManagement (0.07s)
+        --- PASS: TestMCPServerTestSuite/Test08_ServiceManagement/Service_MCPServerBinary (0.07s)
+    --- PASS: TestMCPServerTestSuite/Test09_KnowledgeBuilder (0.34s)
+        --- PASS: TestMCPServerTestSuite/Test09_KnowledgeBuilder/KB_BuilderBinary (0.13s)
+        --- PASS: TestMCPServerTestSuite/Test09_KnowledgeBuilder/MCPKB_BuilderBinary (0.14s)
+        --- PASS: TestMCPServerTestSuite/Test09_KnowledgeBuilder/MCPKB_BuilderHelp (0.07s)
+    --- PASS: TestMCPServerTestSuite/Test10_MCPServerWithKB (0.30s)
+        --- PASS: TestMCPServerTestSuite/Test10_MCPServerWithKB/MCPKB_ConfigFile (0.15s)
+        --- PASS: TestMCPServerTestSuite/Test10_MCPServerWithKB/MCPKB_DefaultDatabaseLocation (0.15s)
+    --- PASS: TestMCPServerTestSuite/Test11_StdioMode (0.24s)
+        --- PASS: TestMCPServerTestSuite/Test11_StdioMode/Stdio_BinarySupportsStdio (0.08s)
+        --- PASS: TestMCPServerTestSuite/Test11_StdioMode/Stdio_ConfigurationFile (0.15s)
 PASS
-ok  	github.com/pgedge/AItoolsFramework/mcp-server/testcases	265.829s
+ok  	github.com/pgedge/AItoolsFramework/mcp-server/testcases	315.190s

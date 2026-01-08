@@ -186,8 +186,8 @@ func (s *BaseSuite) initExecutor() {
 
 	opts := &executor.ExecutorOptions{
 		Timeout:       s.Config.Timeouts.Command,
-		LogCommands:   s.Config.Reporting.LogLevel == "detailed",
-		LogOutput:     s.Config.Reporting.LogLevel == "detailed",
+		LogCommands:   s.Config.Logging.Level == "detailed" || s.Config.Logging.LogCommands,
+		LogOutput:     s.Config.Logging.Level == "detailed" || s.Config.Logging.LogOutput,
 		SkipSudoCheck: skipSudoCheck,
 	}
 
