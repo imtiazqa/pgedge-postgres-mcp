@@ -1,24 +1,35 @@
 package testcases
 
 // ============================================================================
-// Regression Test Suite - 11 Consolidated Tests
+// Test Suite Registry - MCP Server Test Cases
 //
-// This file provides 11 large test cases that match the original regression
-// suite structure. Each test internally calls multiple granular test functions
-// to provide better modularity while maintaining the same output format.
+// This file serves as the registry and orchestrator for all test cases in the
+// MCP server test suite. It provides 11 main test cases that call granular
+// test methods defined in separate test files.
 //
-// Original Regression Tests → New Consolidated Tests:
-//   Test01_RepositoryInstallation     → Calls repository verification tests
-//   Test02_PostgreSQLSetup            → Calls PostgreSQL installation tests
-//   Test03_MCPServerInstallation      → Calls MCP package installation tests
-//   Test04_InstallationValidation     → Calls binary/config validation tests
-//   Test05_TokenManagement            → Calls token management tests
-//   Test06_UserManagement             → Calls user management tests
-//   Test07_PackageFilesVerification   → Calls file verification tests
-//   Test08_ServiceManagement          → Calls service management tests
-//   Test09_KnowledgeBuilder           → Calls KB builder tests
-//   Test10_MCPServerWithKB            → Calls MCP+KB integration tests
-//   Test11_StdioMode                  → Calls stdio mode tests
+// Purpose:
+//   - Central registry of all test cases in the suite
+//   - Maps high-level test names to granular test implementations
+//   - Provides entry points for selective or full test execution
+//   - Maintains logical test organization and execution order
+//
+// Test Case Listing:
+//   Test01_RepositoryInstallation     → Repository setup and verification
+//   Test02_PostgreSQLSetup            → PostgreSQL installation and config
+//   Test03_MCPServerInstallation      → MCP package installation
+//   Test04_InstallationValidation     → Binary and config validation
+//   Test05_TokenManagement            → Token creation and management
+//   Test06_UserManagement             → User creation and management
+//   Test07_PackageFilesVerification   → File system verification
+//   Test08_ServiceManagement          → Service lifecycle management
+//   Test09_KnowledgeBuilder           → KB builder functionality
+//   Test10_MCPServerWithKB            → MCP+KB integration testing
+//   Test11_StdioMode                  → Stdio mode with JSON-RPC
+//
+// Usage:
+//   go test -v ./testcases                    # Run all tests
+//   go test -v -run Test08 ./testcases        # Run specific test
+//   go test -v -run "Test0[1-5]" ./testcases  # Run tests 1-5
 // ============================================================================
 
 // Test01_RepositoryInstallation verifies repository installation and availability
