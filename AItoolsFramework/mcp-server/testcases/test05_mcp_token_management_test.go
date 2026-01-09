@@ -1,14 +1,26 @@
 package testcases
 
-import (
-	"fmt"
-	"strings"
-)
+import "fmt"
 
 // ============================================================================
-// Token Management Tests
+// TEST 05: Token Management Tests
 // ============================================================================
 
+// testToken_FileExists verifies token file location is accessible (runs first)
+func (s *MCPServerTestSuite) testToken_FileExists() {
+	s.T().Log("Verifying token file location accessibility...")
+
+	// Ensure packages are installed (this runs first, so install here)
+	s.EnsureMCPPackagesInstalled()
+
+	// Verify the config directory exists
+	configDir := s.Config.ConfigDir
+	s.AssertDirectoryExists(configDir)
+
+	s.T().Logf("✓ Config directory %s is accessible", configDir)
+}
+
+// testToken_CreateToken creates a new token and verifies creation
 func (s *MCPServerTestSuite) testToken_CreateToken() {
 	s.T().Log("Testing token creation...")
 
@@ -16,12 +28,13 @@ func (s *MCPServerTestSuite) testToken_CreateToken() {
 	configFile := fmt.Sprintf("%s/postgres-mcp.yaml", s.Config.ConfigDir)
 	tokenFile := fmt.Sprintf("%s/pgedge-postgres-mcp-tokens.yaml", s.Config.ConfigDir)
 
+	// Create token
 	createCmd := fmt.Sprintf("%s -config %s -add-token -token-file %s -token-note \"test-token\"",
 		mcpBinary, configFile, tokenFile)
 
 	output, exitCode, err := s.ExecCommand(createCmd)
 	s.NoError(err, "Token creation failed\nOutput: %s", output)
-	s.Equal(0, exitCode)
+	s.Equal(0, exitCode, "Token creation should succeed")
 	s.Contains(output, "Token:", "Should show generated token")
 	s.Contains(output, "Hash:", "Should show token hash")
 
@@ -29,11 +42,12 @@ func (s *MCPServerTestSuite) testToken_CreateToken() {
 	chownCmd := fmt.Sprintf("chown pgedge:pgedge %s", tokenFile)
 	output, exitCode, err = s.ExecCommand(chownCmd)
 	s.NoError(err, "Failed to set ownership on token file: %s", output)
-	s.Equal(0, exitCode, "chown failed: %s", output)
+	s.Equal(0, exitCode, "chown should succeed: %s", output)
 
 	s.T().Log("✓ Token created successfully")
 }
 
+// testToken_ListTokens lists tokens and verifies the created token exists
 func (s *MCPServerTestSuite) testToken_ListTokens() {
 	s.T().Log("Testing token listing...")
 
@@ -41,35 +55,18 @@ func (s *MCPServerTestSuite) testToken_ListTokens() {
 	configFile := fmt.Sprintf("%s/postgres-mcp.yaml", s.Config.ConfigDir)
 	tokenFile := fmt.Sprintf("%s/pgedge-postgres-mcp-tokens.yaml", s.Config.ConfigDir)
 
+	// List tokens
 	listCmd := fmt.Sprintf("%s -config %s -list-tokens -token-file %s", mcpBinary, configFile, tokenFile)
 	output, exitCode, err := s.ExecCommand(listCmd)
-	s.NoError(err)
-	s.Equal(0, exitCode)
+	s.NoError(err, "Token listing failed")
+	s.Equal(0, exitCode, "Token listing should succeed")
 	s.Contains(output, "test-token", "Should list created token")
 
-	s.T().Log("✓ Token listing successful")
-}
+	// Verify token file was created
+	output, exitCode, err = s.ExecCommand(fmt.Sprintf("test -f %s && echo 'OK'", tokenFile))
+	s.NoError(err, "Failed to check token file")
+	s.Equal(0, exitCode, "Token file check should succeed")
+	s.Contains(output, "OK", "Token file should exist")
 
-func (s *MCPServerTestSuite) testToken_FileExists() {
-	s.T().Log("Testing token file can be created...")
-
-	tokenFile := fmt.Sprintf("%s/pgedge-postgres-mcp-tokens.yaml", s.Config.ConfigDir)
-
-	// Clean up token file from previous runs to ensure fresh state
-	s.T().Log("Cleaning up token file from previous runs...")
-	s.ExecCommand(fmt.Sprintf("rm -f %s", tokenFile))
-
-	output, _, _ := s.ExecCommand(fmt.Sprintf("test -f %s && echo exists || echo missing", tokenFile))
-
-	if strings.Contains(output, "missing") {
-		s.T().Logf("  ℹ Token file doesn't exist yet (will be created on first token creation)")
-	} else {
-		s.T().Logf("  ✓ Token file already exists")
-	}
-
-	// Verify the directory exists
-	configDir := s.Config.ConfigDir
-	s.AssertDirectoryExists(configDir)
-
-	s.T().Log("✓ Token file location is accessible")
+	s.T().Log("✓ Token management working correctly")
 }

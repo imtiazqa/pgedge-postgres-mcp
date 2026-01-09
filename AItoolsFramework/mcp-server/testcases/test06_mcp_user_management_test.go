@@ -12,6 +12,9 @@ import (
 func (s *MCPServerTestSuite) testUser_CreateUser() {
 	s.T().Log("Testing user creation...")
 
+	// Ensure MCP packages are installed (this will install if not already done)
+	s.EnsureMCPPackagesInstalled()
+
 	// Create a test user using config paths
 	mcpBinary := s.Config.Binaries.MCPServer
 	configFile := fmt.Sprintf("%s/postgres-mcp.yaml", s.Config.ConfigDir)

@@ -47,6 +47,15 @@ type TestConfig struct {
 
 	// Logging configuration
 	Logging LoggingConfig `yaml:"logging"`
+
+	// Service name (MCP server systemd service)
+	ServiceName string `yaml:"service_name"`
+
+	// Server configuration
+	Server ServerConfig `yaml:"server"`
+
+	// Log directory
+	LogDir string `yaml:"log_dir"`
 }
 
 // BinariesConfig defines binary paths
@@ -255,6 +264,11 @@ type LoggingConfig struct {
 	Level       string `yaml:"level"`       // minimal, detailed, verbose
 	LogCommands bool   `yaml:"log_commands"`
 	LogOutput   bool   `yaml:"log_output"`
+}
+
+// ServerConfig defines MCP server settings
+type ServerConfig struct {
+	Port string `yaml:"port"` // Server port (e.g., "8080")
 }
 
 // GetFixturePath is a helper to get fixture paths (can be enhanced)

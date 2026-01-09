@@ -39,6 +39,14 @@ binaries:
 
 # Configuration paths
 config_dir: /etc/pgedge
+log_dir: /var/log/pgedge/postgres-mcp
+
+# Service configuration
+service_name: pgedge-postgres-mcp.service
+
+# Server configuration
+server:
+  port: "8080"
 
 # Package names for installation
 packages:

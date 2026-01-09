@@ -99,7 +99,7 @@ func (s *MCPServerTestSuite) Test08_ServiceManagement() {
 	s.T().Log("=== Test 08: Service Management ===")
 
 	// Call granular service management tests
-	s.Run("Service_MCPServerBinary", s.testService_MCPServerBinary)
+	s.Run("Service_SystemdManagement", s.testService_SystemdManagement)
 }
 
 // Test09_KnowledgeBuilder verifies knowledge base builder functionality
@@ -107,9 +107,7 @@ func (s *MCPServerTestSuite) Test09_KnowledgeBuilder() {
 	s.T().Log("=== Test 09: Knowledge Builder ===")
 
 	// Call granular KB builder tests
-	s.Run("KB_BuilderBinary", s.testKB_BuilderBinary)
-	s.Run("MCPKB_BuilderBinary", s.testMCPKB_BuilderBinary)
-	s.Run("MCPKB_BuilderHelp", s.testMCPKB_BuilderHelp)
+	s.Run("KB_BuilderInstallation", s.testKB_BuilderInstallation)
 }
 
 // Test10_MCPServerWithKB verifies MCP server integration with knowledge base
@@ -117,8 +115,7 @@ func (s *MCPServerTestSuite) Test10_MCPServerWithKB() {
 	s.T().Log("=== Test 10: MCP Server with Knowledge Base ===")
 
 	// Call granular MCP+KB integration tests
-	s.Run("MCPKB_ConfigFile", s.testMCPKB_ConfigFile)
-	s.Run("MCPKB_DefaultDatabaseLocation", s.testMCPKB_DefaultDatabaseLocation)
+	s.Run("MCPKB_Integration", s.testMCPKB_Integration)
 }
 
 // Test11_StdioMode verifies stdio mode functionality
@@ -126,6 +123,5 @@ func (s *MCPServerTestSuite) Test11_StdioMode() {
 	s.T().Log("=== Test 11: Stdio Mode ===")
 
 	// Call granular stdio mode tests
-	s.Run("Stdio_BinarySupportsStdio", s.testStdio_BinarySupportsStdio)
-	s.Run("Stdio_ConfigurationFile", s.testStdio_ConfigurationFile)
+	s.Run("Stdio_ModeWithDatabaseConnectivity", s.testStdio_ModeWithDatabaseConnectivity)
 }
